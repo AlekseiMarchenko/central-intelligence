@@ -121,75 +121,106 @@ program
 program
   .command("init <platform>")
   .description(
-    "Add Central Intelligence to an agent platform (claude, cursor, langchain)",
+    "Add Central Intelligence to an agent platform (claude, cursor, windsurf)",
   )
   .action(async (platform) => {
     const apiKey = getApiKey();
 
-    if (platform === "claude") {
-      // Add MCP server to Claude Code config
-      const claudeConfigDir = join(homedir(), ".claude");
-      const mcpConfigFile = join(claudeConfigDir, "mcp_servers.json");
+    const mcpEntry = {
+      command: "npx",
+      args: ["-y", "central-intelligence-mcp"],
+      env: {
+        CI_API_KEY: apiKey,
+      },
+    };
 
-      let mcpConfig: Record<string, unknown> = {};
-      if (existsSync(mcpConfigFile)) {
-        mcpConfig = JSON.parse(readFileSync(mcpConfigFile, "utf-8"));
+    if (platform === "claude") {
+      // Claude Code stores MCP servers in ~/.claude/settings.json under mcpServers
+      const claudeConfigDir = join(homedir(), ".claude");
+      const settingsFile = join(claudeConfigDir, "settings.json");
+
+      let settings: Record<string, unknown> = {};
+      if (existsSync(settingsFile)) {
+        settings = JSON.parse(readFileSync(settingsFile, "utf-8"));
       }
 
-      (mcpConfig as Record<string, unknown>)["central-intelligence"] = {
-        command: "npx",
-        args: ["-y", "central-intelligence-mcp"],
-        env: {
-          CI_API_KEY: apiKey,
-        },
-      };
+      if (!settings.mcpServers) {
+        settings.mcpServers = {};
+      }
+      (settings.mcpServers as Record<string, unknown>)["central-intelligence"] = mcpEntry;
 
       if (!existsSync(claudeConfigDir))
         mkdirSync(claudeConfigDir, { recursive: true });
-      writeFileSync(mcpConfigFile, JSON.stringify(mcpConfig, null, 2));
+      writeFileSync(settingsFile, JSON.stringify(settings, null, 2));
 
-      console.log(chalk.green("\nCentral Intelligence added to Claude Code!"));
-      console.log(chalk.dim("Config:"), chalk.cyan(mcpConfigFile));
+      console.log(chalk.green("\n✓ Central Intelligence added to Claude Code!\n"));
+      console.log(chalk.dim("Config:"), chalk.cyan(settingsFile));
       console.log(
-        chalk.dim("\nYour agent now has persistent memory across sessions."),
+        chalk.dim("\nRestart Claude Code to activate. Your agent will have these tools:"),
       );
-      console.log(
-        chalk.dim("Tools available: remember, recall, forget, context, share"),
-      );
+      console.log(chalk.cyan("  remember") + chalk.dim(" — store information for later"));
+      console.log(chalk.cyan("  recall") + chalk.dim("   — search past memories"));
+      console.log(chalk.cyan("  context") + chalk.dim("  — auto-load relevant context"));
+      console.log(chalk.cyan("  forget") + chalk.dim("   — delete outdated memories"));
+      console.log(chalk.cyan("  share") + chalk.dim("    — share with other agents"));
+      console.log();
     } else if (platform === "cursor") {
+      // Cursor stores MCP servers in ~/.cursor/mcp.json
       const cursorConfigDir = join(homedir(), ".cursor");
-      const mcpConfigFile = join(cursorConfigDir, "mcp_servers.json");
+      const mcpFile = join(cursorConfigDir, "mcp.json");
 
       let mcpConfig: Record<string, unknown> = {};
-      if (existsSync(mcpConfigFile)) {
-        mcpConfig = JSON.parse(readFileSync(mcpConfigFile, "utf-8"));
+      if (existsSync(mcpFile)) {
+        mcpConfig = JSON.parse(readFileSync(mcpFile, "utf-8"));
       }
 
-      (mcpConfig as Record<string, unknown>)["central-intelligence"] = {
-        command: "npx",
-        args: ["-y", "central-intelligence-mcp"],
-        env: {
-          CI_API_KEY: apiKey,
-        },
-      };
+      if (!mcpConfig.mcpServers) {
+        mcpConfig.mcpServers = {};
+      }
+      (mcpConfig.mcpServers as Record<string, unknown>)["central-intelligence"] = mcpEntry;
 
       if (!existsSync(cursorConfigDir))
         mkdirSync(cursorConfigDir, { recursive: true });
-      writeFileSync(mcpConfigFile, JSON.stringify(mcpConfig, null, 2));
+      writeFileSync(mcpFile, JSON.stringify(mcpConfig, null, 2));
 
-      console.log(chalk.green("\nCentral Intelligence added to Cursor!"));
-      console.log(chalk.dim("Config:"), chalk.cyan(mcpConfigFile));
+      console.log(chalk.green("\n✓ Central Intelligence added to Cursor!\n"));
+      console.log(chalk.dim("Config:"), chalk.cyan(mcpFile));
+      console.log(chalk.dim("\nRestart Cursor to activate."));
+      console.log();
+    } else if (platform === "windsurf") {
+      // Windsurf uses ~/.codeium/windsurf/mcp_config.json
+      const windsurfConfigDir = join(homedir(), ".codeium", "windsurf");
+      const mcpFile = join(windsurfConfigDir, "mcp_config.json");
+
+      let mcpConfig: Record<string, unknown> = {};
+      if (existsSync(mcpFile)) {
+        mcpConfig = JSON.parse(readFileSync(mcpFile, "utf-8"));
+      }
+
+      if (!mcpConfig.mcpServers) {
+        mcpConfig.mcpServers = {};
+      }
+      (mcpConfig.mcpServers as Record<string, unknown>)["central-intelligence"] = mcpEntry;
+
+      if (!existsSync(windsurfConfigDir))
+        mkdirSync(windsurfConfigDir, { recursive: true });
+      writeFileSync(mcpFile, JSON.stringify(mcpConfig, null, 2));
+
+      console.log(chalk.green("\n✓ Central Intelligence added to Windsurf!\n"));
+      console.log(chalk.dim("Config:"), chalk.cyan(mcpFile));
+      console.log(chalk.dim("\nRestart Windsurf to activate."));
+      console.log();
     } else {
       console.log(
-        chalk.yellow(`\nPlatform "${platform}" — manual setup required.\n`),
+        chalk.yellow(`\nPlatform "${platform}" — manual setup:\n`),
       );
-      console.log("Set these environment variables in your agent:");
-      console.log(chalk.cyan(`  CI_API_KEY="${apiKey}"`));
-      console.log(chalk.cyan(`  CI_API_URL="${API_BASE}"`));
+      console.log("Add this MCP server config to your platform:\n");
+      console.log(chalk.cyan(JSON.stringify({ "central-intelligence": mcpEntry }, null, 2)));
       console.log(
-        chalk.dim("\nThen use the REST API at"),
+        chalk.dim("\nOr use the REST API directly at"),
         chalk.cyan(`${API_BASE}/memories/*`),
       );
+      console.log();
     }
   });
 
