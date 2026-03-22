@@ -1,0 +1,23 @@
+{
+  "name": "central-intelligence-cli",
+  "version": "0.1.0",
+  "description": "CLI for Central Intelligence — persistent memory for AI agents",
+  "type": "module",
+  "bin": {
+    "ci": "./dist/index.js"
+  },
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "commander": "^13.0.0",
+    "chalk": "^5.4.0",
+    "ora": "^8.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "tsx": "^4.19.0",
+    "@types/node": "^22.0.0"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "central-intelligence",
+  "private": true,
+  "workspaces": [
+    "packages/api",
+    "packages/mcp-server",
+    "packages/cli"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace=packages/api",
+    "dev:mcp": "npm run dev --workspace=packages/mcp-server",
+    "build": "npm run build --workspaces",
+    "db:migrate": "npm run migrate --workspace=packages/api",
+    "db:seed": "npm run seed --workspace=packages/api"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

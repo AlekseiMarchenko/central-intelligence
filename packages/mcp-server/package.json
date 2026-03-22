@@ -1,0 +1,23 @@
+{
+  "name": "@central-intelligence/mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server for Central Intelligence — persistent memory for AI agents",
+  "type": "module",
+  "bin": {
+    "central-intelligence-mcp": "./dist/index.js"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "tsx": "^4.19.0",
+    "@types/node": "^22.0.0"
+  }
+}

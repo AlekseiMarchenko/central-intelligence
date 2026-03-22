@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en" style="color-scheme: dark;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Central Intelligence — Persistent Memory for AI Agents</title>
+  <meta name="description" content="Give your AI agents long-term memory. Store, recall, and share knowledge across sessions. Works with Claude, GPT, LangChain, and any MCP-compatible agent.">
+  <meta property="og:title" content="Central Intelligence — Agents forget. CI remembers.">
+  <meta property="og:description" content="Persistent memory for AI agents. Set up in 30 seconds.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://centralintelligence.ai">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #09090b;
+      --bg-subtle: #111114;
+      --bg-card: #16161a;
+      --border: #27272a;
+      --text: #fafafa;
+      --text-muted: #a1a1aa;
+      --text-dim: #71717a;
+      --accent: #6d5aff;
+      --accent-glow: rgba(109, 90, 255, 0.15);
+      --green: #22c55e;
+      --green-dim: rgba(34, 197, 94, 0.15);
+      --amber: #f59e0b;
+      --cyan: #06b6d4;
+      --radius: 12px;
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --mono: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    h1, h2, h3 { text-wrap: balance; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* --- Layout --- */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    section {
+      padding: 100px 0;
+    }
+
+    /* --- Nav --- */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: rgba(9, 9, 11, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    nav .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+
+    .logo {
+      font-weight: 800;
+      font-size: 18px;
+      letter-spacing: -0.5px;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .logo span { color: var(--accent); }
+
+    nav .links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    nav .links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s;
+      padding: 12px 4px;
+    }
+
+    nav .links a:hover { color: var(--text); }
+
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #5a46ef;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(109, 90, 255, 0.4);
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-subtle);
+      border-color: var(--text-dim);
+    }
+
+    /* --- Hero --- */
+    .hero {
+      padding: 160px 0 100px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 600px;
+      background: radial-gradient(ellipse, var(--accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: var(--green-dim);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--green);
+      margin-bottom: 32px;
+    }
+
+    .hero-badge::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    h1 {
+      font-size: clamp(40px, 6vw, 72px);
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1.05;
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    h1 .highlight {
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: 20px;
+      color: var(--text-muted);
+      max-width: 560px;
+      margin: 0 auto 48px;
+      line-height: 1.7;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 64px;
+    }
+
+    /* --- Terminal --- */
+    .terminal {
+      max-width: 620px;
+      margin: 0 auto;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      text-align: left;
+    }
+
+    .terminal-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: var(--bg-subtle);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .terminal-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+
+    .terminal-dot:nth-child(1) { background: #ef4444; }
+    .terminal-dot:nth-child(2) { background: #f59e0b; }
+    .terminal-dot:nth-child(3) { background: #22c55e; }
+
+    .terminal-title {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-left: auto;
+      margin-right: auto;
+      font-family: var(--mono);
+    }
+
+    .terminal-body {
+      padding: 20px 24px;
+      font-family: var(--mono);
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    .terminal-body .comment { color: var(--text-dim); }
+    .terminal-body .cmd { color: var(--green); }
+    .terminal-body .prompt { color: var(--text-dim); }
+    .terminal-body .output { color: var(--text-muted); }
+    .terminal-body .flag { color: var(--cyan); }
+
+    /* --- Problem --- */
+    .problem {
+      background: var(--bg-subtle);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .problem-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+    }
+
+    .problem h2 {
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: -1px;
+      margin-bottom: 20px;
+    }
+
+    .problem p {
+      color: var(--text-muted);
+      font-size: 17px;
+      line-height: 1.8;
+      margin-bottom: 16px;
+    }
+
+    .problem .stat {
+      display: flex;
+      gap: 40px;
+      margin-top: 32px;
+    }
+
+    .stat-item h3 {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    .stat-item p {
+      font-size: 14px;
+      color: var(--text-dim);
+      margin-bottom: 0;
+    }
+
+    .comparison {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .comparison-card {
+      padding: 20px 24px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+
+    .comparison-card.before {
+      background: rgba(239, 68, 68, 0.05);
+      border-color: rgba(239, 68, 68, 0.2);
+    }
+
+    .comparison-card.after {
+      background: rgba(34, 197, 94, 0.05);
+      border-color: rgba(34, 197, 94, 0.2);
+    }
+
+    .comparison-card .label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .comparison-card.before .label { color: #ef4444; }
+    .comparison-card.after .label { color: var(--green); }
+
+    .comparison-card p {
+      font-size: 15px;
+      margin-bottom: 0;
+    }
+
+    /* --- Features --- */
+    .features h2 {
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: -1px;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .features .subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 17px;
+      margin-bottom: 60px;
+    }
+
+    .tools-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .tool-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .tool-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    .tool-card.featured-tool {
+      grid-row: span 2;
+      padding: 36px;
+      border-color: rgba(109, 90, 255, 0.3);
+    }
+
+    .tool-card.featured-tool .tool-name {
+      font-size: 20px;
+      margin-bottom: 12px;
+    }
+
+    .tool-card.featured-tool .tool-desc {
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .tool-card.featured-tool .tool-example {
+      font-size: 13px;
+      padding: 14px 18px;
+    }
+
+    .tool-name {
+      font-family: var(--mono);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .tool-desc {
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .tool-example {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-dim);
+      background: var(--bg);
+      padding: 10px 14px;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+
+    .tools-bottom {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    /* --- Scopes --- */
+    .scopes {
+      background: var(--bg-subtle);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .scopes h2 {
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: -1px;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .scopes .subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 17px;
+      margin-bottom: 60px;
+    }
+
+    .scope-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .scope-card {
+      background: var(--bg-card);
+      padding: 28px 32px;
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 16px;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .scope-card:last-child { border-bottom: none; }
+
+    .scope-label {
+      font-family: var(--mono);
+      font-size: 14px;
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .scope-card h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .scope-card p {
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* --- Works With --- */
+    .integrations h2 {
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: -1px;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .integrations .subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 17px;
+      margin-bottom: 60px;
+    }
+
+    .integration-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .integration-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      text-align: center;
+      transition: border-color 0.2s;
+    }
+
+    .integration-item:hover { border-color: var(--text-dim); }
+
+    .integration-item .name {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .integration-item .how {
+      font-size: 12px;
+      color: var(--text-dim);
+      font-family: var(--mono);
+    }
+
+    /* --- Pricing --- */
+    .pricing h2 {
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: -1px;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .pricing .subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 17px;
+      margin-bottom: 60px;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .pricing-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 36px;
+      position: relative;
+    }
+
+    .pricing-card.featured {
+      border-color: var(--accent);
+      box-shadow: 0 0 40px var(--accent-glow);
+    }
+
+    .pricing-card .popular {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--accent);
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 16px;
+      border-radius: 100px;
+    }
+
+    .pricing-card .tier {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .pricing-card .price {
+      font-size: 48px;
+      font-weight: 800;
+      letter-spacing: -2px;
+      margin-bottom: 4px;
+    }
+
+    .pricing-card .price span {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: 0;
+    }
+
+    .pricing-card .price-desc {
+      font-size: 14px;
+      color: var(--text-dim);
+      margin-bottom: 28px;
+    }
+
+    .pricing-card ul {
+      list-style: none;
+      margin-bottom: 32px;
+    }
+
+    .pricing-card ul li {
+      font-size: 14px;
+      color: var(--text-muted);
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .pricing-card ul li::before {
+      content: '✓';
+      color: var(--green);
+      font-weight: 700;
+    }
+
+    .pricing-card .btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    /* --- CTA --- */
+    .cta {
+      text-align: center;
+      background: var(--bg-subtle);
+      border-top: 1px solid var(--border);
+    }
+
+    .cta h2 {
+      font-size: 40px;
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      margin-bottom: 16px;
+    }
+
+    .cta p {
+      font-size: 18px;
+      color: var(--text-muted);
+      margin-bottom: 40px;
+    }
+
+    .cta .terminal {
+      margin-bottom: 32px;
+    }
+
+    /* --- Footer --- */
+    footer {
+      padding: 40px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    footer .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    footer .copy {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    footer .footer-links {
+      display: flex;
+      gap: 24px;
+    }
+
+    footer .footer-links a {
+      font-size: 13px;
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: color 0.2s;
+      padding: 12px 4px;
+    }
+
+    footer .footer-links a:hover { color: var(--text-muted); }
+
+    /* --- Reduced Motion --- */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* --- Responsive --- */
+    @media (max-width: 768px) {
+      .problem-grid { grid-template-columns: 1fr; gap: 40px; }
+      .tools-grid { grid-template-columns: 1fr; }
+      .tools-bottom { grid-template-columns: 1fr; }
+      .scope-card { grid-template-columns: 1fr; }
+      .integration-grid { grid-template-columns: repeat(2, 1fr); }
+      .pricing-grid { grid-template-columns: 1fr; }
+      .hero-actions { flex-direction: column; }
+      nav .links a:not(.btn) { display: none; }
+      .problem .stat { flex-direction: column; gap: 16px; }
+      footer .container { flex-direction: column; gap: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <div class="container">
+    <a href="#" class="logo">Central<span>Intelligence</span></a>
+    <div class="links">
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="https://github.com/central-intelligence/central-intelligence">Docs</a>
+      <a href="#cta" class="btn btn-primary">Get Started</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-badge">Open for early access</div>
+    <h1>Agents forget.<br><span class="highlight">CI remembers.</span></h1>
+    <p class="hero-sub">
+      Persistent memory for AI agents. Store, recall, and share knowledge
+      across sessions. Set up in 30 seconds.
+    </p>
+    <div class="hero-actions">
+      <a href="#cta" class="btn btn-primary">Get Your API Key</a>
+      <a href="https://github.com/central-intelligence/central-intelligence" class="btn btn-secondary">View on GitHub</a>
+    </div>
+
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <span class="terminal-title">terminal</span>
+      </div>
+      <div class="terminal-body">
+        <span class="comment"># Install &amp; sign up</span><br>
+        <span class="prompt">$</span> <span class="cmd">npx central-intelligence-cli signup</span><br>
+        <span class="output">API key created and saved!</span><br><br>
+        <span class="comment"># Add to Claude Code</span><br>
+        <span class="prompt">$</span> <span class="cmd">ci init claude</span><br>
+        <span class="output">Central Intelligence added to Claude Code!</span><br>
+        <span class="output">Tools available: remember, recall, forget, context, share</span><br><br>
+        <span class="comment"># Your agent now has persistent memory ✓</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Problem -->
+<section class="problem">
+  <div class="container">
+    <div class="problem-grid">
+      <div>
+        <h2>Every agent session starts from zero</h2>
+        <p>
+          Your AI agent learns your preferences, understands your codebase,
+          figures out your architecture. Then the session ends and it
+          forgets everything.
+        </p>
+        <p>
+          Next session? Same questions. Same mistakes. Same context-building
+          from scratch. Every. Single. Time.
+        </p>
+        <div class="stat">
+          <div class="stat-item">
+            <h3>40%</h3>
+            <p>of agent session time<br>is spent re-establishing context</p>
+          </div>
+          <div class="stat-item">
+            <h3>0</h3>
+            <p>memories retained<br>between sessions by default</p>
+          </div>
+        </div>
+      </div>
+      <div class="comparison">
+        <div class="comparison-card before">
+          <div class="label">Without CI</div>
+          <p>"What framework is this project using?"</p>
+          <p>"What's your preferred code style?"</p>
+          <p>"How does the auth system work here?"</p>
+          <p style="color: var(--text-dim); font-style: italic; margin-top: 8px;">...asked every session</p>
+        </div>
+        <div class="comparison-card after">
+          <div class="label">With CI</div>
+          <p>"I recall this is a Next.js project with Tailwind. You prefer functional components and the auth uses JWT tokens stored in httpOnly cookies. Let me pick up where we left off."</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="features" id="features">
+  <div class="container">
+    <h2 style="text-align: left;">Five tools. Infinite memory.</h2>
+    <p class="subtitle" style="text-align: left; margin-left: 0;">Everything your agent needs to remember, delivered as MCP tools.</p>
+
+    <div class="tools-grid">
+      <div class="tool-card featured-tool">
+        <div class="tool-name">remember</div>
+        <div class="tool-desc">The core primitive. Store any information for later recall — user preferences, project decisions, architecture notes, debugging insights. Your agent builds institutional knowledge over time, not just within a single session.</div>
+        <div class="tool-example">"User prefers TypeScript, uses Hono for APIs, deploys to Fly.io. Auth is JWT in httpOnly cookies. Dark mode everywhere."</div>
+      </div>
+      <div class="tool-card">
+        <div class="tool-name">recall</div>
+        <div class="tool-desc">Semantic search across all stored memories. Not keyword matching — actual understanding of what you're looking for.</div>
+        <div class="tool-example">"What language does the user prefer?"</div>
+      </div>
+      <div class="tool-card">
+        <div class="tool-name">context</div>
+        <div class="tool-desc">Auto-load relevant memories for the current task. Describe what you're working on, get back everything you knew before.</div>
+        <div class="tool-example">"Working on the auth system refactor"</div>
+      </div>
+    </div>
+    <div class="tools-bottom">
+      <div class="tool-card">
+        <div class="tool-name">share</div>
+        <div class="tool-desc">Make memories available to other agents. Your coding agent learns something? Your testing agent can use it too.</div>
+        <div class="tool-example">scope: "agent" → "org"</div>
+      </div>
+      <div class="tool-card">
+        <div class="tool-name">forget</div>
+        <div class="tool-desc">Delete outdated or incorrect memories. Keep your agent's knowledge accurate and current.</div>
+        <div class="tool-example">forget("memory_abc123")</div>
+      </div>
+      <div class="tool-card">
+        <div class="tool-name">+ REST API</div>
+        <div class="tool-desc">Not using MCP? Every tool is also a REST endpoint. Works with any HTTP client, any language, any framework.</div>
+        <div class="tool-example">POST /memories/remember</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Scopes -->
+<section class="scopes">
+  <div class="container">
+    <h2>Memory that scales with your team</h2>
+    <p class="subtitle">Three scopes let you control exactly who knows what.</p>
+
+    <div class="scope-cards">
+      <div class="scope-card">
+        <div class="scope-label">scope: "agent"</div>
+        <div>
+          <h3>Agent Scope</h3>
+          <p>Private to one agent. Session continuity, personal context, learned patterns.</p>
+        </div>
+      </div>
+      <div class="scope-card">
+        <div class="scope-label">scope: "user"</div>
+        <div>
+          <h3>User Scope</h3>
+          <p>Shared across all agents serving one user. Preferences, history, consistent experience.</p>
+        </div>
+      </div>
+      <div class="scope-card">
+        <div class="scope-label">scope: "org"</div>
+        <div>
+          <h3>Org Scope</h3>
+          <p>Organization-wide knowledge. Architecture decisions, team conventions, shared context.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Integrations -->
+<section class="integrations">
+  <div class="container">
+    <h2>Works with everything</h2>
+    <p class="subtitle">One MCP server. Every agent framework.</p>
+
+    <div class="integration-grid">
+      <div class="integration-item">
+        <div class="name">Claude Code</div>
+        <div class="how">ci init claude</div>
+      </div>
+      <div class="integration-item">
+        <div class="name">Cursor</div>
+        <div class="how">ci init cursor</div>
+      </div>
+      <div class="integration-item">
+        <div class="name">LangChain</div>
+        <div class="how">REST API</div>
+      </div>
+      <div class="integration-item">
+        <div class="name">CrewAI</div>
+        <div class="how">REST API</div>
+      </div>
+      <div class="integration-item">
+        <div class="name">AutoGen</div>
+        <div class="how">REST API</div>
+      </div>
+      <div class="integration-item">
+        <div class="name">OpenAI GPTs</div>
+        <div class="how">REST API</div>
+      </div>
+      <div class="integration-item">
+        <div class="name">Windsurf</div>
+        <div class="how">MCP config</div>
+      </div>
+      <div class="integration-item">
+        <div class="name">Any MCP Client</div>
+        <div class="how">npx @ci/mcp</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Pricing -->
+<section class="pricing" id="pricing">
+  <div class="container">
+    <h2>Start free. Scale when ready.</h2>
+    <p class="subtitle">Generous free tier. No credit card required.</p>
+
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <div class="tier">Free</div>
+        <div class="price">$0</div>
+        <div class="price-desc">For solo developers</div>
+        <ul>
+          <li>500 memories</li>
+          <li>1 agent</li>
+          <li>Agent scope only</li>
+          <li>Semantic search</li>
+          <li>Community support</li>
+        </ul>
+        <a href="#cta" class="btn btn-secondary">Get Started</a>
+      </div>
+
+      <div class="pricing-card featured">
+        <div class="popular">Most Popular</div>
+        <div class="tier">Pro</div>
+        <div class="price">$29<span>/mo</span></div>
+        <div class="price-desc">For power users</div>
+        <ul>
+          <li>50,000 memories</li>
+          <li>20 agents</li>
+          <li>All scopes (agent + user + org)</li>
+          <li>Memory sharing</li>
+          <li>Priority support</li>
+        </ul>
+        <a href="#cta" class="btn btn-primary">Start Pro Trial</a>
+      </div>
+
+      <div class="pricing-card">
+        <div class="tier">Team</div>
+        <div class="price">$99<span>/mo</span></div>
+        <div class="price-desc">For teams & orgs</div>
+        <ul>
+          <li>500,000 memories</li>
+          <li>Unlimited agents</li>
+          <li>Org-wide knowledge sharing</li>
+          <li>Analytics dashboard</li>
+          <li>Dedicated support</li>
+        </ul>
+        <a href="#cta" class="btn btn-secondary">Contact Sales</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta" id="cta">
+  <div class="container">
+    <h2>Give your agent a memory</h2>
+    <p>Three commands. Thirty seconds. Permanent memory.</p>
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <span class="terminal-title">terminal</span>
+      </div>
+      <div class="terminal-body">
+        <span class="prompt">$</span> <span class="cmd">npm install -g central-intelligence-cli</span><br>
+        <span class="prompt">$</span> <span class="cmd">ci signup</span><br>
+        <span class="prompt">$</span> <span class="cmd">ci init claude</span><br><br>
+        <span class="output">✓ Your agent now remembers everything.</span>
+      </div>
+    </div>
+    <a href="https://github.com/central-intelligence/central-intelligence" class="btn btn-primary" style="font-size: 16px; padding: 14px 32px;">Get Started — It's Free</a>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <span class="copy">Central Intelligence — Agents forget. CI remembers.</span>
+    <div class="footer-links">
+      <a href="https://github.com/central-intelligence/central-intelligence">GitHub</a>
+      <a href="#">Docs</a>
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

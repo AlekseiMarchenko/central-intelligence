@@ -1,0 +1,19 @@
+app = "central-intelligence-api"
+primary_region = "iad"
+
+[build]
+
+[http_service]
+  internal_port = 3141
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+
+[checks]
+  [checks.health]
+    type = "http"
+    port = 3141
+    path = "/health"
+    interval = "10s"
+    timeout = "2s"
