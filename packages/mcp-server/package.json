@@ -1,11 +1,31 @@
 {
-  "name": "@central-intelligence/mcp-server",
-  "version": "0.1.0",
-  "description": "MCP server for Central Intelligence — persistent memory for AI agents",
+  "name": "central-intelligence-mcp",
+  "version": "0.1.1",
+  "description": "MCP server for Central Intelligence — persistent memory for AI agents. Store, recall, and share knowledge across agent sessions.",
   "type": "module",
-  "bin": {
-    "central-intelligence-mcp": "./dist/index.js"
+  "keywords": [
+    "mcp",
+    "ai",
+    "agent",
+    "memory",
+    "llm",
+    "claude",
+    "persistent-memory",
+    "central-intelligence"
+  ],
+  "author": "centralintelligence",
+  "license": "MIT",
+  "homepage": "https://centralintelligence.online",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AlekseiMarchenko/central-intelligence.git"
   },
+  "bin": {
+    "central-intelligence-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",

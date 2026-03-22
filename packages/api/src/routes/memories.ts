@@ -2,7 +2,15 @@ import { Hono } from "hono";
 import { z } from "zod";
 import * as memoriesService from "../services/memories.js";
 
-const app = new Hono();
+type Env = {
+  Variables: {
+    apiKeyId: string;
+    orgId: string | undefined;
+    tier: string;
+  };
+};
+
+const app = new Hono<Env>();
 
 // POST /memories/remember
 const rememberSchema = z.object({
@@ -24,17 +32,22 @@ app.post("/remember", async (c) => {
   const apiKeyId = c.get("apiKeyId");
   const orgId = c.get("orgId");
 
-  const memory = await memoriesService.store({
-    apiKeyId,
-    agentId: agent_id,
-    userId: user_id,
-    orgId,
-    scope,
-    content,
-    tags,
-  });
+  try {
+    const memory = await memoriesService.store({
+      apiKeyId,
+      agentId: agent_id,
+      userId: user_id,
+      orgId,
+      scope,
+      content,
+      tags,
+    });
 
-  return c.json({ memory }, 201);
+    return c.json({ memory }, 201);
+  } catch (err: any) {
+    console.error("Remember error:", err?.message || err);
+    return c.json({ error: "Failed to store memory", detail: err?.message }, 500);
+  }
 });
 
 // POST /memories/recall
@@ -58,18 +71,23 @@ app.post("/recall", async (c) => {
   const apiKeyId = c.get("apiKeyId");
   const orgId = c.get("orgId");
 
-  const memories = await memoriesService.recall({
-    apiKeyId,
-    agentId: agent_id,
-    userId: user_id,
-    orgId,
-    query,
-    scope,
-    tags,
-    limit,
-  });
+  try {
+    const memories = await memoriesService.recall({
+      apiKeyId,
+      agentId: agent_id,
+      userId: user_id,
+      orgId,
+      query,
+      scope,
+      tags,
+      limit,
+    });
 
-  return c.json({ memories });
+    return c.json({ memories });
+  } catch (err: any) {
+    console.error("Recall error:", err?.message || err);
+    return c.json({ error: "Failed to recall memories", detail: err?.message }, 500);
+  }
 });
 
 // POST /memories/context

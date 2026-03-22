@@ -4,12 +4,12 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 
-const API_BASE = process.env.CI_API_URL || "https://api.centralintelligence.ai";
+const API_BASE = process.env.CI_API_URL || "https://central-intelligence-api.fly.dev";
 const API_KEY = process.env.CI_API_KEY || "";
 
 if (!API_KEY) {
   console.error(
-    "CI_API_KEY not set. Get one at https://centralintelligence.ai or run: npx central-intelligence-cli signup",
+    "CI_API_KEY not set. Get one at https://centralintelligence.online or run: npx central-intelligence-cli signup",
   );
   process.exit(1);
 }

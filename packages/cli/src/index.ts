@@ -11,7 +11,7 @@ const CONFIG_DIR = join(homedir(), ".central-intelligence");
 const CONFIG_FILE = join(CONFIG_DIR, "config.json");
 
 const API_BASE =
-  process.env.CI_API_URL || "https://api.centralintelligence.ai";
+  process.env.CI_API_URL || "https://central-intelligence-api.fly.dev";
 
 // --- Config ---
 
@@ -138,7 +138,7 @@ program
 
       (mcpConfig as Record<string, unknown>)["central-intelligence"] = {
         command: "npx",
-        args: ["-y", "@central-intelligence/mcp-server"],
+        args: ["-y", "central-intelligence-mcp"],
         env: {
           CI_API_KEY: apiKey,
         },
@@ -167,7 +167,7 @@ program
 
       (mcpConfig as Record<string, unknown>)["central-intelligence"] = {
         command: "npx",
-        args: ["-y", "@central-intelligence/mcp-server"],
+        args: ["-y", "central-intelligence-mcp"],
         env: {
           CI_API_KEY: apiKey,
         },

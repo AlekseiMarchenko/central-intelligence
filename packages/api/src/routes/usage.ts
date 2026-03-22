@@ -1,7 +1,15 @@
 import { Hono } from "hono";
 import { sql } from "../db/connection.js";
 
-const app = new Hono();
+type Env = {
+  Variables: {
+    apiKeyId: string;
+    orgId: string | undefined;
+    tier: string;
+  };
+};
+
+const app = new Hono<Env>();
 
 // GET /usage — usage stats for current API key
 app.get("/", async (c) => {

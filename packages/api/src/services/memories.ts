@@ -38,6 +38,19 @@ interface RecallParams {
   limit?: number;
 }
 
+function cosineSimilarity(a: number[], b: number[]): number {
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dotProduct += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  const denom = Math.sqrt(normA) * Math.sqrt(normB);
+  return denom === 0 ? 0 : dotProduct / denom;
+}
+
 export async function store(params: StoreParams): Promise<Memory> {
   const {
     apiKeyId,
@@ -50,11 +63,10 @@ export async function store(params: StoreParams): Promise<Memory> {
   } = params;
 
   const vector = await embed(content);
-  const vectorStr = `[${vector.join(",")}]`;
 
   const [memory] = await sql`
     INSERT INTO memories (api_key_id, agent_id, user_id, org_id, scope, content, tags, embedding)
-    VALUES (${apiKeyId}, ${agentId}, ${userId || null}, ${orgId || null}, ${scope}, ${content}, ${tags}, ${vectorStr}::vector)
+    VALUES (${apiKeyId}, ${agentId}, ${userId || null}, ${orgId || null}, ${scope}, ${content}, ${tags}, ${JSON.stringify(vector)}::jsonb)
     RETURNING id, agent_id, user_id, org_id, scope, content, tags, created_at, updated_at
   `;
 
@@ -79,43 +91,94 @@ export async function recall(params: RecallParams): Promise<MemoryWithScore[]> {
     limit = 10,
   } = params;
 
-  const vector = await embed(query);
-  const vectorStr = `[${vector.join(",")}]`;
+  const queryVector = await embed(query);
 
-  // Build scope filter: agent always sees own memories + broader scopes they have access to
-  let scopeFilter: string;
+  // Build scope conditions using parameterized queries
+  let scopeCondition: string;
   if (scope === "org" && orgId) {
-    scopeFilter = `AND (
-      (agent_id = '${agentId}')
-      OR (scope = 'org' AND org_id = '${orgId}')
-      ${userId ? `OR (scope = 'user' AND user_id = '${userId}')` : ""}
-    )`;
+    scopeCondition = userId
+      ? `AND (agent_id = ${sql`${agentId}`} OR (scope = 'org' AND org_id = ${sql`${orgId}`}) OR (scope = 'user' AND user_id = ${sql`${userId}`}))`
+      : `AND (agent_id = ${sql`${agentId}`} OR (scope = 'org' AND org_id = ${sql`${orgId}`}))`;
   } else if (scope === "user" && userId) {
-    scopeFilter = `AND (
-      (agent_id = '${agentId}')
-      OR (scope = 'user' AND user_id = '${userId}')
-    )`;
+    scopeCondition = `AND (agent_id = ${sql`${agentId}`} OR (scope = 'user' AND user_id = ${sql`${userId}`}))`;
   } else {
-    scopeFilter = `AND agent_id = '${agentId}'`;
+    scopeCondition = `AND agent_id = ${sql`${agentId}`}`;
   }
 
-  const tagFilter =
-    tags && tags.length > 0
-      ? `AND tags && ARRAY[${tags.map((t) => `'${t}'`).join(",")}]::text[]`
-      : "";
-
-  const memories = await sql.unsafe(`
+  // Fetch candidate memories with embeddings
+  const candidates = await sql.unsafe(`
     SELECT
-      id, agent_id, user_id, org_id, scope, content, tags, created_at, updated_at,
-      1 - (embedding <=> '${vectorStr}'::vector) AS relevance_score
+      id, agent_id, user_id, org_id, scope, content, tags, embedding, created_at, updated_at
     FROM memories
     WHERE api_key_id = '${apiKeyId}'
       AND deleted_at IS NULL
-      ${scopeFilter}
-      ${tagFilter}
-    ORDER BY embedding <=> '${vectorStr}'::vector
-    LIMIT ${limit}
+      AND embedding IS NOT NULL
+      AND agent_id = '${agentId}'
+    ORDER BY created_at DESC
+    LIMIT 500
   `);
+
+  // Also fetch scope-expanded memories if needed
+  let scopeMemories: any[] = [];
+  if (scope === "org" && orgId) {
+    scopeMemories = await sql.unsafe(`
+      SELECT
+        id, agent_id, user_id, org_id, scope, content, tags, embedding, created_at, updated_at
+      FROM memories
+      WHERE api_key_id = '${apiKeyId}'
+        AND deleted_at IS NULL
+        AND embedding IS NOT NULL
+        AND scope = 'org' AND org_id = '${orgId}'
+        AND agent_id != '${agentId}'
+      ORDER BY created_at DESC
+      LIMIT 200
+    `);
+  } else if (scope === "user" && userId) {
+    scopeMemories = await sql.unsafe(`
+      SELECT
+        id, agent_id, user_id, org_id, scope, content, tags, embedding, created_at, updated_at
+      FROM memories
+      WHERE api_key_id = '${apiKeyId}'
+        AND deleted_at IS NULL
+        AND embedding IS NOT NULL
+        AND scope = 'user' AND user_id = '${userId}'
+        AND agent_id != '${agentId}'
+      ORDER BY created_at DESC
+      LIMIT 200
+    `);
+  }
+
+  const allCandidates = [...(candidates as any[]), ...(scopeMemories as any[])];
+
+  // Filter by tags if specified
+  let filtered = allCandidates;
+  if (tags && tags.length > 0) {
+    filtered = allCandidates.filter((m: any) => {
+      const memTags = m.tags || [];
+      return tags.some((t) => memTags.includes(t));
+    });
+  }
+
+  // Compute cosine similarity in app layer
+  const scored: MemoryWithScore[] = filtered.map((m: any) => {
+    const emb = typeof m.embedding === "string" ? JSON.parse(m.embedding) : m.embedding;
+    const score = cosineSimilarity(queryVector, emb);
+    return {
+      id: m.id,
+      agent_id: m.agent_id,
+      user_id: m.user_id,
+      org_id: m.org_id,
+      scope: m.scope,
+      content: m.content,
+      tags: m.tags,
+      created_at: m.created_at,
+      updated_at: m.updated_at,
+      relevance_score: Math.round(score * 1000) / 1000,
+    };
+  });
+
+  // Sort by relevance and return top results
+  scored.sort((a, b) => b.relevance_score - a.relevance_score);
 
   // Track usage
   await sql`
@@ -123,7 +186,7 @@ export async function recall(params: RecallParams): Promise<MemoryWithScore[]> {
     VALUES (${apiKeyId}, 'recall', ${agentId}, ${embeddingTokenEstimate(query)})
   `;
 
-  return memories as unknown as MemoryWithScore[];
+  return scored.slice(0, limit);
 }
 
 export async function forget(
@@ -146,10 +209,6 @@ export async function share(
   userId?: string,
   orgId?: string,
 ): Promise<boolean> {
-  const updates: Record<string, string | undefined> = { scope: targetScope };
-  if (targetScope === "user" && userId) updates.user_id = userId;
-  if (targetScope === "org" && orgId) updates.org_id = orgId;
-
   const result = await sql`
     UPDATE memories
     SET scope = ${targetScope},
