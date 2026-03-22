@@ -3,8 +3,10 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { serve } from "@hono/node-server";
 import { authMiddleware } from "./middleware/auth.js";
+import { rateLimitMiddleware, memoryLimitMiddleware } from "./middleware/ratelimit.js";
 import { memoriesRouter } from "./routes/memories.js";
 import { keysRouter } from "./routes/keys.js";
+import { usageRouter } from "./routes/usage.js";
 
 const app = new Hono();
 
@@ -29,7 +31,12 @@ app.route("/keys", keysRouter);
 
 // Protected routes
 app.use("/memories/*", authMiddleware);
+app.use("/memories/*", rateLimitMiddleware);
+app.use("/memories/*", memoryLimitMiddleware);
 app.route("/memories", memoriesRouter);
+
+app.use("/usage/*", authMiddleware);
+app.route("/usage", usageRouter);
 
 // Start server
 const port = parseInt(process.env.PORT || "3141", 10);
