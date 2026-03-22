@@ -7,6 +7,7 @@ import { rateLimitMiddleware, memoryLimitMiddleware } from "./middleware/ratelim
 import { memoriesRouter } from "./routes/memories.js";
 import { keysRouter } from "./routes/keys.js";
 import { usageRouter } from "./routes/usage.js";
+import { docsRouter } from "./routes/docs.js";
 
 const app = new Hono();
 
@@ -28,6 +29,7 @@ app.get("/health", (c) => c.json({ status: "ok" }));
 
 // Public routes (no auth)
 app.route("/keys", keysRouter);
+app.route("/docs", docsRouter);
 
 // Protected routes
 app.use("/memories/*", authMiddleware);
