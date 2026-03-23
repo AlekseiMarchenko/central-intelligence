@@ -1,6 +1,6 @@
 {
   "name": "central-intelligence-mcp",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "MCP server for Central Intelligence — persistent memory for AI agents. Store, recall, and share knowledge across agent sessions.",
   "type": "module",
   "keywords": [
@@ -13,6 +13,7 @@
     "persistent-memory",
     "central-intelligence"
   ],
+  "mcpName": "io.github.AlekseiMarchenko/central-intelligence",
   "author": "centralintelligence",
   "license": "MIT",
   "homepage": "https://centralintelligence.online",
