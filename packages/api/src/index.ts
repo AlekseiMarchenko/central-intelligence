@@ -56,6 +56,133 @@ app.get("/", (c) =>
 
 app.get("/health", (c) => c.json({ status: "ok" }));
 
+// MCP discovery — agents look for this automatically
+app.get("/.well-known/mcp", (c) =>
+  c.json({
+    name: "Central Intelligence",
+    description: "Persistent memory for AI agents. Store, recall, and share knowledge across sessions.",
+    version: "0.2.0",
+    homepage: "https://centralintelligence.online",
+    documentation: "https://central-intelligence-api.fly.dev/docs",
+    repository: "https://github.com/AlekseiMarchenko/central-intelligence",
+    transport: {
+      stdio: {
+        command: "npx",
+        args: ["central-intelligence-mcp"],
+        env: { CI_API_KEY: "your-api-key" },
+      },
+      http: {
+        base_url: "https://central-intelligence-api.fly.dev",
+        auth: "bearer",
+        x402: {
+          enabled: true,
+          base_url: "https://central-intelligence-api.fly.dev/x402",
+          price_per_call_usd: 0.001,
+          network: "base",
+          token: "USDC",
+        },
+      },
+    },
+    tools: [
+      {
+        name: "remember",
+        description: "Store information for later recall. The agent builds institutional knowledge over time.",
+        endpoint: "POST /memories/remember",
+        x402_endpoint: "POST /x402/remember",
+        input: {
+          agent_id: { type: "string", required: true, description: "Unique agent identifier" },
+          content: { type: "string", required: true, description: "The information to remember" },
+          tags: { type: "string[]", required: false, description: "Optional tags for categorization" },
+          scope: { type: "string", required: false, enum: ["agent", "user", "org"], default: "agent" },
+        },
+      },
+      {
+        name: "recall",
+        description: "Semantic search across all stored memories. Finds relevant information by meaning, not just keywords.",
+        endpoint: "POST /memories/recall",
+        x402_endpoint: "POST /x402/recall",
+        input: {
+          agent_id: { type: "string", required: true },
+          query: { type: "string", required: true, description: "Natural language search query" },
+          limit: { type: "number", required: false, default: 5 },
+        },
+      },
+      {
+        name: "context",
+        description: "Auto-load relevant memories for the current task. Describe what you're working on, get back everything relevant.",
+        endpoint: "POST /memories/context",
+        x402_endpoint: "POST /x402/context",
+        input: {
+          agent_id: { type: "string", required: true },
+          query: { type: "string", required: true, description: "Current task description" },
+        },
+      },
+      {
+        name: "forget",
+        description: "Delete a memory by ID. Keep knowledge accurate by removing outdated information.",
+        endpoint: "POST /memories/forget",
+        x402_endpoint: "POST /x402/forget",
+        input: {
+          agent_id: { type: "string", required: true },
+          memory_id: { type: "string", required: true },
+        },
+      },
+      {
+        name: "share",
+        description: "Change a memory's visibility scope. Share knowledge between agents, users, or across an organization.",
+        endpoint: "POST /memories/share",
+        x402_endpoint: "POST /x402/share",
+        input: {
+          agent_id: { type: "string", required: true },
+          memory_id: { type: "string", required: true },
+          scope: { type: "string", required: true, enum: ["agent", "user", "org"] },
+        },
+      },
+    ],
+    pricing: {
+      free_tier: { operations_per_month: 500, signup: "npx central-intelligence-cli signup" },
+      paid: { cost_per_operation_usd: 0.001, payment: "USDC on Base", deposit_address: "0x3056e50A9cAf93020544720cA186f77577982b5f" },
+      x402: { cost_per_call_usd: 0.001, network: "base", token: "USDC", no_signup_required: true },
+    },
+    npm: {
+      mcp_server: "central-intelligence-mcp",
+      cli: "central-intelligence-cli",
+    },
+  }),
+);
+
+// A2A (Agent-to-Agent) discovery — Google's agent protocol
+app.get("/.well-known/agent.json", (c) =>
+  c.json({
+    name: "Central Intelligence",
+    description: "Persistent memory-as-a-service for AI agents. Store, recall, and share knowledge across sessions with semantic search.",
+    url: "https://central-intelligence-api.fly.dev",
+    version: "0.2.0",
+    capabilities: {
+      memory: true,
+      semantic_search: true,
+      scoped_sharing: true,
+      x402_payments: true,
+    },
+    protocols: ["mcp", "rest", "x402", "a2a"],
+    endpoints: {
+      mcp_discovery: "https://central-intelligence-api.fly.dev/.well-known/mcp",
+      api_docs: "https://central-intelligence-api.fly.dev/docs",
+      api_docs_json: "https://central-intelligence-api.fly.dev/docs/json",
+      health: "https://central-intelligence-api.fly.dev/health",
+    },
+    authentication: {
+      methods: ["bearer_token", "x402"],
+      signup: "npx central-intelligence-cli signup",
+    },
+    provider: {
+      organization: "Central Intelligence",
+      url: "https://centralintelligence.online",
+      repository: "https://github.com/AlekseiMarchenko/central-intelligence",
+    },
+  }),
+);
+
 // Public routes (no auth) — IP rate limited
 app.use("/keys/*", ipRateLimitMiddleware);
 app.route("/keys", keysRouter);
