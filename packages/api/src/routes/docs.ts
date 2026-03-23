@@ -194,6 +194,198 @@ const API_SPEC = {
 // JSON docs (for agents)
 app.get("/json", (c) => c.json(API_SPEC));
 
+// OpenAPI 3.1 spec (for ChatGPT Custom GPTs, Swagger, etc.)
+app.get("/openapi.json", (c) => {
+  const baseUrl = "https://api.centralintelligence.online";
+  return c.json({
+    openapi: "3.1.0",
+    info: {
+      title: "Central Intelligence API",
+      description: "Persistent memory for AI agents. Store, recall, and share knowledge across sessions with semantic search.",
+      version: "0.2.0",
+      contact: { url: "https://centralintelligence.online" },
+      "x-logo": { url: "https://centralintelligence.online/logo.png" },
+    },
+    servers: [{ url: baseUrl, description: "Production" }],
+    paths: {
+      "/memories/remember": {
+        post: {
+          operationId: "remember",
+          summary: "Store a memory",
+          description: "Store information for later recall. Content is embedded for semantic search and persists across sessions.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["agent_id", "content"],
+                  properties: {
+                    agent_id: { type: "string", description: "Unique agent identifier" },
+                    content: { type: "string", maxLength: 10000, description: "The information to remember" },
+                    tags: { type: "array", items: { type: "string" }, description: "Tags for categorization" },
+                    scope: { type: "string", enum: ["agent", "user", "org"], default: "agent", description: "Visibility scope" },
+                    user_id: { type: "string", description: "User ID for user-scoped memories" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "201": {
+              description: "Memory stored",
+              content: { "application/json": { schema: { type: "object", properties: { memory: { type: "object", properties: { id: { type: "string" }, content: { type: "string" }, scope: { type: "string" }, tags: { type: "array", items: { type: "string" } }, created_at: { type: "string" } } } } } } },
+            },
+          },
+        },
+      },
+      "/memories/recall": {
+        post: {
+          operationId: "recall",
+          summary: "Search memories",
+          description: "Semantic search across stored memories. Finds relevant information by meaning, not just keywords.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["agent_id", "query"],
+                  properties: {
+                    agent_id: { type: "string", description: "Agent identifier" },
+                    query: { type: "string", description: "Natural language search query" },
+                    limit: { type: "integer", default: 10, minimum: 1, maximum: 50, description: "Max results" },
+                    scope: { type: "string", enum: ["agent", "user", "org"], description: "Search scope" },
+                    tags: { type: "array", items: { type: "string" }, description: "Filter by tags" },
+                    user_id: { type: "string", description: "Include user-scoped memories" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Search results",
+              content: { "application/json": { schema: { type: "object", properties: { memories: { type: "array", items: { type: "object", properties: { id: { type: "string" }, content: { type: "string" }, similarity: { type: "number" }, scope: { type: "string" }, tags: { type: "array", items: { type: "string" } }, created_at: { type: "string" } } } } } } } },
+            },
+          },
+        },
+      },
+      "/memories/context": {
+        post: {
+          operationId: "loadContext",
+          summary: "Load relevant context",
+          description: "Auto-load relevant memories for the current task. Describe what you're working on, get back everything relevant.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["agent_id", "query"],
+                  properties: {
+                    agent_id: { type: "string", description: "Agent identifier" },
+                    query: { type: "string", description: "Current task description" },
+                    user_id: { type: "string", description: "Include user-scoped memories" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Relevant memories",
+              content: { "application/json": { schema: { type: "object", properties: { memories: { type: "array", items: { type: "object", properties: { id: { type: "string" }, content: { type: "string" }, similarity: { type: "number" }, scope: { type: "string" } } } } } } } },
+            },
+          },
+        },
+      },
+      "/memories/forget": {
+        post: {
+          operationId: "forget",
+          summary: "Delete a memory",
+          description: "Delete a memory by ID. Removes outdated or incorrect information.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["agent_id", "memory_id"],
+                  properties: {
+                    agent_id: { type: "string", description: "Agent identifier" },
+                    memory_id: { type: "string", description: "ID of the memory to delete" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "Memory deleted", content: { "application/json": { schema: { type: "object", properties: { deleted: { type: "boolean" } } } } } },
+          },
+        },
+      },
+      "/memories/share": {
+        post: {
+          operationId: "shareMemory",
+          summary: "Share a memory",
+          description: "Change a memory's visibility scope. Share knowledge between agents, users, or across an organization.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["agent_id", "memory_id", "scope"],
+                  properties: {
+                    agent_id: { type: "string", description: "Agent identifier" },
+                    memory_id: { type: "string", description: "ID of the memory to share" },
+                    scope: { type: "string", enum: ["agent", "user", "org"], description: "Target visibility scope" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "Memory shared", content: { "application/json": { schema: { type: "object", properties: { shared: { type: "boolean" } } } } } },
+          },
+        },
+      },
+      "/payments/info": {
+        get: {
+          operationId: "getPaymentInfo",
+          summary: "Get pricing and deposit info",
+          description: "Public endpoint. Returns pricing, USDC deposit address, and instructions.",
+          security: [],
+          responses: {
+            "200": { description: "Payment info", content: { "application/json": { schema: { type: "object" } } } },
+          },
+        },
+      },
+      "/payments/balance": {
+        get: {
+          operationId: "getBalance",
+          summary: "Check account balance",
+          description: "Returns current USDC balance, total operations, and estimated remaining operations.",
+          responses: {
+            "200": { description: "Balance info", content: { "application/json": { schema: { type: "object", properties: { balance_usd: { type: "number" }, estimated_operations_remaining: { type: "integer" }, cost_per_operation: { type: "number" } } } } } },
+          },
+        },
+      },
+    },
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          description: "API key from npx central-intelligence-cli signup",
+        },
+      },
+    },
+    security: [{ bearerAuth: [] }],
+  });
+});
+
 // HTML docs (for developers)
 app.get("/", (c) => {
   const html = `<!DOCTYPE html>
