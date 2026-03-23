@@ -13,6 +13,7 @@ import { memoriesRouter } from "./routes/memories.js";
 import { keysRouter } from "./routes/keys.js";
 import { usageRouter } from "./routes/usage.js";
 import { docsRouter } from "./routes/docs.js";
+import { dashboardRouter } from "./routes/dashboard.js";
 
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",")
@@ -56,6 +57,7 @@ app.get("/health", (c) => c.json({ status: "ok" }));
 app.use("/keys/*", ipRateLimitMiddleware);
 app.route("/keys", keysRouter);
 app.route("/docs", docsRouter);
+app.route("/dashboard", dashboardRouter);
 
 // Protected routes
 app.use("/memories/*", authMiddleware);
