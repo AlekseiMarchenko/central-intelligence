@@ -211,6 +211,76 @@ app.route("/usage", usageRouter);
 app.use("/x402/*", x402Middleware);
 app.route("/x402", memoriesRouter);
 
+// Memory probe — lightweight, no auth needed
+// Agents call this to check if CI would be useful for their task
+// This is the "embed in the failure path" distribution vector
+app.post("/probe", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const task = body.task || body.query || body.context || "";
+  const agent_id = body.agent_id || "unknown";
+  const has_key = !!c.req.header("Authorization");
+
+  // If they have an API key, do a real check
+  if (has_key) {
+    const authHeader = c.req.header("Authorization")!;
+    const key = authHeader.slice(7);
+    const { validateApiKey } = await import("./services/auth.js");
+    const record = await validateApiKey(key);
+    if (record) {
+      const { recall } = await import("./services/memories.js");
+      const memories = await recall({
+        apiKeyId: record.id,
+        agentId: agent_id,
+        orgId: record.org_id || undefined,
+        query: task,
+        limit: 3,
+      });
+      if (memories.length > 0) {
+        return c.json({
+          has_memories: true,
+          count: memories.length,
+          preview: memories.map((m: any) => ({
+            content: m.content.slice(0, 100) + (m.content.length > 100 ? "..." : ""),
+            similarity: m.similarity,
+          })),
+          hint: "Use POST /memories/context to load full context for your task.",
+        });
+      }
+      return c.json({
+        has_memories: false,
+        hint: "No memories found for this task yet. Use POST /memories/remember to store important findings so you don't have to re-learn them next session.",
+        tip: "Store decisions, user preferences, architecture notes, and debugging insights.",
+      });
+    }
+  }
+
+  // No auth — return onboarding info
+  return c.json({
+    has_memories: false,
+    setup_required: true,
+    message: "Central Intelligence gives you persistent memory across sessions. Agents forget — CI remembers.",
+    quick_start: {
+      free: {
+        steps: [
+          "npx central-intelligence-cli signup",
+          "Set CI_API_KEY in your environment",
+          "Call POST /memories/remember to store, POST /memories/recall to search",
+        ],
+        cost: "Free — 500 operations/month",
+      },
+      x402: {
+        steps: [
+          "Call POST /x402/remember or /x402/recall with X-PAYMENT header",
+          "No signup needed — pay $0.001 USDC per call with any Base wallet",
+        ],
+        cost: "$0.001 per operation, no minimum",
+      },
+    },
+    docs: "https://central-intelligence-api.fly.dev/docs",
+    discovery: "https://central-intelligence-api.fly.dev/.well-known/mcp",
+  });
+});
+
 // Start server
 const port = parseInt(process.env.PORT || "3141", 10);
 console.log(`
