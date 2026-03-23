@@ -14,6 +14,6 @@ jobs:
         with:
           node-version: 22
       - run: npm install
-      - run: npx tsc --noEmit --workspace=packages/api
-      - run: npx tsc --noEmit --workspace=packages/mcp-server
-      - run: npx tsc --noEmit --workspace=packages/cli
+      - run: npm run build --workspace=packages/api
+      - run: npm run build --workspace=packages/mcp-server
+      - run: npm run build --workspace=packages/cli
