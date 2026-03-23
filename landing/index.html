@@ -998,6 +998,20 @@ agent = Agent(role="researcher", tools=tools)</pre>
         </div>
       </div>
 
+      <div class="integration-item" onclick="toggleSetup(this)" data-platform="lovable">
+        <div class="name">Lovable</div>
+        <div class="how">MCP connector</div>
+        <div class="setup-panel">
+          <div class="setup-step">1. In Lovable, go to <strong>Settings → Connectors → Personal connectors</strong></div>
+          <div class="setup-step">2. Click <strong>"New MCP server"</strong></div>
+          <div class="setup-step">3. Enter the server URL:</div>
+          <pre class="setup-code">https://central-intelligence-api.fly.dev/mcp</pre>
+          <div class="setup-step" style="margin-top:8px;">4. Set Auth: <strong>Bearer token</strong> with your <code>ci_sk_...</code> API key</div>
+          <div class="setup-step" style="margin-top:12px;">Your Lovable Agent now remembers everything across sessions — what framework you chose, what architecture decisions were made, what bugs were fixed.</div>
+          <a href="https://docs.lovable.dev/integrations/mcp-servers" class="btn-copy" onclick="event.stopPropagation()" target="_blank">Lovable MCP docs</a>
+        </div>
+      </div>
+
       <div class="integration-item" onclick="toggleSetup(this)" data-platform="openclaw">
         <div class="name">OpenClaw</div>
         <div class="how">Skill file</div>
