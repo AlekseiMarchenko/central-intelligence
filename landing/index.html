@@ -907,47 +907,237 @@
 </section>
 
 <!-- Integrations -->
-<section class="integrations">
+<section class="integrations" id="integrations">
   <div class="container">
     <h2>Works with everything</h2>
-    <p class="subtitle">One MCP server. Every agent framework.</p>
+    <p class="subtitle">Click any platform for setup instructions.</p>
 
     <div class="integration-grid">
-      <div class="integration-item">
+      <div class="integration-item" onclick="toggleSetup(this)" data-platform="claude">
         <div class="name">Claude Code</div>
-        <div class="how">ci init claude</div>
+        <div class="how">MCP config</div>
+        <div class="setup-panel">
+          <div class="setup-step">Run in your terminal:</div>
+          <pre class="setup-code">npx central-intelligence-cli signup
+npx central-intelligence-cli init claude</pre>
+          <div class="setup-step" style="margin-top:12px;">Or add manually to <code>~/.claude/settings.json</code>:</div>
+          <pre class="setup-code">{
+  "mcpServers": {
+    "central-intelligence": {
+      "command": "npx",
+      "args": ["central-intelligence-mcp"],
+      "env": { "CI_API_KEY": "YOUR_KEY" }
+    }
+  }
+}</pre>
+          <button class="btn-copy" onclick="event.stopPropagation();downloadConfig('claude')">Download config</button>
+        </div>
       </div>
-      <div class="integration-item">
+
+      <div class="integration-item" onclick="toggleSetup(this)" data-platform="cursor">
         <div class="name">Cursor</div>
-        <div class="how">ci init cursor</div>
+        <div class="how">MCP config</div>
+        <div class="setup-panel">
+          <div class="setup-step">Run in your terminal:</div>
+          <pre class="setup-code">npx central-intelligence-cli signup
+npx central-intelligence-cli init cursor</pre>
+          <div class="setup-step" style="margin-top:12px;">Or add to <code>~/.cursor/mcp.json</code>:</div>
+          <pre class="setup-code">{
+  "mcpServers": {
+    "central-intelligence": {
+      "command": "npx",
+      "args": ["central-intelligence-mcp"],
+      "env": { "CI_API_KEY": "YOUR_KEY" }
+    }
+  }
+}</pre>
+          <button class="btn-copy" onclick="event.stopPropagation();downloadConfig('cursor')">Download config</button>
+        </div>
       </div>
-      <div class="integration-item">
+
+      <div class="integration-item" onclick="toggleSetup(this)" data-platform="langchain">
         <div class="name">LangChain</div>
-        <div class="how">REST API</div>
+        <div class="how">pip install</div>
+        <div class="setup-panel">
+          <div class="setup-step">Install:</div>
+          <pre class="setup-code">pip install central-intelligence[langchain]</pre>
+          <div class="setup-step" style="margin-top:12px;">Use in your agent:</div>
+          <pre class="setup-code">from central_intelligence import get_ci_tools
+
+tools = get_ci_tools(api_key="ci_sk_...")
+agent = initialize_agent(tools=tools, llm=llm)</pre>
+          <a href="https://pypi.org/project/central-intelligence/" class="btn-copy" onclick="event.stopPropagation()" target="_blank">View on PyPI</a>
+        </div>
       </div>
-      <div class="integration-item">
+
+      <div class="integration-item" onclick="toggleSetup(this)" data-platform="crewai">
         <div class="name">CrewAI</div>
-        <div class="how">REST API</div>
+        <div class="how">pip install</div>
+        <div class="setup-panel">
+          <div class="setup-step">Install:</div>
+          <pre class="setup-code">pip install central-intelligence[crewai]</pre>
+          <div class="setup-step" style="margin-top:12px;">Use in your crew:</div>
+          <pre class="setup-code">from central_intelligence import get_ci_tools
+
+tools = get_ci_tools(api_key="ci_sk_...")
+agent = Agent(role="researcher", tools=tools)</pre>
+          <a href="https://pypi.org/project/central-intelligence/" class="btn-copy" onclick="event.stopPropagation()" target="_blank">View on PyPI</a>
+        </div>
       </div>
-      <div class="integration-item">
-        <div class="name">AutoGen</div>
-        <div class="how">REST API</div>
+
+      <div class="integration-item" onclick="toggleSetup(this)" data-platform="chatgpt">
+        <div class="name">ChatGPT</div>
+        <div class="how">Custom GPT</div>
+        <div class="setup-panel">
+          <div class="setup-step">1. Go to ChatGPT GPT Editor</div>
+          <div class="setup-step">2. Configure &rarr; Actions &rarr; Import from URL:</div>
+          <pre class="setup-code">https://central-intelligence-api.fly.dev/docs/openapi.json</pre>
+          <div class="setup-step" style="margin-top:8px;">3. Set Auth: API Key (Bearer) with your <code>ci_sk_...</code> key</div>
+          <div class="setup-step">4. Add to instructions: "Call loadContext at session start, remember important info."</div>
+          <a href="https://central-intelligence-api.fly.dev/docs/openapi.json" class="btn-copy" onclick="event.stopPropagation()" target="_blank">View OpenAPI spec</a>
+        </div>
       </div>
-      <div class="integration-item">
-        <div class="name">OpenAI GPTs</div>
-        <div class="how">REST API</div>
+
+      <div class="integration-item" onclick="toggleSetup(this)" data-platform="openclaw">
+        <div class="name">OpenClaw</div>
+        <div class="how">Skill file</div>
+        <div class="setup-panel">
+          <div class="setup-step">Set your API key:</div>
+          <pre class="setup-code">export CI_API_KEY=ci_sk_your_key</pre>
+          <div class="setup-step" style="margin-top:12px;">The skill is available in the OpenClaw skills repo. Agents can use remember, recall, context, forget, and share via REST calls.</div>
+          <a href="https://github.com/AlekseiMarchenko/central-intelligence/tree/main/packages/openclaw-skill" class="btn-copy" onclick="event.stopPropagation()" target="_blank">View skill file</a>
+        </div>
       </div>
-      <div class="integration-item">
+
+      <div class="integration-item" onclick="toggleSetup(this)" data-platform="windsurf">
         <div class="name">Windsurf</div>
         <div class="how">MCP config</div>
+        <div class="setup-panel">
+          <div class="setup-step">Run in your terminal:</div>
+          <pre class="setup-code">npx central-intelligence-cli signup
+npx central-intelligence-cli init windsurf</pre>
+          <div class="setup-step" style="margin-top:12px;">Or add to <code>~/.codeium/windsurf/mcp_config.json</code>:</div>
+          <pre class="setup-code">{
+  "mcpServers": {
+    "central-intelligence": {
+      "command": "npx",
+      "args": ["central-intelligence-mcp"],
+      "env": { "CI_API_KEY": "YOUR_KEY" }
+    }
+  }
+}</pre>
+          <button class="btn-copy" onclick="event.stopPropagation();downloadConfig('windsurf')">Download config</button>
+        </div>
       </div>
-      <div class="integration-item">
-        <div class="name">Any MCP Client</div>
-        <div class="how">npx @ci/mcp</div>
+
+      <div class="integration-item" onclick="toggleSetup(this)" data-platform="x402">
+        <div class="name">x402 (Any Agent)</div>
+        <div class="how">Pay &amp; use</div>
+        <div class="setup-panel">
+          <div class="setup-step">No signup needed. Any agent with a Base wallet can call:</div>
+          <pre class="setup-code">POST https://central-intelligence-api.fly.dev/x402/recall
+POST https://central-intelligence-api.fly.dev/x402/remember</pre>
+          <div class="setup-step" style="margin-top:8px;">$0.001 USDC per call. Agent pays via X-PAYMENT header. Server returns 402 with payment requirements if no payment attached.</div>
+          <a href="https://central-intelligence-api.fly.dev/docs" class="btn-copy" onclick="event.stopPropagation()" target="_blank">API docs</a>
+        </div>
       </div>
     </div>
   </div>
 </section>
+
+<style>
+  .integration-item { cursor: pointer; position: relative; }
+  .setup-panel {
+    display: none;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    text-align: left;
+  }
+  .integration-item.active .setup-panel { display: block; }
+  .integration-item.active {
+    grid-column: span 2;
+    border-color: var(--accent);
+    background: var(--bg-subtle);
+  }
+  .setup-step {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .setup-step code {
+    font-family: var(--mono);
+    background: var(--bg-card);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+  .setup-code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: var(--green);
+    overflow-x: auto;
+    white-space: pre;
+    margin: 0;
+  }
+  .btn-copy {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 8px 16px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    font-family: var(--font);
+    transition: background 0.2s;
+  }
+  .btn-copy:hover { background: #5a46ef; }
+  @media (max-width: 768px) {
+    .integration-item.active { grid-column: span 1; }
+  }
+</style>
+
+<script>
+function toggleSetup(el) {
+  const wasActive = el.classList.contains('active');
+  document.querySelectorAll('.integration-item').forEach(item => item.classList.remove('active'));
+  if (!wasActive) el.classList.add('active');
+}
+
+function downloadConfig(platform) {
+  const configs = {
+    claude: {
+      filename: 'settings.json',
+      content: JSON.stringify({ mcpServers: { "central-intelligence": { command: "npx", args: ["central-intelligence-mcp"], env: { CI_API_KEY: "YOUR_KEY_HERE" } } } }, null, 2),
+    },
+    cursor: {
+      filename: 'mcp.json',
+      content: JSON.stringify({ mcpServers: { "central-intelligence": { command: "npx", args: ["central-intelligence-mcp"], env: { CI_API_KEY: "YOUR_KEY_HERE" } } } }, null, 2),
+    },
+    windsurf: {
+      filename: 'mcp_config.json',
+      content: JSON.stringify({ mcpServers: { "central-intelligence": { command: "npx", args: ["central-intelligence-mcp"], env: { CI_API_KEY: "YOUR_KEY_HERE" } } } }, null, 2),
+    },
+  };
+  const cfg = configs[platform];
+  if (!cfg) return;
+  const blob = new Blob([cfg.content], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = cfg.filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
 
 <!-- Pricing -->
 <section class="pricing" id="pricing">
