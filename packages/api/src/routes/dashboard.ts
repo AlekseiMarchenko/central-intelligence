@@ -41,7 +41,7 @@ app.get("/login", (c) => {
   setCookie(c, "ci_oauth_state", state, { httpOnly: true, secure: true, sameSite: "Lax", maxAge: 300, path: "/dashboard" });
   const params = new URLSearchParams({
     client_id: GITHUB_CLIENT_ID(),
-    redirect_uri: `${new URL(c.req.url).origin}/dashboard/callback`,
+    redirect_uri: `https://${c.req.header("host")}/dashboard/callback`,
     scope: "read:user",
     state,
   });
