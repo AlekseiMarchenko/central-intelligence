@@ -1,6 +1,6 @@
 import type { Context, Next } from "hono";
 import { sql } from "../db/connection.js";
-import { getBalance, COST_PER_OPERATION } from "../routes/payments.js";
+import { COST_PER_OPERATION } from "../routes/payments.js";
 
 /**
  * Billing middleware — deducts from paid balance for pro+ users.
@@ -17,10 +17,30 @@ export async function billingMiddleware(c: Context, next: Next) {
     return;
   }
 
-  // Check balance for paid users
-  const balance = await getBalance(apiKeyId);
+  // Pre-authorize: insert a pending debit atomically, only if balance is sufficient.
+  // This prevents TOCTOU race conditions where concurrent requests both pass
+  // a balance check before either debit is recorded.
+  const authorized = await sql`
+    INSERT INTO payment_debits (api_key_id, event_type, amount, status)
+    SELECT ${apiKeyId}, 'pending', ${COST_PER_OPERATION}, 'pending'
+    WHERE (
+      COALESCE((SELECT SUM(amount) FROM payment_credits WHERE api_key_id = ${apiKeyId}), 0) -
+      COALESCE((SELECT SUM(amount) FROM payment_debits WHERE api_key_id = ${apiKeyId}), 0)
+    ) >= ${COST_PER_OPERATION}
+    RETURNING id
+  `;
 
-  if (balance < COST_PER_OPERATION) {
+  if (authorized.length === 0) {
+    // Balance insufficient — calculate actual balance for error message
+    const result = await sql`
+      SELECT COALESCE(
+        (SELECT SUM(amount) FROM payment_credits WHERE api_key_id = ${apiKeyId}), 0
+      ) - COALESCE(
+        (SELECT SUM(amount) FROM payment_debits WHERE api_key_id = ${apiKeyId}), 0
+      ) AS balance
+    `;
+    const balance = parseFloat(result[0].balance);
+
     return c.json(
       {
         error: "Insufficient balance",
@@ -28,16 +48,17 @@ export async function billingMiddleware(c: Context, next: Next) {
         cost_per_operation: COST_PER_OPERATION,
         deposit_info: "Send USDC on Base to 0x3056e50A9cAf93020544720cA186f77577982b5f — see GET /payments/info",
       },
-      402, // Payment Required
+      402,
     );
   }
 
-  // Process the request first
+  const debitId = authorized[0].id;
+
+  // Process the request
   await next();
 
-  // Only charge if the request succeeded (2xx)
   if (c.res.status >= 200 && c.res.status < 300) {
-    // Determine operation type from path
+    // Finalize: update the pending debit with the actual operation type
     const path = c.req.path;
     let eventType = "unknown";
     if (path.includes("/remember")) eventType = "remember";
@@ -46,15 +67,16 @@ export async function billingMiddleware(c: Context, next: Next) {
     else if (path.includes("/forget")) eventType = "forget";
     else if (path.includes("/share")) eventType = "share";
 
-    // Record the debit
     await sql`
-      INSERT INTO payment_debits (api_key_id, event_type, amount)
-      VALUES (${apiKeyId}, ${eventType}, ${COST_PER_OPERATION})
+      UPDATE payment_debits SET event_type = ${eventType}, status = 'completed'
+      WHERE id = ${debitId}
     `;
 
-    // Add balance header
-    const newBalance = balance - COST_PER_OPERATION;
-    c.header("X-Balance-USD", String(Math.round(newBalance * 1000000) / 1000000));
     c.header("X-Cost-USD", String(COST_PER_OPERATION));
+  } else {
+    // Request failed — refund by deleting the pending debit
+    await sql`
+      DELETE FROM payment_debits WHERE id = ${debitId} AND status = 'pending'
+    `;
   }
 }

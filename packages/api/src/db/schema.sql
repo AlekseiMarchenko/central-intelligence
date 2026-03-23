@@ -89,8 +89,9 @@ CREATE INDEX IF NOT EXISTS idx_payment_credits_tx_hash ON payment_credits (tx_ha
 CREATE TABLE IF NOT EXISTS payment_debits (
   id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   api_key_id   UUID NOT NULL REFERENCES api_keys(id) ON DELETE CASCADE,
-  event_type   TEXT NOT NULL,                  -- remember | recall | context | forget | share
+  event_type   TEXT NOT NULL,                  -- remember | recall | context | forget | share | pending
   amount       NUMERIC(18,6) NOT NULL DEFAULT 0.001,
+  status       TEXT NOT NULL DEFAULT 'completed',  -- pending | completed (pending used for atomic pre-auth)
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

@@ -40,22 +40,22 @@ async function verifyBaseTransaction(
   valid: boolean;
   from: string;
   amount: number;
+  confirmations?: number;
   error?: string;
 }> {
-  // Call Base RPC to get transaction receipt
-  const receiptRes = await fetch(BASE_RPC, {
+  // Batch RPC: get receipt + current block number in one call
+  const batchRes = await fetch(BASE_RPC, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method: "eth_getTransactionReceipt",
-      params: [txHash],
-    }),
+    body: JSON.stringify([
+      { jsonrpc: "2.0", id: 1, method: "eth_getTransactionReceipt", params: [txHash] },
+      { jsonrpc: "2.0", id: 2, method: "eth_blockNumber", params: [] },
+    ]),
   });
 
-  const receiptData = (await receiptRes.json()) as any;
-  const receipt = receiptData.result;
+  const batchData = (await batchRes.json()) as any[];
+  const receipt = batchData.find((r: any) => r.id === 1)?.result;
+  const currentBlockHex = batchData.find((r: any) => r.id === 2)?.result;
 
   if (!receipt) {
     return { valid: false, from: "", amount: 0, error: "Transaction not found or still pending" };
@@ -63,6 +63,14 @@ async function verifyBaseTransaction(
 
   if (receipt.status !== "0x1") {
     return { valid: false, from: "", amount: 0, error: "Transaction reverted" };
+  }
+
+  // Calculate block confirmations
+  let confirmations: number | undefined;
+  if (currentBlockHex && receipt.blockNumber) {
+    const currentBlock = parseInt(currentBlockHex, 16);
+    const txBlock = parseInt(receipt.blockNumber, 16);
+    confirmations = currentBlock - txBlock;
   }
 
   // Check for USDC Transfer event
@@ -95,7 +103,7 @@ async function verifyBaseTransaction(
     };
   }
 
-  return { valid: true, from, amount };
+  return { valid: true, from, amount, confirmations };
 }
 
 // --- Routes ---
@@ -161,14 +169,6 @@ paymentsRouter.post("/verify", async (c) => {
     return c.json({ error: "Invalid transaction hash" }, 400);
   }
 
-  // Check if already credited
-  const [existing] = await sql`
-    SELECT id FROM payment_credits WHERE tx_hash = ${tx_hash}
-  `;
-  if (existing) {
-    return c.json({ error: "Transaction already credited" }, 409);
-  }
-
   // Verify on-chain
   const result = await verifyBaseTransaction(tx_hash);
 
@@ -183,11 +183,25 @@ paymentsRouter.post("/verify", async (c) => {
     );
   }
 
-  // Credit the account
-  await sql`
+  // Require minimum 12 block confirmations to prevent reorg attacks
+  if (result.confirmations !== undefined && result.confirmations < 12) {
+    return c.json(
+      { error: `Transaction has ${result.confirmations} confirmations, need 12. Try again in ~30 seconds.` },
+      400
+    );
+  }
+
+  // Atomic insert — ON CONFLICT prevents double-credit race condition
+  const inserted = await sql`
     INSERT INTO payment_credits (api_key_id, tx_hash, from_address, amount, network)
     VALUES (${apiKeyId}, ${tx_hash}, ${result.from}, ${result.amount}, 'base')
+    ON CONFLICT (tx_hash) DO NOTHING
+    RETURNING id
   `;
+
+  if (inserted.length === 0) {
+    return c.json({ error: "Transaction already credited" }, 409);
+  }
 
   // Auto-upgrade to 'pro' tier if still on free
   const tier = c.get("tier");

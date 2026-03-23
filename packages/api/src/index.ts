@@ -14,6 +14,8 @@ import { keysRouter } from "./routes/keys.js";
 import { usageRouter } from "./routes/usage.js";
 import { docsRouter } from "./routes/docs.js";
 import { dashboardRouter } from "./routes/dashboard.js";
+import { paymentsRouter } from "./routes/payments.js";
+import { billingMiddleware } from "./middleware/billing.js";
 
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",")
@@ -63,7 +65,15 @@ app.route("/dashboard", dashboardRouter);
 app.use("/memories/*", authMiddleware);
 app.use("/memories/*", rateLimitMiddleware);
 app.use("/memories/*", memoryLimitMiddleware);
+app.use("/memories/*", billingMiddleware);
 app.route("/memories", memoriesRouter);
+
+// Payment info is public, other payment routes need auth + rate limit
+app.use("/payments/balance", authMiddleware);
+app.use("/payments/verify", authMiddleware);
+app.use("/payments/verify", rateLimitMiddleware); // prevent RPC abuse
+app.use("/payments/history", authMiddleware);
+app.route("/payments", paymentsRouter);
 
 app.use("/usage/*", authMiddleware);
 app.route("/usage", usageRouter);
