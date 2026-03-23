@@ -7,6 +7,8 @@ Persistent memory for AI agents. Store, recall, and share information across ses
 [![npm](https://img.shields.io/npm/v/central-intelligence-mcp)](https://www.npmjs.com/package/central-intelligence-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+[![Central Intelligence MCP server](https://glama.ai/mcp/servers/AlekseiMarchenko/central-intelligence/badges/card.svg)](https://glama.ai/mcp/servers/AlekseiMarchenko/central-intelligence)
+
 ## Quick Start (30 seconds)
 
 ```bash
