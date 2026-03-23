@@ -1,0 +1,34 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "central-intelligence"
+version = "0.1.0"
+description = "Persistent memory for AI agents. LangChain & CrewAI compatible tools."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [{ name = "AlekseiMarchenko" }]
+keywords = ["ai", "agents", "memory", "langchain", "crewai", "mcp", "llm"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "httpx>=0.25.0",
+    "pydantic>=2.0.0",
+]
+
+[project.optional-dependencies]
+langchain = ["langchain-core>=0.2.0"]
+crewai = ["crewai>=0.50.0"]
+all = ["langchain-core>=0.2.0", "crewai>=0.50.0"]
+
+[project.urls]
+Homepage = "https://centralintelligence.online"
+Documentation = "https://central-intelligence-api.fly.dev/docs"
+Repository = "https://github.com/AlekseiMarchenko/central-intelligence"
