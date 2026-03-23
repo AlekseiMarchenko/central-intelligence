@@ -16,6 +16,7 @@ import { docsRouter } from "./routes/docs.js";
 import { dashboardRouter } from "./routes/dashboard.js";
 import { paymentsRouter } from "./routes/payments.js";
 import { billingMiddleware } from "./middleware/billing.js";
+import { x402Middleware } from "./middleware/x402.js";
 
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",")
@@ -77,6 +78,11 @@ app.route("/payments", paymentsRouter);
 
 app.use("/usage/*", authMiddleware);
 app.route("/usage", usageRouter);
+
+// x402 routes — pay-per-call with USDC, no API key needed
+// Agents with a Base wallet can call these directly
+app.use("/x402/*", x402Middleware);
+app.route("/x402", memoriesRouter);
 
 // Start server
 const port = parseInt(process.env.PORT || "3141", 10);
