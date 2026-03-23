@@ -1025,6 +1025,65 @@
   </div>
 </section>
 
+<!-- Privacy -->
+<section id="privacy" style="padding: 80px 0 40px;">
+  <div class="container" style="max-width: 760px;">
+    <h2 style="font-size: 32px; font-weight: 700; letter-spacing: -1px; margin-bottom: 24px;">Privacy Policy</h2>
+    <p style="color: var(--text-dim); font-size: 13px; margin-bottom: 32px;">Last updated: March 23, 2026</p>
+
+    <div style="color: var(--text-muted); font-size: 15px; line-height: 1.8;">
+      <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">What we collect</h3>
+      <p>When you use Central Intelligence, we store the memories your agents create (content, tags, embeddings), your API key hash, and basic usage metadata (timestamps, operation counts). We do not collect personal information beyond what you explicitly provide during signup.</p>
+
+      <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">How we use your data</h3>
+      <p>Your memories are used solely to provide the service — storing, searching, and returning them when your agents request them. We do not sell, share, or use your memory content for training AI models. Embeddings are generated via OpenAI's API and stored alongside your memories for semantic search.</p>
+
+      <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">Data storage &amp; security</h3>
+      <p>Data is stored in PostgreSQL on Fly.io infrastructure. API keys are hashed before storage. All API communication is encrypted via TLS. We implement rate limiting, input validation, and SQL injection protection.</p>
+
+      <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">Third-party services</h3>
+      <p>We use OpenAI's embedding API to generate vector embeddings of your memories. Memory content is sent to OpenAI for embedding generation only. We use Coinbase CDP for x402 payment verification. No memory content is shared with payment processors.</p>
+
+      <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">Data deletion</h3>
+      <p>You can delete individual memories using the <code style="font-family: var(--mono); background: var(--bg-card); padding: 2px 6px; border-radius: 4px;">forget</code> tool. To delete all data associated with your API key, contact us. Soft-deleted memories are permanently purged within 30 days.</p>
+
+      <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">Contact</h3>
+      <p>For privacy questions, open an issue on <a href="https://github.com/AlekseiMarchenko/central-intelligence" style="color: var(--accent);">GitHub</a> or email the maintainers.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Terms -->
+<section id="terms" style="padding: 40px 0 80px;">
+  <div class="container" style="max-width: 760px;">
+    <h2 style="font-size: 32px; font-weight: 700; letter-spacing: -1px; margin-bottom: 24px;">Terms of Service</h2>
+    <p style="color: var(--text-dim); font-size: 13px; margin-bottom: 32px;">Last updated: March 23, 2026</p>
+
+    <div style="color: var(--text-muted); font-size: 15px; line-height: 1.8;">
+      <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">Service</h3>
+      <p>Central Intelligence provides a persistent memory API for AI agents. By using the service, you agree to these terms.</p>
+
+      <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">Acceptable use</h3>
+      <p>You may use the service for any lawful purpose. You are responsible for the content your agents store. Do not use the service to store illegal content, malware, or content that violates others' rights. Do not attempt to circumvent rate limits, exploit vulnerabilities, or interfere with the service.</p>
+
+      <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">API keys &amp; access</h3>
+      <p>You are responsible for keeping your API key secure. Do not share your API key publicly. If your key is compromised, revoke it immediately via <code style="font-family: var(--mono); background: var(--bg-card); padding: 2px 6px; border-radius: 4px;">DELETE /keys/revoke</code>. We may suspend keys that violate these terms or are used for abuse.</p>
+
+      <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">Payments</h3>
+      <p>Free tier includes 500 operations per month. Paid usage is billed at $0.001 per operation via USDC on Base network. Deposits are non-refundable. x402 payments are settled on-chain and are final.</p>
+
+      <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">Service availability</h3>
+      <p>We aim for high availability but do not guarantee uptime. The service is provided "as is" without warranties. We are not liable for data loss, downtime, or damages arising from use of the service.</p>
+
+      <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">Open source</h3>
+      <p>Central Intelligence is open source under the MIT License. You may self-host the entire stack. These terms apply only to the hosted service at central-intelligence-api.fly.dev.</p>
+
+      <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">Changes</h3>
+      <p>We may update these terms. Continued use of the service constitutes acceptance of updated terms. Material changes will be communicated via the GitHub repository.</p>
+    </div>
+  </div>
+</section>
+
 <!-- Footer -->
 <footer>
   <div class="container">
@@ -1032,8 +1091,8 @@
     <div class="footer-links">
       <a href="https://github.com/AlekseiMarchenko/central-intelligence">GitHub</a>
       <a href="https://central-intelligence-api.fly.dev/docs">Docs</a>
-      <a href="#">Privacy</a>
-      <a href="#">Terms</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#terms">Terms</a>
     </div>
   </div>
 </footer>
