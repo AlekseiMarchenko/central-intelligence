@@ -14,11 +14,11 @@ const app = new Hono<Env>();
 
 // POST /memories/remember
 const rememberSchema = z.object({
-  agent_id: z.string().min(1),
-  user_id: z.string().optional(),
+  agent_id: z.string().min(1).max(200),
+  user_id: z.string().max(200).optional(),
   content: z.string().min(1).max(10000),
   scope: z.enum(["agent", "user", "org"]).default("agent"),
-  tags: z.array(z.string()).default([]),
+  tags: z.array(z.string().max(100)).max(20).default([]),
 });
 
 app.post("/remember", async (c) => {
@@ -46,17 +46,17 @@ app.post("/remember", async (c) => {
     return c.json({ memory }, 201);
   } catch (err: any) {
     console.error("Remember error:", err?.message || err);
-    return c.json({ error: "Failed to store memory", detail: err?.message }, 500);
+    return c.json({ error: "Failed to store memory" }, 500);
   }
 });
 
 // POST /memories/recall
 const recallSchema = z.object({
-  agent_id: z.string().min(1),
-  user_id: z.string().optional(),
-  query: z.string().min(1),
+  agent_id: z.string().min(1).max(200),
+  user_id: z.string().max(200).optional(),
+  query: z.string().min(1).max(5000),
   scope: z.enum(["agent", "user", "org"]).optional(),
-  tags: z.array(z.string()).optional(),
+  tags: z.array(z.string().max(100)).max(20).optional(),
   limit: z.number().int().min(1).max(50).default(10),
 });
 
@@ -86,15 +86,15 @@ app.post("/recall", async (c) => {
     return c.json({ memories });
   } catch (err: any) {
     console.error("Recall error:", err?.message || err);
-    return c.json({ error: "Failed to recall memories", detail: err?.message }, 500);
+    return c.json({ error: "Failed to recall memories" }, 500);
   }
 });
 
 // POST /memories/context
 const contextSchema = z.object({
-  agent_id: z.string().min(1),
-  user_id: z.string().optional(),
-  current_context: z.string().min(1),
+  agent_id: z.string().min(1).max(200),
+  user_id: z.string().max(200).optional(),
+  current_context: z.string().min(1).max(5000),
   max_memories: z.number().int().min(1).max(20).default(5),
 });
 

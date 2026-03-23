@@ -17,8 +17,18 @@ const RATE_LIMITS: Record<string, number> = {
   enterprise: 3000,
 };
 
-// In-memory sliding window (resets on restart — good enough for MVP)
+// In-memory sliding window for API key rate limits
 const windows = new Map<string, { count: number; resetAt: number }>();
+
+// Periodic cleanup to prevent memory leaks from stale entries
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, window] of windows) {
+    if (now > window.resetAt + 120_000) {
+      windows.delete(key);
+    }
+  }
+}, 60_000);
 
 export async function rateLimitMiddleware(c: Context, next: Next) {
   const apiKeyId = c.get("apiKeyId") as string;
@@ -27,7 +37,7 @@ export async function rateLimitMiddleware(c: Context, next: Next) {
   // Per-minute rate limit
   const rateLimit = RATE_LIMITS[tier] || RATE_LIMITS.free;
   const now = Date.now();
-  const windowKey = apiKeyId;
+  const windowKey = `key:${apiKeyId}`;
 
   let window = windows.get(windowKey);
   if (!window || now > window.resetAt) {
@@ -93,5 +103,37 @@ export async function memoryLimitMiddleware(c: Context, next: Next) {
   }
 
   c.header("X-Memory-Usage", `${count}/${limit}`);
+  await next();
+}
+
+// IP-based rate limiting for public endpoints (key creation)
+// Strict: 5 key creations per hour per IP
+const IP_RATE_LIMIT = 5;
+const IP_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+
+export async function ipRateLimitMiddleware(c: Context, next: Next) {
+  const ip =
+    c.req.header("fly-client-ip") ||
+    c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
+    c.req.header("x-real-ip") ||
+    "unknown";
+
+  const now = Date.now();
+  const windowKey = `ip:${ip}`;
+
+  let window = windows.get(windowKey);
+  if (!window || now > window.resetAt) {
+    window = { count: 0, resetAt: now + IP_WINDOW_MS };
+    windows.set(windowKey, window);
+  }
+
+  window.count++;
+  if (window.count > IP_RATE_LIMIT) {
+    return c.json(
+      { error: "Too many key creation requests. Try again later." },
+      429,
+    );
+  }
+
   await next();
 }

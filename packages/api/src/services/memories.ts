@@ -93,59 +93,47 @@ export async function recall(params: RecallParams): Promise<MemoryWithScore[]> {
 
   const queryVector = await embed(query);
 
-  // Build scope conditions using parameterized queries
-  let scopeCondition: string;
-  if (scope === "org" && orgId) {
-    scopeCondition = userId
-      ? `AND (agent_id = ${sql`${agentId}`} OR (scope = 'org' AND org_id = ${sql`${orgId}`}) OR (scope = 'user' AND user_id = ${sql`${userId}`}))`
-      : `AND (agent_id = ${sql`${agentId}`} OR (scope = 'org' AND org_id = ${sql`${orgId}`}))`;
-  } else if (scope === "user" && userId) {
-    scopeCondition = `AND (agent_id = ${sql`${agentId}`} OR (scope = 'user' AND user_id = ${sql`${userId}`}))`;
-  } else {
-    scopeCondition = `AND agent_id = ${sql`${agentId}`}`;
-  }
-
-  // Fetch candidate memories with embeddings
-  const candidates = await sql.unsafe(`
+  // Fetch candidate memories with parameterized queries (no sql.unsafe!)
+  const candidates = await sql`
     SELECT
       id, agent_id, user_id, org_id, scope, content, tags, embedding, created_at, updated_at
     FROM memories
-    WHERE api_key_id = '${apiKeyId}'
+    WHERE api_key_id = ${apiKeyId}
       AND deleted_at IS NULL
       AND embedding IS NOT NULL
-      AND agent_id = '${agentId}'
+      AND agent_id = ${agentId}
     ORDER BY created_at DESC
     LIMIT 500
-  `);
+  `;
 
   // Also fetch scope-expanded memories if needed
   let scopeMemories: any[] = [];
   if (scope === "org" && orgId) {
-    scopeMemories = await sql.unsafe(`
+    scopeMemories = await sql`
       SELECT
         id, agent_id, user_id, org_id, scope, content, tags, embedding, created_at, updated_at
       FROM memories
-      WHERE api_key_id = '${apiKeyId}'
+      WHERE api_key_id = ${apiKeyId}
         AND deleted_at IS NULL
         AND embedding IS NOT NULL
-        AND scope = 'org' AND org_id = '${orgId}'
-        AND agent_id != '${agentId}'
+        AND scope = 'org' AND org_id = ${orgId}
+        AND agent_id != ${agentId}
       ORDER BY created_at DESC
       LIMIT 200
-    `);
+    `;
   } else if (scope === "user" && userId) {
-    scopeMemories = await sql.unsafe(`
+    scopeMemories = await sql`
       SELECT
         id, agent_id, user_id, org_id, scope, content, tags, embedding, created_at, updated_at
       FROM memories
-      WHERE api_key_id = '${apiKeyId}'
+      WHERE api_key_id = ${apiKeyId}
         AND deleted_at IS NULL
         AND embedding IS NOT NULL
-        AND scope = 'user' AND user_id = '${userId}'
-        AND agent_id != '${agentId}'
+        AND scope = 'user' AND user_id = ${userId}
+        AND agent_id != ${agentId}
       ORDER BY created_at DESC
       LIMIT 200
-    `);
+    `;
   }
 
   const allCandidates = [...(candidates as any[]), ...(scopeMemories as any[])];

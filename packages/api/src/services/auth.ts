@@ -33,6 +33,12 @@ export async function validateApiKey(
   return (record as unknown as ApiKeyRecord) || null;
 }
 
+export async function revokeApiKey(apiKeyId: string): Promise<void> {
+  await sql`
+    UPDATE api_keys SET revoked_at = now() WHERE id = ${apiKeyId}
+  `;
+}
+
 export async function createApiKey(
   name: string,
   orgId?: string,
