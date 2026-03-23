@@ -1030,14 +1030,15 @@ npx central-intelligence-cli init windsurf</pre>
         </div>
       </div>
 
-      <div class="integration-item" onclick="toggleSetup(this)" data-platform="x402">
-        <div class="name">x402 (Any Agent)</div>
-        <div class="how">Pay &amp; use</div>
+      <div class="integration-item" onclick="toggleSetup(this)" data-platform="rest">
+        <div class="name">REST API</div>
+        <div class="how">Any language</div>
         <div class="setup-panel">
-          <div class="setup-step">No signup needed. Any agent with a Base wallet can call:</div>
-          <pre class="setup-code">POST https://central-intelligence-api.fly.dev/x402/recall
-POST https://central-intelligence-api.fly.dev/x402/remember</pre>
-          <div class="setup-step" style="margin-top:8px;">$0.001 USDC per call. Agent pays via X-PAYMENT header. Server returns 402 with payment requirements if no payment attached.</div>
+          <div class="setup-step">Works with any HTTP client — Python, Node, Go, curl:</div>
+          <pre class="setup-code">curl -X POST https://central-intelligence-api.fly.dev/memories/recall \
+  -H "Authorization: Bearer ci_sk_..." \
+  -H "Content-Type: application/json" \
+  -d '{"agent_id": "my-agent", "query": "project architecture"}'</pre>
           <a href="https://central-intelligence-api.fly.dev/docs" class="btn-copy" onclick="event.stopPropagation()" target="_blank">API docs</a>
         </div>
       </div>
@@ -1232,7 +1233,7 @@ function downloadConfig(platform) {
       <p>Data is stored in PostgreSQL on Fly.io infrastructure. API keys are hashed before storage. All API communication is encrypted via TLS. We implement rate limiting, input validation, and SQL injection protection.</p>
 
       <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">Third-party services</h3>
-      <p>We use OpenAI's embedding API to generate vector embeddings of your memories. Memory content is sent to OpenAI for embedding generation only. We use Coinbase CDP for x402 payment verification. No memory content is shared with payment processors.</p>
+      <p>We use OpenAI's embedding API to generate vector embeddings of your memories. Memory content is sent to OpenAI for embedding generation only. No memory content is shared with payment processors.</p>
 
       <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">Data deletion</h3>
       <p>You can delete individual memories using the <code style="font-family: var(--mono); background: var(--bg-card); padding: 2px 6px; border-radius: 4px;">forget</code> tool. To delete all data associated with your API key, contact us. Soft-deleted memories are permanently purged within 30 days.</p>
@@ -1260,7 +1261,7 @@ function downloadConfig(platform) {
       <p>You are responsible for keeping your API key secure. Do not share your API key publicly. If your key is compromised, revoke it immediately via <code style="font-family: var(--mono); background: var(--bg-card); padding: 2px 6px; border-radius: 4px;">DELETE /keys/revoke</code>. We may suspend keys that violate these terms or are used for abuse.</p>
 
       <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">Payments</h3>
-      <p>Free tier includes 500 operations per month. Paid usage is billed at $0.001 per operation via USDC on Base network. Deposits are non-refundable. x402 payments are settled on-chain and are final.</p>
+      <p>Free tier includes 500 operations per month. Paid plans available for higher usage. See pricing section for details.</p>
 
       <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">Service availability</h3>
       <p>We aim for high availability but do not guarantee uptime. The service is provided "as is" without warranties. We are not liable for data loss, downtime, or damages arising from use of the service.</p>
