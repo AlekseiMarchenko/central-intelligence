@@ -1044,6 +1044,19 @@ npx central-intelligence-cli init windsurf</pre>
         </div>
       </div>
 
+      <div class="integration-item" onclick="toggleSetup(this)" data-platform="perplexity">
+        <div class="name">Perplexity</div>
+        <div class="how">MCP connector</div>
+        <div class="setup-panel">
+          <div class="setup-step">1. Open Perplexity → <strong>Settings → MCP → Add Custom Connector</strong></div>
+          <div class="setup-step">2. Enter the MCP server URL:</div>
+          <pre class="setup-code">npx central-intelligence-mcp</pre>
+          <div class="setup-step">3. Set authentication to <strong>API Key</strong> and enter your <code>ci_sk_...</code> key</div>
+          <div class="setup-step" style="margin-top:12px;">Your Perplexity sessions now have persistent memory — context carries over across conversations.</div>
+          <a href="https://www.perplexity.ai/help-center/en/articles/11502712-local-and-remote-mcps-for-perplexity" class="btn-copy" onclick="event.stopPropagation()" target="_blank">Perplexity MCP docs</a>
+        </div>
+      </div>
+
       <div class="integration-item" onclick="toggleSetup(this)" data-platform="rest">
         <div class="name">REST API</div>
         <div class="how">Any language</div>
