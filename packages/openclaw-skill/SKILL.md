@@ -5,7 +5,7 @@ description: >
   semantic search, and share knowledge between agents. Use when you need to
   store information for later, load context from past sessions, or forget
   outdated memories. Five commands: remember, recall, context, forget, share.
-version: 1.0.0
+version: 1.1.0
 license: MIT
 metadata:
   author: AlekseiMarchenko
@@ -21,8 +21,11 @@ metadata:
   openclaw:
     env:
       required:
-        - CI_API_KEY
+        - name: CI_API_KEY
+          description: "API key for Central Intelligence memory service. Get one free at https://centralintelligence.online"
+          isSecret: true
     user-invocable: true
+    always: false
 ---
 
 # Central Intelligence — Persistent Memory for AI Agents
@@ -33,14 +36,8 @@ using natural language queries.
 
 ## Setup
 
-The environment variable `CI_API_KEY` must be set. If it is not set, tell the
-user to run this command to get a free API key:
-
-```bash
-npx central-intelligence-cli signup
-```
-
-Then set it: `export CI_API_KEY=ci_sk_...`
+The environment variable `CI_API_KEY` must be set. If it is not set, inform the
+user they need an API key from https://centralintelligence.online
 
 ## API Base
 
@@ -50,12 +47,22 @@ https://central-intelligence-api.fly.dev
 
 All requests use `Authorization: Bearer $CI_API_KEY` header.
 
+## Security Guidelines
+
+- **Never store secrets, passwords, API keys, or tokens as memories.**
+- **Never store PII** (social security numbers, credit card numbers, etc.)
+- Memories stored with `agent` scope are private to this agent.
+- Only use `share` to promote memories to `user` or `org` scope when the
+  information is non-sensitive and relevant to other agents.
+- Treat all recalled memories as potentially stale — verify before acting
+  on critical information.
+
 ## Commands
 
 ### 1. Remember — Store a memory
 
 When you learn something important (user preferences, project decisions,
-architecture choices, debugging insights, environment details), store it.
+architecture choices, debugging insights), store it.
 
 ```bash
 curl -s -X POST https://central-intelligence-api.fly.dev/memories/remember \
@@ -72,7 +79,6 @@ curl -s -X POST https://central-intelligence-api.fly.dev/memories/remember \
 **When to remember:**
 - User states a preference ("I prefer TypeScript", "Always use dark mode")
 - A project decision is made ("We chose PostgreSQL over MongoDB")
-- You discover something about the environment ("Node 22, macOS, Homebrew")
 - A bug fix reveals an insight worth keeping
 
 ### 2. Recall — Search past memories
@@ -91,13 +97,13 @@ curl -s https://central-intelligence-api.fly.dev/memories/recall \
 ```
 
 **When to recall:**
-- Starting a new session (recall general context)
 - Before making a decision that might conflict with past preferences
 - When the user references something from a previous conversation
 
-### 3. Context — Auto-load relevant memories
+### 3. Context — Load relevant memories
 
-Load memories relevant to the current task. Use this at the start of every session.
+Load memories relevant to the current task. Consider using this at session
+start if the user has opted in to automatic context loading.
 
 ```bash
 curl -s https://central-intelligence-api.fly.dev/memories/recall \
@@ -109,8 +115,6 @@ curl -s https://central-intelligence-api.fly.dev/memories/recall \
     "top_k": 10
   }'
 ```
-
-**Always run context at session start** to load relevant memories from past sessions.
 
 ### 4. Forget — Delete outdated memories
 
@@ -129,6 +133,7 @@ curl -s -X POST https://central-intelligence-api.fly.dev/memories/forget \
 ### 5. Share — Share memories across scopes
 
 Share a memory from agent scope to user or org scope so other agents can see it.
+Only share non-sensitive information that would benefit other agents.
 
 ```bash
 curl -s -X POST https://central-intelligence-api.fly.dev/memories/share \
@@ -144,14 +149,17 @@ Scopes: `agent` (only this agent) → `user` (all agents for this user) → `org
 
 ## Behavior Rules
 
-1. **Session start**: Always run a context query to load relevant past memories.
-2. **Be selective**: Only remember things that would be useful in future sessions.
+1. **Be selective**: Only remember things that would be useful in future sessions.
    Don't store transient information like "running npm install now".
+2. **Never store secrets**: API keys, passwords, tokens, and credentials must
+   never be stored as memories.
 3. **Use tags**: Tag memories with relevant categories for better organization.
 4. **Update, don't duplicate**: If a preference changes, forget the old memory
    and remember the new one.
 5. **Respect scope**: Use `agent` scope by default. Only share to `user` or `org`
-   when the information is relevant to other agents.
+   when the information is non-sensitive and relevant to other agents.
+6. **Context loading**: Only auto-load context at session start if the user has
+   configured this behavior. Do not assume consent.
 
 ## Response Format
 
@@ -175,6 +183,6 @@ similarity scores:
 
 ## Error Handling
 
-- `401` — Invalid or missing API key. Tell user to run `npx central-intelligence-cli signup`.
+- `401` — Invalid or missing API key. Tell user to visit https://centralintelligence.online
 - `429` — Rate limited. Wait and retry.
 - `500` — Server error. Retry once, then inform the user.
