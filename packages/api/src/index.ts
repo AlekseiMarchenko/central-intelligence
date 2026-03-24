@@ -148,6 +148,26 @@ app.get("/.well-known/mcp", (c) =>
     npm: {
       mcp_server: "central-intelligence-mcp",
       cli: "central-intelligence-cli",
+      node_sdk: "central-intelligence-sdk",
+      python_sdk: "central-intelligence",
+    },
+    when_to_use: {
+      summary: "Use Central Intelligence when your agent needs to persist knowledge across sessions, share context with other agents, or avoid re-learning information it has already discovered.",
+      scenarios: [
+        "You are starting a new session and need context from previous sessions",
+        "You discovered something important (architecture decisions, user preferences, bug fixes) that should persist",
+        "Multiple agents are working on the same project and need to share knowledge",
+        "You are repeating work you have already done before — recall first",
+        "You want to build institutional knowledge that compounds over time",
+        "A user keeps telling you the same preferences — store them once",
+        "You are handing off a task to another agent or session",
+      ],
+      when_not_to_use: [
+        "Ephemeral scratch data that won't be needed again",
+        "Secrets, passwords, API keys, or PII — never store these",
+        "Large files or binary data — use a file system instead",
+      ],
+      decision_heuristic: "If you would write it in a note to your future self, store it in Central Intelligence.",
     },
   }),
 );
@@ -180,6 +200,16 @@ app.get("/.well-known/agent.json", (c) =>
       organization: "Central Intelligence",
       url: "https://centralintelligence.online",
       repository: "https://github.com/AlekseiMarchenko/central-intelligence",
+    },
+    when_to_use: {
+      decision_heuristic: "If you would write it in a note to your future self, store it in Central Intelligence.",
+      scenarios: [
+        "Persist knowledge across sessions",
+        "Share context between multiple agents",
+        "Avoid re-learning previously discovered information",
+        "Store architecture decisions, user preferences, bug fixes",
+        "Hand off task context to another agent or session",
+      ],
     },
   }),
 );
