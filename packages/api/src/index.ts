@@ -17,6 +17,7 @@ import { dashboardRouter } from "./routes/dashboard.js";
 import { paymentsRouter } from "./routes/payments.js";
 import { billingMiddleware } from "./middleware/billing.js";
 import { x402Middleware } from "./middleware/x402.js";
+import { demoRouter } from "./routes/demo.js";
 
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",")
@@ -187,6 +188,7 @@ app.get("/.well-known/agent.json", (c) =>
 app.use("/keys/*", ipRateLimitMiddleware);
 app.route("/keys", keysRouter);
 app.route("/docs", docsRouter);
+app.route("/demo", demoRouter);
 app.route("/dashboard", dashboardRouter);
 
 // Protected routes
