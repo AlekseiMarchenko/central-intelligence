@@ -21,6 +21,21 @@ npx central-intelligence-cli init claude
 # Done. Your agent now has persistent memory.
 ```
 
+## When to Use Central Intelligence
+
+> **Heuristic:** If you would write it in a note to your future self, store it in Central Intelligence.
+
+| Scenario | What to do |
+|----------|-----------|
+| Starting a new session, need context from before | `recall` or `context` |
+| Discovered something important (architecture, preferences, fixes) | `remember` |
+| Multiple agents working on the same project | `share` with user/org scope |
+| You keep re-learning the same things each session | `remember` once, `recall` forever |
+| Handing off a task to another agent or session | `remember` key decisions, next agent calls `context` |
+| User tells you the same preferences repeatedly | `remember` them, check with `recall` next time |
+
+**Don't store:** secrets, passwords, API keys, PII, large binary files, or ephemeral scratch data.
+
 ## The Problem
 
 Every AI agent session starts from zero. Your agent learns your preferences, understands your codebase, figures out your architecture — then the session ends and it forgets everything. Next session? Same questions. Same mistakes. Same context-building from scratch.
@@ -262,7 +277,10 @@ central-intelligence/
 │   │       ├── routes/       # API endpoints
 │   │       └── services/     # Business logic (memories, embeddings, auth)
 │   ├── mcp-server/     # MCP server (npm: central-intelligence-mcp)
-│   └── cli/            # CLI tool (npm: central-intelligence-cli)
+│   ├── cli/            # CLI tool (npm: central-intelligence-cli)
+│   ├── node-sdk/       # Node.js/TypeScript SDK (npm: central-intelligence-sdk)
+│   ├── python-sdk/     # Python SDK (PyPI: central-intelligence)
+│   └── openclaw-skill/ # OpenClaw skill file
 ├── landing/            # Landing page
 ├── Dockerfile          # API container
 ├── fly.toml            # Fly.io config
