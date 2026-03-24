@@ -1004,15 +1004,18 @@ agent = Agent(role="researcher", tools=tools)</pre>
         </div>
       </div>
 
-      <div class="integration-item" onclick="toggleSetup(this)" data-platform="chatgpt">
-        <div class="name">ChatGPT</div>
-        <div class="how">Custom GPT</div>
+      <div class="integration-item" onclick="toggleSetup(this)" data-platform="openai">
+        <div class="name">OpenAI</div>
+        <div class="how">ChatGPT + Codex</div>
         <div class="setup-panel">
-          <div class="setup-step">1. Go to ChatGPT GPT Editor</div>
-          <div class="setup-step">2. Configure &rarr; Actions &rarr; Import from URL:</div>
+          <div class="setup-step"><strong>ChatGPT — Custom GPT Actions:</strong></div>
+          <div class="setup-step">1. GPT Editor → Configure → Actions → Import from URL:</div>
           <pre class="setup-code">https://central-intelligence-api.fly.dev/docs/openapi.json</pre>
-          <div class="setup-step" style="margin-top:8px;">3. Set Auth: API Key (Bearer) with your <code>ci_sk_...</code> key</div>
-          <div class="setup-step">4. Add to instructions: "Call loadContext at session start, remember important info."</div>
+          <div class="setup-step" style="margin-top:8px;">2. Set Auth: API Key (Bearer) with your <code>ci_sk_...</code> key</div>
+          <div class="setup-step" style="margin-top:16px;"><strong>Codex CLI — MCP server:</strong></div>
+          <pre class="setup-code">codex mcp add central-intelligence \
+  --env CI_API_KEY="ci_sk_..." \
+  -- npx central-intelligence-mcp</pre>
           <a href="https://central-intelligence-api.fly.dev/docs/openapi.json" class="btn-copy" onclick="event.stopPropagation()" target="_blank">View OpenAPI spec</a>
         </div>
       </div>
