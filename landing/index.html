@@ -985,6 +985,25 @@ agent = Agent(role="researcher", tools=tools)</pre>
         </div>
       </div>
 
+      <div class="integration-item" onclick="toggleSetup(this)" data-platform="copilot">
+        <div class="name">GitHub Copilot</div>
+        <div class="how">MCP server</div>
+        <div class="setup-panel">
+          <div class="setup-step">In VS Code, add to <code>.vscode/mcp.json</code>:</div>
+          <pre class="setup-code">{
+  "servers": {
+    "central-intelligence": {
+      "command": "npx",
+      "args": ["central-intelligence-mcp"],
+      "env": { "CI_API_KEY": "YOUR_KEY" }
+    }
+  }
+}</pre>
+          <div class="setup-step" style="margin-top:12px;">Copilot Agent Mode will automatically discover CI's tools — remember, recall, context, forget, and share.</div>
+          <button class="btn-copy" onclick="event.stopPropagation();downloadConfig('copilot')">Download config</button>
+        </div>
+      </div>
+
       <div class="integration-item" onclick="toggleSetup(this)" data-platform="chatgpt">
         <div class="name">ChatGPT</div>
         <div class="how">Custom GPT</div>
