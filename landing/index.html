@@ -1012,6 +1012,24 @@ agent = Agent(role="researcher", tools=tools)</pre>
         </div>
       </div>
 
+      <div class="integration-item" onclick="toggleSetup(this)" data-platform="antigravity">
+        <div class="name">Antigravity</div>
+        <div class="how">MCP server</div>
+        <div class="setup-panel">
+          <div class="setup-step">1. Open Antigravity → <strong>Settings → MCP Servers → Add Server</strong></div>
+          <div class="setup-step">2. Add the server config:</div>
+          <pre class="setup-code">{
+  "central-intelligence": {
+    "command": "npx",
+    "args": ["central-intelligence-mcp"],
+    "env": { "CI_API_KEY": "YOUR_KEY" }
+  }
+}</pre>
+          <div class="setup-step" style="margin-top:12px;">Perfect for Antigravity's multi-agent mode — all agents share memory so Agent 1's decisions are instantly visible to Agent 2 and Agent 3.</div>
+          <a href="https://antigravity.codes/blog/antigravity-mcp-tutorial" class="btn-copy" onclick="event.stopPropagation()" target="_blank">Antigravity MCP guide</a>
+        </div>
+      </div>
+
       <div class="integration-item" onclick="toggleSetup(this)" data-platform="openclaw">
         <div class="name">OpenClaw</div>
         <div class="how">Skill file</div>
