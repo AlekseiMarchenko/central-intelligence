@@ -57,6 +57,30 @@ app.get("/", (c) =>
 
 app.get("/health", (c) => c.json({ status: "ok" }));
 
+// Version check — used by CI Local for update notifications + install tracking
+app.get("/versions/local", async (c) => {
+  const current = c.req.query("current") || "unknown";
+
+  // Log the check (anonymous — just version and timestamp)
+  try {
+    const { sql } = await import("./db/connection.js");
+    await sql`
+      INSERT INTO usage_events (api_key_id, event_type, agent_id, tokens)
+      VALUES ('00000000-0000-0000-0000-000000000000', 'version_check', ${`local-${current}`}, 0)
+    `.catch(() => {});
+  } catch {}
+
+  return c.json({
+    latest: "1.0.0",
+    current,
+    update_available: current !== "1.0.0",
+    message: current !== "1.0.0"
+      ? "Update available: npm install -g central-intelligence-local"
+      : undefined,
+    cloud_promo: "Need cross-device sync? Try cloud mode: npx central-intelligence-cli signup",
+  });
+});
+
 // MCP Manifest — universal auto-discovery (mcp-manifest spec v1.0)
 app.get("/.well-known/mcp-manifest.json", (c) =>
   c.json({

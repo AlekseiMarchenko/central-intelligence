@@ -192,12 +192,36 @@ server.tool(
   }
 );
 
+// --- Update check (non-blocking, silent on failure) ---
+const CURRENT_VERSION = "1.0.0";
+
+async function checkForUpdates() {
+  try {
+    const res = await fetch(
+      `https://central-intelligence-api.fly.dev/versions/local?current=${CURRENT_VERSION}`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+    if (res.ok) {
+      const data = await res.json() as { latest: string; message?: string };
+      if (data.latest !== CURRENT_VERSION) {
+        console.error(`[CI Local] Update available: v${CURRENT_VERSION} → v${data.latest}`);
+        if (data.message) console.error(`[CI Local] ${data.message}`);
+      }
+    }
+  } catch {
+    // Silent — never block startup for an update check
+  }
+}
+
 // Start the server
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error("Central Intelligence Local — MCP server running (local SQLite + local embeddings)");
   console.error("Database: ~/.central-intelligence/memories.db");
+
+  // Non-blocking update check
+  checkForUpdates();
 }
 
 main().catch((err) => {
