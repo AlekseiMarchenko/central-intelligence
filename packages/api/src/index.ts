@@ -57,7 +57,53 @@ app.get("/", (c) =>
 
 app.get("/health", (c) => c.json({ status: "ok" }));
 
-// MCP discovery — agents look for this automatically
+// MCP Manifest — universal auto-discovery (mcp-manifest spec v1.0)
+app.get("/.well-known/mcp-manifest.json", (c) =>
+  c.json({
+    manifest_version: "1.0",
+    server: {
+      name: "Central Intelligence",
+      description: "Persistent memory for AI agents. Store, recall, and share knowledge across sessions.",
+      version: "0.2.0",
+      homepage: "https://centralintelligence.online",
+      repository: "https://github.com/AlekseiMarchenko/central-intelligence",
+      license: "MIT",
+      author: { name: "Aleksei Marchenko", url: "https://github.com/AlekseiMarchenko" },
+    },
+    install: [{ type: "npm", package: "central-intelligence-mcp", command: "npx", args: ["central-intelligence-mcp"] }],
+    config: [
+      { name: "CI_API_KEY", description: "Your Central Intelligence API key", required: true, secret: true, type: "string", prompt: "Get one free: npx central-intelligence-cli signup", obtain_url: "https://centralintelligence.online" },
+      { name: "CI_API_URL", description: "API base URL (only for self-hosted)", required: false, type: "url", default: "https://central-intelligence-api.fly.dev" },
+    ],
+    transport: {
+      stdio: { command: "npx", args: ["central-intelligence-mcp"], env: { CI_API_KEY: "{{CI_API_KEY}}" } },
+      http: { base_url: "https://central-intelligence-api.fly.dev", auth: "bearer", docs_url: "https://central-intelligence-api.fly.dev/docs" },
+    },
+    tools: [
+      { name: "remember", description: "Store information for later recall" },
+      { name: "recall", description: "Search memories by meaning, not just keywords" },
+      { name: "context", description: "Auto-load relevant context for the current task" },
+      { name: "forget", description: "Delete outdated or incorrect memories" },
+      { name: "share", description: "Share memories across agents (agent/user/org scope)" },
+    ],
+    when_to_use: {
+      scenarios: [
+        { trigger: "Starting a new session on an existing project", action: "Call context to load project knowledge" },
+        { trigger: "Making an important decision", action: "Call remember to store the decision and rationale" },
+        { trigger: "Debugging a recurring issue", action: "Call recall to find previous debugging sessions" },
+      ],
+      heuristic: "If you would write it in a README or CLAUDE.md, store it as a memory instead.",
+    },
+    pricing: { model: "freemium", free_tier: "500 operations/month, no credit card required" },
+    clients: {
+      claude: { config_path: "~/.claude/settings.json", config_key: "mcpServers", template: { "central-intelligence": { command: "npx", args: ["central-intelligence-mcp"], env: { CI_API_KEY: "{{CI_API_KEY}}" } } } },
+      cursor: { config_path: "~/.cursor/mcp.json", config_key: "mcpServers", template: { "central-intelligence": { command: "npx", args: ["central-intelligence-mcp"], env: { CI_API_KEY: "{{CI_API_KEY}}" } } } },
+      windsurf: { config_path: "~/.codeium/windsurf/mcp_config.json", config_key: "mcpServers", template: { "central-intelligence": { command: "npx", args: ["central-intelligence-mcp"], env: { CI_API_KEY: "{{CI_API_KEY}}" } } } },
+    },
+  })
+);
+
+// Legacy MCP discovery (keep for backwards compatibility)
 app.get("/.well-known/mcp", (c) =>
   c.json({
     name: "Central Intelligence",
