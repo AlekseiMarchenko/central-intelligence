@@ -42,6 +42,7 @@ async function seed() {
   for (const mem of memories) {
     const result = await store({
       apiKeyId: id,
+      rawApiKey: "seed-key-not-encrypted",
       agentId: "seed-agent",
       userId: "dev-user",
       orgId: "dev-org",

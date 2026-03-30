@@ -7,6 +7,7 @@ type Env = {
     apiKeyId: string;
     orgId: string | undefined;
     tier: string;
+    rawApiKey: string;
   };
 };
 
@@ -31,10 +32,12 @@ app.post("/remember", async (c) => {
   const { agent_id, user_id, content, scope, tags } = parsed.data;
   const apiKeyId = c.get("apiKeyId");
   const orgId = c.get("orgId");
+  const rawApiKey = c.get("rawApiKey");
 
   try {
     const memory = await memoriesService.store({
       apiKeyId,
+      rawApiKey,
       agentId: agent_id,
       userId: user_id,
       orgId,
@@ -70,10 +73,12 @@ app.post("/recall", async (c) => {
   const { agent_id, user_id, query, scope, tags, limit } = parsed.data;
   const apiKeyId = c.get("apiKeyId");
   const orgId = c.get("orgId");
+  const rawApiKey = c.get("rawApiKey");
 
   try {
     const memories = await memoriesService.recall({
       apiKeyId,
+      rawApiKey,
       agentId: agent_id,
       userId: user_id,
       orgId,
@@ -108,10 +113,12 @@ app.post("/context", async (c) => {
   const { agent_id, user_id, current_context, max_memories } = parsed.data;
   const apiKeyId = c.get("apiKeyId");
   const orgId = c.get("orgId");
+  const rawApiKey = c.get("rawApiKey");
 
   // Recall with broader scope to get max context
   const memories = await memoriesService.recall({
     apiKeyId,
+    rawApiKey,
     agentId: agent_id,
     userId: user_id,
     orgId,

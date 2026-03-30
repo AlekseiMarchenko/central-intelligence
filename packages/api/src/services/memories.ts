@@ -1,5 +1,6 @@
 import { sql } from "../db/connection.js";
 import { embed, embeddingTokenEstimate } from "./embeddings.js";
+import { encrypt, decrypt } from "./encryption.js";
 
 export interface Memory {
   id: string;
@@ -19,6 +20,7 @@ export interface MemoryWithScore extends Memory {
 
 interface StoreParams {
   apiKeyId: string;
+  rawApiKey: string;
   agentId: string;
   userId?: string;
   orgId?: string;
@@ -29,6 +31,7 @@ interface StoreParams {
 
 interface RecallParams {
   apiKeyId: string;
+  rawApiKey: string;
   agentId: string;
   userId?: string;
   orgId?: string;
@@ -210,6 +213,7 @@ async function compressContext(memories: MemoryWithScore[], query: string): Prom
 export async function store(params: StoreParams): Promise<Memory> {
   const {
     apiKeyId,
+    rawApiKey,
     agentId,
     userId,
     orgId,
@@ -218,17 +222,25 @@ export async function store(params: StoreParams): Promise<Memory> {
     tags = [],
   } = params;
 
+  // Generate embedding from plaintext BEFORE encryption
   const vector = await embed(content);
+
+  // Encrypt content at rest
+  const encryptedContent = encrypt(content, rawApiKey);
 
   const [memory] = await sql`
     INSERT INTO memories (api_key_id, agent_id, user_id, org_id, scope, content, tags, embedding, content_tsv)
     VALUES (
       ${apiKeyId}, ${agentId}, ${userId || null}, ${orgId || null}, ${scope},
-      ${content}, ${tags}, ${JSON.stringify(vector)}::jsonb,
-      to_tsvector('english', ${content})
+      ${encryptedContent}, ${tags}, ${JSON.stringify(vector)}::jsonb,
+      to_tsvector('english', '')
     )
     RETURNING id, agent_id, user_id, org_id, scope, content, tags, created_at, updated_at
   `;
+
+  // Return decrypted content to the caller
+  const result = memory as unknown as Memory;
+  result.content = content;
 
   // Track usage
   await sql`
@@ -244,6 +256,7 @@ export async function store(params: StoreParams): Promise<Memory> {
 export async function recall(params: RecallParams): Promise<MemoryWithScore[]> {
   const {
     apiKeyId,
+    rawApiKey,
     agentId,
     userId,
     orgId,
@@ -404,9 +417,15 @@ export async function recall(params: RecallParams): Promise<MemoryWithScore[]> {
     return vecSim >= MIN_VECTOR_SIMILARITY;
   });
 
-  // === Context compression (if results are large) ===
+  // === Decrypt content at rest ===
   const topResults = relevantResults.slice(0, limit);
-  const compressed = await compressContext(topResults, query);
+  const decrypted = topResults.map((m) => ({
+    ...m,
+    content: decrypt(m.content, rawApiKey),
+  }));
+
+  // === Context compression (if results are large) ===
+  const compressed = await compressContext(decrypted, query);
 
   // Track usage
   await sql`

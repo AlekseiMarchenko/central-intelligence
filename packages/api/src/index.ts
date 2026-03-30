@@ -332,6 +332,7 @@ app.post("/probe", async (c) => {
       const { recall } = await import("./services/memories.js");
       const memories = await recall({
         apiKeyId: record.id,
+        rawApiKey: key,
         agentId: agent_id,
         orgId: record.org_id || undefined,
         query: task,

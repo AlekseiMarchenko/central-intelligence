@@ -16,6 +16,7 @@ export async function authMiddleware(c: Context, next: Next) {
   c.set("apiKeyId", record.id);
   c.set("orgId", record.org_id);
   c.set("tier", record.tier);
+  c.set("rawApiKey", key);
 
   await next();
 }
