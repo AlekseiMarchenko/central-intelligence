@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS memories (
   content     TEXT NOT NULL,
   tags        TEXT[] DEFAULT '{}',
   embedding   JSONB,                   -- stored as JSON array of floats
+  content_tsv TSVECTOR,               -- full-text search vector (auto-populated)
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at  TIMESTAMPTZ             -- soft delete

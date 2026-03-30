@@ -313,15 +313,24 @@ app.post("/probe", async (c) => {
   });
 });
 
-// Start server
+// Run migrations and start server
+import { migrateHybridSearch } from "./db/migrate-hybrid.js";
+
 const port = parseInt(process.env.PORT || "3141", 10);
-console.log(`
+
+migrateHybridSearch().then(() => {
+  console.log(`
   ╔═══════════════════════════════════════╗
   ║       CENTRAL INTELLIGENCE            ║
   ║       Agents forget. CI remembers.    ║
   ╠═══════════════════════════════════════╣
+  ║  Hybrid retrieval: vector+BM25+trgm  ║
   ║  API running on port ${String(port).padEnd(16)}  ║
   ╚═══════════════════════════════════════╝
-`);
-
-serve({ fetch: app.fetch, port });
+  `);
+  serve({ fetch: app.fetch, port });
+}).catch((err) => {
+  console.error("[startup] Migration failed:", err);
+  // Start anyway — vector search still works
+  serve({ fetch: app.fetch, port });
+});
