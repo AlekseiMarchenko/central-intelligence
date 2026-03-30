@@ -85,21 +85,34 @@ async function bm25Search(
   apiKeyId: string,
   agentId: string,
   query: string,
-  limit: number = 50
+  limit: number = 50,
+  includeShared: boolean = false
 ): Promise<{ id: string; rank: number }[]> {
   try {
     // Use plainto_tsquery for safe query parsing (no special syntax needed)
-    const results = await sql`
-      SELECT id,
-        ts_rank_cd(content_tsv, plainto_tsquery('english', ${query})) as bm25_score
-      FROM memories
-      WHERE api_key_id = ${apiKeyId}
-        AND agent_id = ${agentId}
-        AND deleted_at IS NULL
-        AND content_tsv @@ plainto_tsquery('english', ${query})
-      ORDER BY bm25_score DESC
-      LIMIT ${limit}
-    `;
+    const results = includeShared
+      ? await sql`
+          SELECT id,
+            ts_rank_cd(content_tsv, plainto_tsquery('english', ${query})) as bm25_score
+          FROM memories
+          WHERE api_key_id = ${apiKeyId}
+            AND deleted_at IS NULL
+            AND content_tsv @@ plainto_tsquery('english', ${query})
+            AND (agent_id = ${agentId} OR scope IN ('user', 'org'))
+          ORDER BY bm25_score DESC
+          LIMIT ${limit}
+        `
+      : await sql`
+          SELECT id,
+            ts_rank_cd(content_tsv, plainto_tsquery('english', ${query})) as bm25_score
+          FROM memories
+          WHERE api_key_id = ${apiKeyId}
+            AND agent_id = ${agentId}
+            AND deleted_at IS NULL
+            AND content_tsv @@ plainto_tsquery('english', ${query})
+          ORDER BY bm25_score DESC
+          LIMIT ${limit}
+        `;
     return results.map((r: any, i: number) => ({ id: r.id, rank: i + 1 }));
   } catch {
     // content_tsv column might not exist yet (pre-migration)
@@ -113,20 +126,33 @@ async function trigramSearch(
   apiKeyId: string,
   agentId: string,
   query: string,
-  limit: number = 30
+  limit: number = 30,
+  includeShared: boolean = false
 ): Promise<{ id: string; rank: number }[]> {
   try {
-    const results = await sql`
-      SELECT id,
-        similarity(content, ${query}) as trgm_score
-      FROM memories
-      WHERE api_key_id = ${apiKeyId}
-        AND agent_id = ${agentId}
-        AND deleted_at IS NULL
-        AND similarity(content, ${query}) > 0.1
-      ORDER BY trgm_score DESC
-      LIMIT ${limit}
-    `;
+    const results = includeShared
+      ? await sql`
+          SELECT id,
+            similarity(content, ${query}) as trgm_score
+          FROM memories
+          WHERE api_key_id = ${apiKeyId}
+            AND deleted_at IS NULL
+            AND similarity(content, ${query}) > 0.1
+            AND (agent_id = ${agentId} OR scope IN ('user', 'org'))
+          ORDER BY trgm_score DESC
+          LIMIT ${limit}
+        `
+      : await sql`
+          SELECT id,
+            similarity(content, ${query}) as trgm_score
+          FROM memories
+          WHERE api_key_id = ${apiKeyId}
+            AND agent_id = ${agentId}
+            AND deleted_at IS NULL
+            AND similarity(content, ${query}) > 0.1
+          ORDER BY trgm_score DESC
+          LIMIT ${limit}
+        `;
     return results.map((r: any, i: number) => ({ id: r.id, rank: i + 1 }));
   } catch {
     // pg_trgm might not be available
@@ -229,7 +255,11 @@ export async function recall(params: RecallParams): Promise<MemoryWithScore[]> {
 
   const queryVector = await embed(query);
 
+  // Determine if we should include shared (user/org scope) memories
+  const includeShared = scope !== "agent";
+
   // === Strategy 1: Vector search (semantic) ===
+  // Always fetch agent's own memories
   const candidates = await sql`
     SELECT
       id, agent_id, user_id, org_id, scope, content, tags, embedding, created_at, updated_at
@@ -242,9 +272,10 @@ export async function recall(params: RecallParams): Promise<MemoryWithScore[]> {
     LIMIT 500
   `;
 
-  // Also fetch scope-expanded memories
+  // Also fetch shared memories (user/org scope from other agents)
   let scopeMemories: any[] = [];
-  if (scope === "org" && orgId) {
+  if (includeShared) {
+    // Fetch all user/org-scoped memories from any agent under this API key
     scopeMemories = await sql`
       SELECT
         id, agent_id, user_id, org_id, scope, content, tags, embedding, created_at, updated_at
@@ -252,20 +283,7 @@ export async function recall(params: RecallParams): Promise<MemoryWithScore[]> {
       WHERE api_key_id = ${apiKeyId}
         AND deleted_at IS NULL
         AND embedding IS NOT NULL
-        AND scope = 'org' AND org_id = ${orgId}
-        AND agent_id != ${agentId}
-      ORDER BY created_at DESC
-      LIMIT 200
-    `;
-  } else if (scope === "user" && userId) {
-    scopeMemories = await sql`
-      SELECT
-        id, agent_id, user_id, org_id, scope, content, tags, embedding, created_at, updated_at
-      FROM memories
-      WHERE api_key_id = ${apiKeyId}
-        AND deleted_at IS NULL
-        AND embedding IS NOT NULL
-        AND scope = 'user' AND user_id = ${userId}
+        AND scope IN ('user', 'org')
         AND agent_id != ${agentId}
       ORDER BY created_at DESC
       LIMIT 200
@@ -299,7 +317,7 @@ export async function recall(params: RecallParams): Promise<MemoryWithScore[]> {
     .map(([id], i) => ({ id, rank: i + 1 }));
 
   // === Strategy 2: BM25 full-text search ===
-  const bm25Ranked = await bm25Search(apiKeyId, agentId, query, 50);
+  const bm25Ranked = await bm25Search(apiKeyId, agentId, query, 50, includeShared);
 
   // Add any BM25-only results to memoryMap (they might not be in the vector set)
   for (const item of bm25Ranked) {
@@ -313,7 +331,7 @@ export async function recall(params: RecallParams): Promise<MemoryWithScore[]> {
   }
 
   // === Strategy 3: Trigram fuzzy search ===
-  const trigramRanked = await trigramSearch(apiKeyId, agentId, query, 30);
+  const trigramRanked = await trigramSearch(apiKeyId, agentId, query, 30, includeShared);
 
   for (const item of trigramRanked) {
     if (!memoryMap.has(item.id)) {
