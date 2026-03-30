@@ -123,16 +123,27 @@ program
   .description(
     "Add Central Intelligence to an agent platform (claude, cursor, windsurf)",
   )
-  .action(async (platform) => {
-    const apiKey = getApiKey();
+  .option("--local", "Use local mode (no cloud, no API key, data stays on your machine)")
+  .action(async (platform, opts) => {
+    const isLocal = opts.local || false;
 
-    const mcpEntry = {
-      command: "npx",
-      args: ["-y", "central-intelligence-mcp"],
-      env: {
-        CI_API_KEY: apiKey,
-      },
-    };
+    let mcpEntry: Record<string, unknown>;
+    if (isLocal) {
+      mcpEntry = {
+        command: "npx",
+        args: ["-y", "central-intelligence-local"],
+      };
+      console.log(chalk.cyan("\n🔒 Local mode — your data never leaves your machine\n"));
+    } else {
+      const apiKey = getApiKey();
+      mcpEntry = {
+        command: "npx",
+        args: ["-y", "central-intelligence-mcp"],
+        env: {
+          CI_API_KEY: apiKey,
+        },
+      };
+    }
 
     if (platform === "claude") {
       // Claude Code stores MCP servers in ~/.claude/settings.json under mcpServers
