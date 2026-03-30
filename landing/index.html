@@ -776,14 +776,14 @@
         <span class="terminal-title">terminal</span>
       </div>
       <div class="terminal-body">
-        <span class="comment"># Install &amp; sign up</span><br>
+        <span class="comment"># Local mode — no cloud, no signup, no API key</span><br>
+        <span class="prompt">$</span> <span class="cmd">npx central-intelligence-cli init claude --local</span><br>
+        <span class="output">🔒 Local mode — your data never leaves your machine</span><br>
+        <span class="output">✓ Central Intelligence added to Claude Code!</span><br>
+        <span class="output">Tools: remember, recall, forget, context, share</span><br><br>
+        <span class="comment"># Or use cloud mode for cross-device sync</span><br>
         <span class="prompt">$</span> <span class="cmd">npx central-intelligence-cli signup</span><br>
-        <span class="output">API key created and saved!</span><br><br>
-        <span class="comment"># Add to Claude Code</span><br>
-        <span class="prompt">$</span> <span class="cmd">ci init claude</span><br>
-        <span class="output">Central Intelligence added to Claude Code!</span><br>
-        <span class="output">Tools available: remember, recall, forget, context, share</span><br><br>
-        <span class="comment"># Your agent now has persistent memory ✓</span>
+        <span class="prompt">$</span> <span class="cmd">npx central-intelligence-cli init claude</span>
       </div>
     </div>
   </div>
@@ -1208,6 +1208,33 @@ function downloadConfig(platform) {
 }
 </script>
 
+<!-- Local First -->
+<section style="padding: 80px 0; background: linear-gradient(180deg, rgba(16,185,129,0.05) 0%, transparent 100%);">
+  <div class="container" style="text-align: center;">
+    <h2 style="font-size: 42px; font-weight: 700; letter-spacing: -2px; margin-bottom: 16px;">Your data never leaves your machine</h2>
+    <p style="color: var(--text-muted); font-size: 18px; max-width: 600px; margin: 0 auto 48px;">
+      CI Local runs entirely on your machine. SQLite database, local embeddings, zero cloud dependencies. No signup, no API key, no trust required.
+    </p>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; max-width: 800px; margin: 0 auto;">
+      <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 32px; text-align: left;">
+        <div style="font-size: 24px; margin-bottom: 8px;">🔒</div>
+        <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 8px;">Local Mode</h3>
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">Everything stays on your machine. SQLite + local AI embeddings. Free forever.</p>
+        <pre style="background: #0a0a0a; padding: 12px 16px; border-radius: 8px; font-size: 13px; color: #10b981; overflow-x: auto;">npx central-intelligence-cli init claude --local</pre>
+        <p style="color: var(--text-dim); font-size: 12px; margin-top: 12px;">One command. No signup. No API key.</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 32px; text-align: left;">
+        <div style="font-size: 24px; margin-bottom: 8px;">☁️</div>
+        <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 8px;">Cloud Mode</h3>
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">Sync across devices and tools. Share memory between agents. Team collaboration.</p>
+        <pre style="background: #0a0a0a; padding: 12px 16px; border-radius: 8px; font-size: 13px; color: #10b981; overflow-x: auto;">npx central-intelligence-cli signup
+npx central-intelligence-cli init claude</pre>
+        <p style="color: var(--text-dim); font-size: 12px; margin-top: 12px;">Free tier: 500 ops/month. Upgrade anytime.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- Pricing -->
 <section class="pricing" id="pricing">
   <div class="container">
@@ -1265,7 +1292,7 @@ function downloadConfig(platform) {
 <section class="cta" id="cta">
   <div class="container">
     <h2>Give your agent a memory</h2>
-    <p>Three commands. Thirty seconds. Permanent memory.</p>
+    <p>One command. Ten seconds. Permanent memory.</p>
     <div class="terminal">
       <div class="terminal-bar">
         <div class="terminal-dot"></div>
@@ -1274,9 +1301,9 @@ function downloadConfig(platform) {
         <span class="terminal-title">terminal</span>
       </div>
       <div class="terminal-body">
-        <span class="prompt">$</span> <span class="cmd">npm install -g central-intelligence-cli</span><br>
-        <span class="prompt">$</span> <span class="cmd">ci signup</span><br>
-        <span class="prompt">$</span> <span class="cmd">ci init claude</span><br><br>
+        <span class="comment"># Local — no signup needed</span><br>
+        <span class="prompt">$</span> <span class="cmd">npx central-intelligence-cli init claude --local</span><br><br>
+        <span class="output">🔒 Local mode — your data never leaves your machine</span><br>
         <span class="output">✓ Your agent now remembers everything.</span>
       </div>
     </div>
