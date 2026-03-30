@@ -1221,8 +1221,30 @@ function downloadConfig(platform) {
         <div style="font-size: 24px; margin-bottom: 8px;">🔒</div>
         <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 8px;">Local Mode</h3>
         <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">Everything stays on your machine. SQLite + local AI embeddings. Free forever.</p>
-        <pre style="background: #0a0a0a; padding: 12px 16px; border-radius: 8px; font-size: 13px; color: #10b981; overflow-x: auto;">npx central-intelligence-cli init claude --local</pre>
-        <p style="color: var(--text-dim); font-size: 12px; margin-top: 12px;">Open your terminal and paste this command. That's it.</p>
+        <button onclick="copyLocal(this)" style="width: 100%; background: #0a0a0a; border: 1px solid #10b981; padding: 14px 16px; border-radius: 8px; font-size: 13px; color: #10b981; font-family: 'SF Mono', Monaco, monospace; cursor: pointer; text-align: left; transition: all 0.2s; position: relative;" onmouseover="this.style.borderColor='#34d399'" onmouseout="this.style.borderColor='#10b981'">
+          <span class="copy-text">npx central-intelligence-cli init claude --local</span>
+          <span style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 11px; color: #6b7280; pointer-events: none;" class="copy-hint">click to copy</span>
+        </button>
+        <p style="color: var(--text-dim); font-size: 12px; margin-top: 12px;" class="copy-instruction">Step 1: Click to copy the command</p>
+        <script>
+        function copyLocal(btn) {
+          navigator.clipboard.writeText('npx central-intelligence-cli init claude --local');
+          btn.querySelector('.copy-text').textContent = '✓ Copied!';
+          btn.querySelector('.copy-hint').textContent = '';
+          btn.style.borderColor = '#34d399';
+          btn.style.background = '#0a1a0a';
+          var instruction = btn.parentElement.querySelector('.copy-instruction');
+          instruction.textContent = 'Step 2: Open your terminal and paste it';
+          instruction.style.color = '#10b981';
+          setTimeout(function() {
+            btn.querySelector('.copy-text').textContent = 'npx central-intelligence-cli init claude --local';
+            btn.querySelector('.copy-hint').textContent = 'click to copy';
+            btn.style.background = '#0a0a0a';
+            instruction.textContent = 'Step 1: Click to copy the command';
+            instruction.style.color = '';
+          }, 4000);
+        }
+        </script>
       </div>
       <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 32px; text-align: left;">
         <div style="font-size: 24px; margin-bottom: 8px;">☁️</div>
