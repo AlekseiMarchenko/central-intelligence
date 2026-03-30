@@ -15,7 +15,13 @@ const server = new McpServer({
 // --- remember ---
 server.tool(
   "remember",
-  "Store information for later recall. Use this to save decisions, preferences, architecture details, or anything worth remembering across sessions.",
+  `Store information in persistent memory. Call this PROACTIVELY whenever you:
+- Make or learn about an important decision (architecture, library choice, convention)
+- Discover a user preference (code style, communication style, tools they use)
+- Find a bug's root cause or a non-obvious fix
+- Learn project-specific context (tech stack, deploy process, team structure)
+- Complete a significant task (store what you did and why)
+Do NOT wait for the user to say "remember this" — if it would be useful in a future session, store it now.`,
   {
     agent_id: z.string().describe("Unique identifier for the calling agent"),
     user_id: z.string().optional().describe("User ID for user-scoped memories"),
@@ -55,7 +61,12 @@ server.tool(
 // --- recall ---
 server.tool(
   "recall",
-  "Search your memories by meaning, not just keywords. Use this to find past decisions, preferences, or context from previous sessions.",
+  `Search persistent memory for relevant past information. Call this BEFORE making assumptions about:
+- The project's tech stack, architecture, or conventions
+- User preferences or past decisions
+- How something was done previously
+- Why a particular approach was chosen
+If you're about to say "I don't know" or "I'll assume" — check memory first. The answer might already be there from a previous session.`,
   {
     agent_id: z.string().describe("Unique identifier for the calling agent"),
     user_id: z.string().optional().describe("User ID for user-scoped recall"),
@@ -98,7 +109,7 @@ server.tool(
 // --- context ---
 server.tool(
   "context",
-  "Auto-load relevant context for your current task. Call this at the start of a session to get up to speed.",
+  `Load relevant context from past sessions. CALL THIS FIRST at the start of every conversation before doing any work. Pass a brief summary of the current project or task. This retrieves past decisions, preferences, and context so you don't start from zero. Also call when switching to a different topic or task mid-session.`,
   {
     agent_id: z.string().describe("Unique identifier for the calling agent"),
     user_id: z.string().optional().describe("User ID for scoped context"),
@@ -139,7 +150,7 @@ server.tool(
 // --- forget ---
 server.tool(
   "forget",
-  "Delete a memory that is outdated or incorrect.",
+  "Delete a memory that is outdated, incorrect, or superseded. Call this when you store an updated version of a fact — delete the old one to prevent contradictions.",
   {
     memory_id: z.string().describe("ID of the memory to delete"),
   },
