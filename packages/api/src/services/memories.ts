@@ -365,8 +365,29 @@ export async function recall(params: RecallParams): Promise<MemoryWithScore[]> {
   // Sort by final score
   finalScored.sort((a, b) => b.relevance_score - a.relevance_score);
 
+  // === Minimum relevance threshold ===
+  // Use raw vector cosine similarity as the quality gate (not RRF score).
+  // RRF scores are rank-based and don't indicate absolute relevance.
+  // Vector cosine similarity directly measures semantic closeness.
+  const MIN_VECTOR_SIMILARITY = 0.25;
+  const relevantResults = finalScored.filter((m) => {
+    const mem = memoryMap.get(m.id);
+    if (!mem) return false;
+
+    // If this memory was found by BM25 or trigram (keyword/fuzzy match), keep it
+    // regardless of vector similarity — the text matched directly.
+    const inBm25 = bm25Ranked.some((r) => r.id === m.id);
+    const inTrigram = trigramRanked.some((r) => r.id === m.id);
+    if (inBm25 || inTrigram) return true;
+
+    // For vector-only matches, check raw cosine similarity
+    const emb = typeof mem.embedding === "string" ? JSON.parse(mem.embedding) : mem.embedding;
+    const vecSim = cosineSimilarity(queryVector, emb);
+    return vecSim >= MIN_VECTOR_SIMILARITY;
+  });
+
   // === Context compression (if results are large) ===
-  const topResults = finalScored.slice(0, limit);
+  const topResults = relevantResults.slice(0, limit);
   const compressed = await compressContext(topResults, query);
 
   // Track usage
