@@ -16,6 +16,10 @@ async function migrate() {
   const schema = readFileSync(join(__dirname, "schema.sql"), "utf-8");
   await sql.unsafe(schema);
 
+  // Run payment tables migration
+  const payments = readFileSync(join(__dirname, "migrate-payments.sql"), "utf-8");
+  await sql.unsafe(payments);
+
   console.log("Migrations complete.");
   await sql.end();
 }

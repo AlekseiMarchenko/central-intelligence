@@ -11,7 +11,7 @@ const TIER_LIMITS: Record<string, number> = {
 
 // Per-minute rate limits (API calls)
 const RATE_LIMITS: Record<string, number> = {
-  free: 30,
+  free: 120,
   pro: 120,
   team: 600,
   enterprise: 3000,
