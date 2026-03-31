@@ -735,6 +735,7 @@
       nav .links a:not(.btn) { display: none; }
       .problem .stat { flex-direction: column; gap: 16px; }
       footer .container { flex-direction: column; gap: 16px; }
+      #local .container > div:last-of-type { grid-template-columns: 1fr !important; }
     }
   </style>
   <link rel="mcp-manifest" href="https://central-intelligence-api.fly.dev/.well-known/mcp-manifest.json">
@@ -1217,17 +1218,17 @@ function downloadConfig(platform) {
       CI Local runs entirely on your machine. SQLite database, local embeddings, zero cloud dependencies. No signup, no API key, no trust required.
     </p>
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; max-width: 800px; margin: 0 auto;">
-      <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 32px; text-align: left;">
+      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 32px; text-align: left;">
         <div style="font-size: 24px; margin-bottom: 8px;">🔒</div>
         <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 8px;">Local Mode</h3>
         <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">Everything stays on your machine. SQLite + local AI embeddings. Free forever.</p>
         <div style="display: flex; gap: 6px; margin-bottom: 10px;">
           <button onclick="selectPlatform('claude',this)" class="plat-btn plat-active" style="flex:1; padding: 6px 0; border-radius: 6px; border: 1px solid #10b981; background: rgba(16,185,129,0.1); color: #10b981; font-size: 12px; cursor: pointer; font-weight: 500;">Claude</button>
-          <button onclick="selectPlatform('cursor',this)" class="plat-btn" style="flex:1; padding: 6px 0; border-radius: 6px; border: 1px solid var(--card-border); background: transparent; color: var(--text-muted); font-size: 12px; cursor: pointer;">Cursor</button>
-          <button onclick="selectPlatform('windsurf',this)" class="plat-btn" style="flex:1; padding: 6px 0; border-radius: 6px; border: 1px solid var(--card-border); background: transparent; color: var(--text-muted); font-size: 12px; cursor: pointer;">Windsurf</button>
-          <button onclick="selectPlatform('codex',this)" class="plat-btn" style="flex:1; padding: 6px 0; border-radius: 6px; border: 1px solid var(--card-border); background: transparent; color: var(--text-muted); font-size: 12px; cursor: pointer;">Codex</button>
+          <button onclick="selectPlatform('cursor',this)" class="plat-btn" style="flex:1; padding: 6px 0; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); font-size: 12px; cursor: pointer;">Cursor</button>
+          <button onclick="selectPlatform('windsurf',this)" class="plat-btn" style="flex:1; padding: 6px 0; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); font-size: 12px; cursor: pointer;">Windsurf</button>
+          <button onclick="selectPlatform('codex',this)" class="plat-btn" style="flex:1; padding: 6px 0; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); font-size: 12px; cursor: pointer;">Codex</button>
         </div>
-        <div id="localCopyBtn" onclick="copyLocal(this)" style="width: 100%; background: #0a0a0a; border: 1px solid var(--card-border); padding: 14px 16px; border-radius: 8px; font-size: 13px; color: #10b981; font-family: 'SF Mono', Monaco, monospace; cursor: pointer; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center;" onmouseover="this.style.borderColor='#10b981'" onmouseout="this.style.borderColor=''">
+        <div id="localCopyBtn" onclick="copyLocal(this)" style="width: 100%; background: #0a0a0a; border: 1px solid var(--border); padding: 14px 16px; border-radius: 8px; font-size: 13px; color: #10b981; font-family: 'SF Mono', Monaco, monospace; cursor: pointer; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center;" onmouseover="this.style.borderColor='#10b981'" onmouseout="this.style.borderColor=''">
           <span class="copy-text">npx central-intelligence-cli init claude --local</span>
           <span style="font-size: 11px; color: #6b7280; flex-shrink: 0; margin-left: 12px;" class="copy-hint">copy</span>
         </div>
@@ -1268,7 +1269,7 @@ function downloadConfig(platform) {
         }
         </script>
       </div>
-      <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 32px; text-align: left;">
+      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 32px; text-align: left;">
         <div style="font-size: 24px; margin-bottom: 8px;">☁️</div>
         <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 8px;">Cloud Mode</h3>
         <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">Sync across devices and tools. Share memory between agents. Team collaboration.</p>
