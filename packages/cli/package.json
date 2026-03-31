@@ -1,6 +1,6 @@
 {
   "name": "central-intelligence-cli",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "description": "CLI for Central Intelligence — persistent memory for AI agents. Sign up, configure, and manage agent memory from the terminal.",
   "type": "module",
   "keywords": [

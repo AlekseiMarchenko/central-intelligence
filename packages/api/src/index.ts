@@ -50,7 +50,7 @@ app.get("/", (c) =>
   c.json({
     name: "Central Intelligence",
     tagline: "Agents forget. CI remembers.",
-    version: "0.1.0",
+    version: "0.4.0",
     docs: "/docs",
   }),
 );
@@ -88,7 +88,7 @@ app.get("/.well-known/mcp-manifest.json", (c) =>
     server: {
       name: "Central Intelligence",
       description: "Persistent memory for AI agents. Store, recall, and share knowledge across sessions.",
-      version: "0.2.0",
+      version: "0.4.0",
       homepage: "https://centralintelligence.online",
       repository: "https://github.com/AlekseiMarchenko/central-intelligence",
       license: "MIT",
@@ -132,7 +132,7 @@ app.get("/.well-known/mcp", (c) =>
   c.json({
     name: "Central Intelligence",
     description: "Persistent memory for AI agents. Store, recall, and share knowledge across sessions.",
-    version: "0.2.0",
+    version: "0.4.0",
     homepage: "https://centralintelligence.online",
     documentation: "https://central-intelligence-api.fly.dev/docs",
     repository: "https://github.com/AlekseiMarchenko/central-intelligence",
@@ -248,7 +248,7 @@ app.get("/.well-known/agent.json", (c) =>
     name: "Central Intelligence",
     description: "Persistent memory-as-a-service for AI agents. Store, recall, and share knowledge across sessions with semantic search.",
     url: "https://central-intelligence-api.fly.dev",
-    version: "0.2.0",
+    version: "0.4.0",
     capabilities: {
       memory: true,
       semantic_search: true,
