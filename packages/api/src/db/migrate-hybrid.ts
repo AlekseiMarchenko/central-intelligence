@@ -4,31 +4,41 @@ export async function migrateHybridSearch() {
   console.log("[migrate] Adding hybrid search support...");
 
   try {
-    // Enable extensions
-    await sql`CREATE EXTENSION IF NOT EXISTS pg_trgm`;
-    await sql`CREATE EXTENSION IF NOT EXISTS unaccent`;
-    console.log("[migrate] Extensions pg_trgm + unaccent enabled");
-
-    // Add tsvector column
+    // Add tsvector column (idempotent)
     await sql`ALTER TABLE memories ADD COLUMN IF NOT EXISTS content_tsv tsvector`;
-    console.log("[migrate] Added content_tsv column");
+    console.log("[migrate] Ensured content_tsv column exists");
 
-    // Backfill existing rows
-    await sql`UPDATE memories SET content_tsv = to_tsvector('english', content) WHERE content_tsv IS NULL AND content IS NOT NULL`;
-    console.log("[migrate] Backfilled tsvector for existing memories");
+    // Create GIN index for full-text search (CONCURRENTLY to avoid locking)
+    // Note: CREATE INDEX CONCURRENTLY cannot run inside a transaction.
+    // If this fails (e.g., index already exists), it's safe to ignore.
+    try {
+      await sql`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_memories_content_tsv ON memories USING gin (content_tsv) WHERE deleted_at IS NULL`;
+      console.log("[migrate] Created GIN index for full-text search");
+    } catch (err: any) {
+      // CONCURRENTLY can fail if another migration is running
+      if (err.message?.includes("already exists")) {
+        console.log("[migrate] GIN index already exists, skipping");
+      } else {
+        console.warn("[migrate] GIN index creation failed (non-fatal):", err.message);
+      }
+    }
 
-    // Create GIN index for full-text search
-    await sql`CREATE INDEX IF NOT EXISTS idx_memories_content_tsv ON memories USING gin (content_tsv) WHERE deleted_at IS NULL`;
-    console.log("[migrate] Created GIN index for full-text search");
+    // Drop old trigram index if it exists (trigram search removed — it operated
+    // on encrypted ciphertext and produced meaningless results)
+    try {
+      await sql`DROP INDEX IF EXISTS idx_memories_content_trgm`;
+      console.log("[migrate] Dropped obsolete trigram index");
+    } catch {
+      // Ignore — index might not exist
+    }
 
-    // Create trigram index for fuzzy matching
-    await sql`CREATE INDEX IF NOT EXISTS idx_memories_content_trgm ON memories USING gin (content gin_trgm_ops) WHERE deleted_at IS NULL`;
-    console.log("[migrate] Created trigram index for fuzzy matching");
+    // Note: We do NOT backfill tsvectors here because content is encrypted and
+    // we don't have the API keys to decrypt. Tsvectors are populated:
+    // 1. On new INSERTs: store() generates tsvector from plaintext before encrypting
+    // 2. Lazy backfill: recall() updates tsvectors when memories are decrypted
 
-    console.log("[migrate] Hybrid search migration complete");
+    console.log("[migrate] Hybrid search migration complete (vector + BM25)");
   } catch (err: any) {
-    // pg_trgm might not be available on all Postgres instances
-    // Gracefully degrade — vector search still works without it
     console.warn("[migrate] Hybrid search migration failed (non-fatal):", err.message);
     console.warn("[migrate] Falling back to vector-only search");
   }

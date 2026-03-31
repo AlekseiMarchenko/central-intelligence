@@ -1,6 +1,6 @@
 import { sql } from "../db/connection.js";
 import { embed, embeddingTokenEstimate } from "./embeddings.js";
-import { encrypt, decrypt } from "./encryption.js";
+import { encrypt, decrypt, isEncrypted } from "./encryption.js";
 
 export interface Memory {
   id: string;
@@ -43,7 +43,7 @@ interface RecallParams {
 
 // --- Vector similarity ---
 
-function cosineSimilarity(a: number[], b: number[]): number {
+export function cosineSimilarity(a: number[], b: number[]): number {
   let dotProduct = 0;
   let normA = 0;
   let normB = 0;
@@ -58,7 +58,7 @@ function cosineSimilarity(a: number[], b: number[]): number {
 
 // --- Temporal decay ---
 
-function temporalDecay(createdAt: string, halfLifeDays: number = 90): number {
+export function temporalDecay(createdAt: string, halfLifeDays: number = 90): number {
   const ageMs = Date.now() - new Date(createdAt).getTime();
   const ageDays = ageMs / (1000 * 60 * 60 * 24);
   // Exponential decay: score halves every halfLifeDays
@@ -68,7 +68,7 @@ function temporalDecay(createdAt: string, halfLifeDays: number = 90): number {
 
 // --- Reciprocal Rank Fusion ---
 
-function reciprocalRankFusion(
+export function reciprocalRankFusion(
   rankedLists: { id: string; rank: number }[][],
   k: number = 60
 ): Map<string, number> {
@@ -117,96 +117,23 @@ async function bm25Search(
           LIMIT ${limit}
         `;
     return results.map((r: any, i: number) => ({ id: r.id, rank: i + 1 }));
-  } catch {
-    // content_tsv column might not exist yet (pre-migration)
-    return [];
-  }
-}
-
-// --- Trigram fuzzy search (catches typos and partial matches) ---
-
-async function trigramSearch(
-  apiKeyId: string,
-  agentId: string,
-  query: string,
-  limit: number = 30,
-  includeShared: boolean = false
-): Promise<{ id: string; rank: number }[]> {
-  try {
-    const results = includeShared
-      ? await sql`
-          SELECT id,
-            similarity(content, ${query}) as trgm_score
-          FROM memories
-          WHERE api_key_id = ${apiKeyId}
-            AND deleted_at IS NULL
-            AND similarity(content, ${query}) > 0.1
-            AND (agent_id = ${agentId} OR scope IN ('user', 'org'))
-          ORDER BY trgm_score DESC
-          LIMIT ${limit}
-        `
-      : await sql`
-          SELECT id,
-            similarity(content, ${query}) as trgm_score
-          FROM memories
-          WHERE api_key_id = ${apiKeyId}
-            AND agent_id = ${agentId}
-            AND deleted_at IS NULL
-            AND similarity(content, ${query}) > 0.1
-          ORDER BY trgm_score DESC
-          LIMIT ${limit}
-        `;
-    return results.map((r: any, i: number) => ({ id: r.id, rank: i + 1 }));
-  } catch {
-    // pg_trgm might not be available
-    return [];
-  }
-}
-
-// --- Context compression ---
-
-async function compressContext(memories: MemoryWithScore[], query: string): Promise<MemoryWithScore[]> {
-  // Only compress if total content exceeds ~4000 tokens (~16000 chars)
-  const totalChars = memories.reduce((sum, m) => sum + m.content.length, 0);
-  if (totalChars < 16000) return memories;
-
-  try {
-    const OpenAI = (await import("openai")).default;
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-    // Use GPT-4o-mini for cheap compression
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: "Compress the following memories into concise summaries. Keep only information relevant to the query. Preserve key facts, decisions, and technical details. Return a JSON array of {id, summary} objects.",
-        },
-        {
-          role: "user",
-          content: `Query: ${query}\n\nMemories:\n${memories.map((m) => `[${m.id}]: ${m.content}`).join("\n\n")}`,
-        },
-      ],
-      response_format: { type: "json_object" },
-      max_tokens: 2000,
-    });
-
-    const parsed = JSON.parse(response.choices[0].message.content || "{}");
-    const summaries = parsed.summaries || parsed.memories || [];
-
-    if (Array.isArray(summaries) && summaries.length > 0) {
-      const summaryMap = new Map(summaries.map((s: any) => [s.id, s.summary]));
-      return memories.map((m) => ({
-        ...m,
-        content: (summaryMap.get(m.id) as string) || m.content,
-      }));
-    }
   } catch (err: any) {
-    console.warn("[compress] Context compression failed, returning raw:", err.message);
+    // Only swallow "column not found" errors (pre-migration).
+    // Re-throw everything else (connection errors, OOM, etc.)
+    if (err.code === "42703" || err.message?.includes("content_tsv")) {
+      console.warn("[bm25] content_tsv column not found (pre-migration), skipping BM25 search");
+      return [];
+    }
+    console.error("[bm25] BM25 search failed:", err.message);
+    throw err;
   }
-
-  return memories;
 }
+
+// Trigram search removed: it operated on encrypted content (AES-256-GCM ciphertext),
+// producing meaningless similarity scores. Vector + BM25 is sufficient for hybrid retrieval.
+
+// Context compression removed: it sent decrypted memory content to OpenAI GPT-4o-mini,
+// contradicting the encryption-at-rest guarantee. Clients handle summarization if needed.
 
 // --- Store ---
 
@@ -228,12 +155,14 @@ export async function store(params: StoreParams): Promise<Memory> {
   // Encrypt content at rest
   const encryptedContent = encrypt(content, rawApiKey);
 
+  // Generate tsvector from plaintext BEFORE encryption for BM25 search.
+  // This leaks word stems (not full content) — accepted tradeoff for search functionality.
   const [memory] = await sql`
     INSERT INTO memories (api_key_id, agent_id, user_id, org_id, scope, content, tags, embedding, content_tsv)
     VALUES (
       ${apiKeyId}, ${agentId}, ${userId || null}, ${orgId || null}, ${scope},
       ${encryptedContent}, ${tags}, ${JSON.stringify(vector)}::jsonb,
-      to_tsvector('english', '')
+      to_tsvector('english', ${content})
     )
     RETURNING id, agent_id, user_id, org_id, scope, content, tags, created_at, updated_at
   `;
@@ -248,10 +177,24 @@ export async function store(params: StoreParams): Promise<Memory> {
     VALUES (${apiKeyId}, 'remember', ${agentId}, ${embeddingTokenEstimate(content)})
   `;
 
-  return memory as unknown as Memory;
+  return result;
 }
 
-// --- Recall (hybrid retrieval) ---
+// --- Recall (hybrid retrieval: vector + BM25 + RRF + temporal decay) ---
+//
+//   Query ──embed──> Vector Search (cosine sim against all memories)
+//     │                    │
+//     └──tsquery──> BM25 Search (full-text against content_tsv)
+//                         │
+//                    ┌────┴────┐
+//                    │  RRF    │  Reciprocal Rank Fusion (k=60)
+//                    └────┬────┘
+//                         │
+//                    Temporal Decay (85% relevance + 15% recency)
+//                         │
+//                    Quality Gate (min vector similarity 0.25)
+//                         │
+//                    Decrypt + Return
 
 export async function recall(params: RecallParams): Promise<MemoryWithScore[]> {
   const {
@@ -288,7 +231,6 @@ export async function recall(params: RecallParams): Promise<MemoryWithScore[]> {
   // Also fetch shared memories (user/org scope from other agents)
   let scopeMemories: any[] = [];
   if (includeShared) {
-    // Fetch all user/org-scoped memories from any agent under this API key
     scopeMemories = await sql`
       SELECT
         id, agent_id, user_id, org_id, scope, content, tags, embedding, created_at, updated_at
@@ -332,32 +274,23 @@ export async function recall(params: RecallParams): Promise<MemoryWithScore[]> {
   // === Strategy 2: BM25 full-text search ===
   const bm25Ranked = await bm25Search(apiKeyId, agentId, query, 50, includeShared);
 
-  // Add any BM25-only results to memoryMap (they might not be in the vector set)
-  for (const item of bm25Ranked) {
-    if (!memoryMap.has(item.id)) {
-      const [mem] = await sql`
-        SELECT id, agent_id, user_id, org_id, scope, content, tags, embedding, created_at, updated_at
-        FROM memories WHERE id = ${item.id}
-      `;
-      if (mem) memoryMap.set(item.id, mem);
-    }
-  }
+  // Batch-fetch BM25-only results not already in memoryMap
+  const missingBm25Ids = bm25Ranked
+    .filter((item) => !memoryMap.has(item.id))
+    .map((item) => item.id);
 
-  // === Strategy 3: Trigram fuzzy search ===
-  const trigramRanked = await trigramSearch(apiKeyId, agentId, query, 30, includeShared);
-
-  for (const item of trigramRanked) {
-    if (!memoryMap.has(item.id)) {
-      const [mem] = await sql`
-        SELECT id, agent_id, user_id, org_id, scope, content, tags, embedding, created_at, updated_at
-        FROM memories WHERE id = ${item.id}
-      `;
-      if (mem) memoryMap.set(item.id, mem);
+  if (missingBm25Ids.length > 0) {
+    const bm25Memories = await sql`
+      SELECT id, agent_id, user_id, org_id, scope, content, tags, embedding, created_at, updated_at
+      FROM memories WHERE id = ANY(${missingBm25Ids})
+    `;
+    for (const mem of bm25Memories) {
+      memoryMap.set((mem as any).id, mem);
     }
   }
 
   // === Reciprocal Rank Fusion ===
-  const rankedLists = [vectorRanked, bm25Ranked, trigramRanked].filter(
+  const rankedLists = [vectorRanked, bm25Ranked].filter(
     (list) => list.length > 0
   );
 
@@ -365,7 +298,7 @@ export async function recall(params: RecallParams): Promise<MemoryWithScore[]> {
   if (rankedLists.length > 1) {
     fusedScores = reciprocalRankFusion(rankedLists);
   } else {
-    // Fallback to vector-only if BM25/trigram aren't available
+    // Fallback to vector-only if BM25 isn't available
     fusedScores = new Map(vectorRanked.map((item) => [item.id, vectorScores.get(item.id) || 0]));
   }
 
@@ -397,19 +330,15 @@ export async function recall(params: RecallParams): Promise<MemoryWithScore[]> {
   finalScored.sort((a, b) => b.relevance_score - a.relevance_score);
 
   // === Minimum relevance threshold ===
-  // Use raw vector cosine similarity as the quality gate (not RRF score).
-  // RRF scores are rank-based and don't indicate absolute relevance.
-  // Vector cosine similarity directly measures semantic closeness.
   const MIN_VECTOR_SIMILARITY = 0.25;
   const relevantResults = finalScored.filter((m) => {
     const mem = memoryMap.get(m.id);
     if (!mem) return false;
 
-    // If this memory was found by BM25 or trigram (keyword/fuzzy match), keep it
+    // If this memory was found by BM25 (keyword match), keep it
     // regardless of vector similarity — the text matched directly.
     const inBm25 = bm25Ranked.some((r) => r.id === m.id);
-    const inTrigram = trigramRanked.some((r) => r.id === m.id);
-    if (inBm25 || inTrigram) return true;
+    if (inBm25) return true;
 
     // For vector-only matches, check raw cosine similarity
     const emb = typeof mem.embedding === "string" ? JSON.parse(mem.embedding) : mem.embedding;
@@ -424,8 +353,21 @@ export async function recall(params: RecallParams): Promise<MemoryWithScore[]> {
     content: decrypt(m.content, rawApiKey),
   }));
 
-  // === Context compression (if results are large) ===
-  const compressed = await compressContext(decrypted, query);
+  // === Lazy backfill tsvectors for encrypted memories ===
+  // Old memories may have empty/null tsvectors (pre-fix). When we decrypt them
+  // during recall, update their tsvector so BM25 works on them going forward.
+  const toBackfill = decrypted.filter((m) => {
+    const mem = memoryMap.get(m.id);
+    return mem && isEncrypted(mem.content) && (!mem.content_tsv || mem.content_tsv === "");
+  });
+  if (toBackfill.length > 0) {
+    // Fire and forget — don't block the response
+    Promise.all(
+      toBackfill.map((m) =>
+        sql`UPDATE memories SET content_tsv = to_tsvector('english', ${m.content}) WHERE id = ${m.id}`
+      )
+    ).catch((err) => console.warn("[recall] Lazy tsvector backfill failed:", err.message));
+  }
 
   // Track usage
   await sql`
@@ -433,7 +375,7 @@ export async function recall(params: RecallParams): Promise<MemoryWithScore[]> {
     VALUES (${apiKeyId}, 'recall', ${agentId}, ${embeddingTokenEstimate(query)})
   `;
 
-  return compressed;
+  return decrypted;
 }
 
 // --- Forget ---
@@ -446,8 +388,18 @@ export async function forget(
     UPDATE memories
     SET deleted_at = now()
     WHERE id = ${memoryId} AND api_key_id = ${apiKeyId} AND deleted_at IS NULL
-    RETURNING id
+    RETURNING id, agent_id
   `;
+
+  if (result.length > 0) {
+    const agentId = (result[0] as any).agent_id || "unknown";
+    // Track usage for billing and analytics
+    await sql`
+      INSERT INTO usage_events (api_key_id, event_type, agent_id, tokens)
+      VALUES (${apiKeyId}, 'forget', ${agentId}, 0)
+    `;
+  }
+
   return result.length > 0;
 }
 

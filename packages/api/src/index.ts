@@ -395,7 +395,7 @@ migrateHybridSearch().then(() => {
   ║       CENTRAL INTELLIGENCE            ║
   ║       Agents forget. CI remembers.    ║
   ╠═══════════════════════════════════════╣
-  ║  Hybrid retrieval: vector+BM25+trgm  ║
+  ║  Hybrid retrieval: vector + BM25      ║
   ║  API running on port ${String(port).padEnd(16)}  ║
   ╚═══════════════════════════════════════╝
   `);
