@@ -70,7 +70,9 @@ describe("decrypt", () => {
     const encrypted = encrypt("secret data", TEST_KEY);
     // Tamper with the ciphertext portion
     const parts = encrypted.split(":");
-    parts[3] = parts[3].replace(/[0-9a-f]/, "0"); // change one hex char
+    // Flip a hex char to guarantee a change: if first char is 'f', change to 'e'; otherwise change to 'f'
+    const firstChar = parts[3][0];
+    parts[3] = (firstChar === "f" ? "e" : "f") + parts[3].slice(1);
     const tampered = parts.join(":");
     expect(() => decrypt(tampered, TEST_KEY)).toThrow();
   });
