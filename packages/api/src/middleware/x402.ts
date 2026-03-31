@@ -9,7 +9,7 @@ import {
 import { useFacilitator } from "x402/verify";
 import { settleResponseHeader } from "x402/types";
 
-const TREASURY_WALLET = "0x3056e50A9cAf93020544720cA186f77577982b5f";
+const TREASURY_WALLET = process.env.TREASURY_WALLET || "0x3056e50A9cAf93020544720cA186f77577982b5f";
 const NETWORK = "base" as const;
 const X402_VERSION = 1;
 
@@ -21,6 +21,10 @@ const PRICES: Record<string, number> = {
   forget: 0.001,
   share: 0.001,
 };
+
+if (!process.env.CDP_API_KEY_ID) {
+  console.warn("[x402] CDP_API_KEY_ID not set — using unauthenticated facilitator. Payment verification may have different trust/rate-limit guarantees.");
+}
 
 const facilitatorConfig = process.env.CDP_API_KEY_ID
   ? {

@@ -13,7 +13,7 @@ const paymentsRouter = new Hono<Env>();
 
 // USDC on Base — 6 decimals
 const USDC_BASE_CONTRACT = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
-const TREASURY_WALLET = "0x3056e50A9cAf93020544720cA186f77577982b5f";
+const TREASURY_WALLET = process.env.TREASURY_WALLET || "0x3056e50A9cAf93020544720cA186f77577982b5f";
 const BASE_RPC = "https://mainnet.base.org";
 
 // Pricing: $0.001 per memory operation
