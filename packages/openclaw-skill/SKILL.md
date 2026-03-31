@@ -6,7 +6,7 @@ description: >
   store information for later, load context from past sessions, or forget
   outdated memories. Five commands: remember, recall, context, forget, share.
 version: 1.1.0
-license: MIT
+license: Apache-2.0
 metadata:
   author: AlekseiMarchenko
   homepage: https://centralintelligence.online

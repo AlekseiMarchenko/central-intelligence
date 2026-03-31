@@ -15,7 +15,7 @@
   ],
   "mcpName": "io.github.AlekseiMarchenko/central-intelligence",
   "author": "centralintelligence",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "homepage": "https://centralintelligence.online",
   "repository": {
     "type": "git",
