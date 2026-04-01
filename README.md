@@ -6,7 +6,7 @@ Persistent memory for AI agents. Store, recall, and share information across ses
 
 [![npm](https://img.shields.io/npm/v/central-intelligence-mcp)](https://www.npmjs.com/package/central-intelligence-mcp)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
-[![AMB Score](https://img.shields.io/badge/AMB%20Score-90%2F100-6d5aff)](https://github.com/AlekseiMarchenko/agent-memory-benchmark)
+
 
 [![Central Intelligence MCP server](https://glama.ai/mcp/servers/AlekseiMarchenko/central-intelligence/badges/card.svg)](https://glama.ai/mcp/servers/AlekseiMarchenko/central-intelligence)
 
@@ -55,23 +55,15 @@ Five MCP tools give your agent a long-term memory:
 | **`forget`** | Delete outdated or incorrect memories | `forget("memory_abc123")` |
 | **`share`** | Make memories available to other agents | scope: "agent" → "org" |
 
-## Benchmark Results
+## Benchmark
 
-Central Intelligence scores **90/100** on the [Agent Memory Benchmark](https://github.com/AlekseiMarchenko/agent-memory-benchmark) (AMB), the open-source benchmark for evaluating agent memory systems.
-
-| Provider | Overall | Factual | Semantic | Temporal | Conflict | Forgetting | Cross-Session | Cost |
-|---|---|---|---|---|---|---|---|---|
-| **Central Intelligence** | **90** | 100 | 100 | 86 | 86 | 83 | 86 | 94 |
-| In-Memory Baseline | 55 | 100 | 0 | 43 | 86 | 83 | 57 | 56 |
-| Mem0 (10s) | 54 | 100 | 100 | 29 | 29 | 0 | 43 | 44 |
-| Zep (10s) | 39 | 75 | 63 | 29 | 0 | 67 | 0 | 19 |
-
-CI is the only provider to score 100% on both factual recall and semantic search at the default 3s delay. Full results and methodology in the [AMB research paper](https://github.com/AlekseiMarchenko/agent-memory-benchmark/blob/main/paper/amb-paper.pdf).
+Test CI against other providers using the open-source [Agent Memory Benchmark](https://github.com/AlekseiMarchenko/agent-memory-benchmark):
 
 ```bash
-# Run the benchmark yourself
 npx agent-memory-benchmark --provider central-intelligence --api-key $CI_API_KEY
 ```
+
+> **Note:** AMB is maintained by the same author as Central Intelligence. Run it yourself and verify the results. PRs with new provider adapters are welcome.
 
 ## How It Works
 
