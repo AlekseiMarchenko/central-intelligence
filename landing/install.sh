@@ -37,6 +37,27 @@ esac
 
 echo "  ${DIM}Platform: ${PLATFORM} ${ARCH_LABEL}${NC}"
 
+# --- Access token ---
+if [ -z "$TOKEN" ]; then
+  # read from /dev/tty so it works even when piped (curl | sh)
+  echo ""
+  echo "  ${BOLD}CI Local Pro is in early access.${NC}"
+  echo "  ${DIM}Paste your access token (from the team or centralintelligence.online):${NC}"
+  printf "  Token: "
+  read TOKEN < /dev/tty || {
+    echo ""
+    echo "  ${RED}Cannot read input. Run with token instead:${NC}"
+    echo "  CI_TOKEN=your_token curl -fsSL https://centralintelligence.online/install.sh | sh"
+    exit 1
+  }
+  echo ""
+  if [ -z "$TOKEN" ]; then
+    echo "  ${RED}No token provided.${NC}"
+    echo "  ${DIM}Request access: https://centralintelligence.online${NC}"
+    exit 1
+  fi
+fi
+
 # --- Check/install Node.js ---
 install_node() {
   echo ""
