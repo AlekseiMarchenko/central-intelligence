@@ -57,6 +57,20 @@ app.get("/", (c) =>
 
 app.get("/health", (c) => c.json({ status: "ok" }));
 
+// Install script — served as plain text for curl | sh
+app.get("/install.sh", async (c) => {
+  try {
+    const { readFileSync } = await import("fs");
+    const { join } = await import("path");
+    // Serve from landing directory (co-located in the repo)
+    const script = readFileSync(join(import.meta.dirname || ".", "..", "..", "landing", "install.sh"), "utf-8");
+    return c.text(script);
+  } catch {
+    // Fallback: redirect to GitHub raw
+    return c.redirect("https://raw.githubusercontent.com/AlekseiMarchenko/central-intelligence/main/landing/install.sh");
+  }
+});
+
 // Version check — used by CI Local for update notifications + install tracking
 app.get("/versions/local", async (c) => {
   const current = c.req.query("current") || "unknown";
