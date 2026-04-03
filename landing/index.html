@@ -792,6 +792,76 @@
   </div>
 </section>
 
+<!-- Dashboard CTA -->
+<section id="dashboard" style="padding: 60px 0; border-bottom: 1px solid var(--border);">
+  <div class="container" style="text-align: center;">
+    <div style="display: inline-block; background: rgba(109, 90, 255, 0.1); border: 1px solid rgba(109, 90, 255, 0.3); border-radius: 20px; padding: 4px 14px; font-size: 13px; color: var(--accent); margin-bottom: 16px;">New</div>
+    <h2 style="font-size: 32px; margin-bottom: 12px;">See what your AI actually remembers</h2>
+    <p style="color: var(--text-muted); max-width: 500px; margin: 0 auto 32px;">
+      Memory dashboard for Claude Code, Cursor, Windsurf, and ChatGPT.
+      Auto-detects your existing memories. No account needed.
+    </p>
+
+    <!-- Install command with copy button -->
+    <div id="install-box" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; max-width: 600px; margin: 0 auto 16px; text-align: left; position: relative;">
+      <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;" id="os-label">macOS / Linux</div>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <code id="install-cmd" style="font-family: var(--mono); font-size: 15px; color: var(--green); flex: 1; overflow-x: auto; white-space: nowrap;">curl -fsSL https://centralintelligence.online/install.sh | sh</code>
+        <button onclick="copyInstall()" id="copy-btn" style="background: var(--accent); color: white; border: none; border-radius: 8px; padding: 8px 16px; cursor: pointer; font-size: 13px; font-weight: 600; white-space: nowrap;">Copy</button>
+      </div>
+      <div id="win-cmd" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
+        <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">Windows (PowerShell)</div>
+        <code style="font-family: var(--mono); font-size: 15px; color: var(--green);">irm https://centralintelligence.online/install.ps1 | iex</code>
+      </div>
+    </div>
+
+    <p style="color: var(--text-dim); font-size: 13px; margin-bottom: 32px;">
+      Then run: <code style="font-family: var(--mono); color: var(--text-muted);">ci dashboard</code> → opens <code style="font-family: var(--mono); color: var(--text-muted);">localhost:3141</code>
+    </p>
+
+    <!-- What it detects -->
+    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 24px;">
+      <span style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--text-muted);">Claude Code</span>
+      <span style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--text-muted);">Cursor</span>
+      <span style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--text-muted);">Windsurf</span>
+      <span style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--text-muted);">Codex</span>
+      <span style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--text-muted);">Copilot</span>
+      <span style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--text-muted);">ChatGPT</span>
+    </div>
+
+    <p style="color: var(--text-dim); font-size: 12px;">Free for 500 memories. Local only. Nothing leaves your machine.</p>
+  </div>
+</section>
+
+<script>
+// Detect OS and show appropriate command
+(function() {
+  var ua = navigator.userAgent.toLowerCase();
+  var isWin = ua.indexOf('win') > -1;
+  if (isWin) {
+    document.getElementById('os-label').textContent = 'Windows (PowerShell)';
+    document.getElementById('install-cmd').textContent = 'irm https://centralintelligence.online/install.ps1 | iex';
+    document.getElementById('win-cmd').style.display = 'none';
+  } else {
+    // Show Windows as secondary option
+    document.getElementById('win-cmd').style.display = 'block';
+  }
+})();
+
+function copyInstall() {
+  var cmd = document.getElementById('install-cmd').textContent;
+  navigator.clipboard.writeText(cmd).then(function() {
+    var btn = document.getElementById('copy-btn');
+    btn.textContent = 'Copied!';
+    btn.style.background = '#22c55e';
+    setTimeout(function() {
+      btn.textContent = 'Copy';
+      btn.style.background = '#6d5aff';
+    }, 2000);
+  });
+}
+</script>
+
 <!-- Problem -->
 <section class="problem">
   <div class="container">

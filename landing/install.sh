@@ -1,11 +1,13 @@
 #!/bin/sh
 # CI Local Pro — one-command installer
 # macOS / Linux: curl -fsSL https://centralintelligence.online/install.sh | sh
+# With token:    CI_TOKEN=ghp_xxx curl -fsSL https://centralintelligence.online/install.sh | sh
 set -e
 
 VERSION="0.1.0"
 REPO="AlekseiMarchenko/ci-local-pro"
 INSTALL_DIR="$HOME/.ci-local-pro"
+TOKEN="${CI_TOKEN:-}"
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 DIM='\033[2m'
@@ -108,22 +110,53 @@ CLONE_URL="https://github.com/${REPO}.git"
 rm -rf "$INSTALL_DIR"
 mkdir -p "$INSTALL_DIR"
 
+# Build auth header if token provided
+AUTH_HEADER=""
+if [ -n "$TOKEN" ]; then
+  AUTH_HEADER="Authorization: token ${TOKEN}"
+  echo "  ${DIM}Using access token${NC}"
+fi
+
 # Try release tarball first
 DOWNLOADED=false
-if curl -fsSL --head "$TARBALL_URL" >/dev/null 2>&1; then
-  curl -fsSL "$TARBALL_URL" | tar xz -C "$INSTALL_DIR" --strip-components=1 2>/dev/null && DOWNLOADED=true
+if [ -n "$AUTH_HEADER" ]; then
+  # Private repo: use GitHub API to get release asset
+  ASSET_URL=$(curl -fsSL -H "$AUTH_HEADER" -H "Accept: application/vnd.github.v3+json" \
+    "https://api.github.com/repos/${REPO}/releases/tags/v${VERSION}" 2>/dev/null | \
+    grep -o '"browser_download_url": *"[^"]*tar.gz"' | head -1 | sed 's/.*": *"//;s/"//')
+
+  if [ -n "$ASSET_URL" ]; then
+    curl -fsSL -H "$AUTH_HEADER" -H "Accept: application/octet-stream" \
+      -L "$ASSET_URL" | tar xz -C "$INSTALL_DIR" --strip-components=1 2>/dev/null && DOWNLOADED=true
+  fi
+else
+  # Public: try direct download
+  if curl -fsSL --head "$TARBALL_URL" >/dev/null 2>&1; then
+    curl -fsSL "$TARBALL_URL" | tar xz -C "$INSTALL_DIR" --strip-components=1 2>/dev/null && DOWNLOADED=true
+  fi
 fi
 
 if [ "$DOWNLOADED" = false ]; then
   echo "  ${DIM}→ Tarball unavailable, trying git clone...${NC}"
   if command -v git >/dev/null 2>&1; then
-    git clone --depth 1 "$CLONE_URL" "$INSTALL_DIR" 2>/dev/null || {
-      echo "  ${RED}❌ Download failed. The repo may require access.${NC}"
-      echo "  ${DIM}Request access: https://centralintelligence.online${NC}"
-      exit 1
-    }
+    if [ -n "$TOKEN" ]; then
+      git clone --depth 1 "https://${TOKEN}@github.com/${REPO}.git" "$INSTALL_DIR" 2>/dev/null || {
+        echo "  ${RED}❌ Download failed. Check your access token.${NC}"
+        exit 1
+      }
+    else
+      git clone --depth 1 "$CLONE_URL" "$INSTALL_DIR" 2>/dev/null || {
+        echo "  ${RED}❌ Download failed. Private repo requires access token.${NC}"
+        echo ""
+        echo "  ${BOLD}Run with token:${NC}"
+        echo "  CI_TOKEN=your_github_token curl -fsSL https://centralintelligence.online/install.sh | sh"
+        echo ""
+        echo "  ${DIM}Get a token: https://github.com/settings/tokens (repo scope)${NC}"
+        exit 1
+      }
+    fi
   else
-    echo "  ${RED}❌ git required when release is unavailable.${NC}"
+    echo "  ${RED}❌ git is required.${NC}"
     exit 1
   fi
 fi
