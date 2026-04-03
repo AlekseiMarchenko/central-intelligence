@@ -514,7 +514,7 @@
       <div class="feature">
         <div class="feature-icon">💬</div>
         <h3>ChatGPT Transfer</h3>
-        <p>Bring your ChatGPT knowledge to Claude and Cursor. One prompt extracts your preferences and decisions.</p>
+        <p>Bring your ChatGPT knowledge to Claude and Cursor. One prompt extracts it all. <a href="#transfer" style="color:var(--accent);">See how &darr;</a></p>
       </div>
     </div>
   </div>
@@ -545,6 +545,63 @@
     </div>
   </div>
 </section>
+
+<!-- ChatGPT Transfer -->
+<section id="transfer" style="padding: 80px 0;">
+  <div class="container">
+    <h2 style="font-size: 28px; font-weight: 700; text-align: center; margin-bottom: 12px;">Transfer from ChatGPT in 60 seconds</h2>
+    <p style="color: var(--text-muted); text-align: center; max-width: 520px; margin: 0 auto 48px; font-size: 16px;">
+      Your ChatGPT conversations hold decisions, preferences, and project context. One prompt extracts it. Paste the result in the dashboard. Done.
+    </p>
+
+    <div style="display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; margin-bottom: 40px;">
+      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; flex: 1; min-width: 280px; max-width: 340px;">
+        <div style="width: 28px; height: 28px; border-radius: 50%; background: var(--accent-glow); border: 1px solid rgba(109,90,255,0.3); color: var(--accent); text-align: center; line-height: 28px; font-size: 14px; font-weight: 700; margin-bottom: 12px;">1</div>
+        <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 6px;">Copy the prompt</h3>
+        <p style="font-size: 13px; color: var(--text-muted);">Copy the extraction prompt from the dashboard's Transfer tab.</p>
+      </div>
+      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; flex: 1; min-width: 280px; max-width: 340px;">
+        <div style="width: 28px; height: 28px; border-radius: 50%; background: var(--accent-glow); border: 1px solid rgba(109,90,255,0.3); color: var(--accent); text-align: center; line-height: 28px; font-size: 14px; font-weight: 700; margin-bottom: 12px;">2</div>
+        <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 6px;">Paste in ChatGPT</h3>
+        <p style="font-size: 13px; color: var(--text-muted);">Open the conversation you want to transfer. ChatGPT extracts the important stuff.</p>
+      </div>
+      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; flex: 1; min-width: 280px; max-width: 340px;">
+        <div style="width: 28px; height: 28px; border-radius: 50%; background: var(--accent-glow); border: 1px solid rgba(109,90,255,0.3); color: var(--accent); text-align: center; line-height: 28px; font-size: 14px; font-weight: 700; margin-bottom: 12px;">3</div>
+        <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 6px;">Paste in dashboard</h3>
+        <p style="font-size: 13px; color: var(--text-muted);">Paste ChatGPT's output in the Transfer tab. One click imports everything.</p>
+      </div>
+    </div>
+
+    <!-- The prompt -->
+    <div style="max-width: 640px; margin: 0 auto;">
+      <p style="font-size: 13px; color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">The extraction prompt</p>
+      <div style="background: #0d1117; border: 1px solid var(--border); border-radius: 10px; padding: 20px; font-family: var(--mono); font-size: 13px; color: var(--text-muted); line-height: 1.7; white-space: pre-wrap; position: relative;" id="transferPrompt">Review our entire conversation. Extract every preference, decision, project detail, architectural choice, and instruction I shared. Ignore questions, debugging, code blocks, and small talk.
+
+Write each as a standalone fact useful to a different AI assistant with zero context. Start each with an action word (Use, Prefer, Always, Never, Deploy, etc).
+
+Output ONLY this format, nothing else:
+
+TRANSFER TO CI:
+Project: [name of this conversation as shown in your sidebar]
+- [fact 1]
+- [fact 2]
+- [fact 3]
+...<button onclick="copyTransferPrompt()" id="tpCopyBtn" style="position:absolute;top:12px;right:12px;background:var(--accent);color:white;border:none;border-radius:6px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;">Copy</button></div>
+    </div>
+  </div>
+</section>
+
+<script>
+function copyTransferPrompt() {
+  var text = document.getElementById('transferPrompt').textContent.replace('Copy', '').trim();
+  navigator.clipboard.writeText(text).then(function() {
+    var btn = document.getElementById('tpCopyBtn');
+    btn.textContent = 'Copied!';
+    btn.style.background = '#22c55e';
+    setTimeout(function() { btn.textContent = 'Copy'; btn.style.background = '#6d5aff'; }, 2000);
+  });
+}
+</script>
 
 <!-- Bottom CTA -->
 <section class="cta">
