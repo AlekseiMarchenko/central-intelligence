@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en" style="color-scheme: dark;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memory Dashboard — See what your AI actually remembers</title>
+  <meta name="description" content="Memory dashboard for Claude Code, Cursor, Windsurf, and ChatGPT. Search, edit, and share memories across all your AI tools. Free, local, private.">
+  <meta property="og:title" content="Memory Dashboard — See what your AI actually remembers">
+  <meta property="og:description" content="One control panel for all your AI memories. Claude Code, Cursor, Windsurf, ChatGPT.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://centralintelligence.online/dashboard">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #09090b;
+      --bg-card: #111114;
+      --bg-elevated: #16161a;
+      --border: #27272a;
+      --border-subtle: #1e1e21;
+      --text: #fafafa;
+      --text-muted: #a1a1aa;
+      --text-dim: #71717a;
+      --accent: #6d5aff;
+      --accent-glow: rgba(109, 90, 255, 0.12);
+      --green: #22c55e;
+      --green-dim: rgba(34, 197, 94, 0.12);
+      --purple: #a78bfa;
+      --purple-dim: rgba(167, 139, 250, 0.12);
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --mono: 'JetBrains Mono', 'Fira Code', monospace;
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+    /* --- Hero --- */
+    .hero {
+      padding: 120px 0 80px;
+      text-align: center;
+      position: relative;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .badge {
+      display: inline-block;
+      background: var(--green-dim);
+      border: 1px solid rgba(34, 197, 94, 0.25);
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-size: clamp(36px, 5vw, 56px);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+    }
+    h1 .highlight {
+      background: linear-gradient(135deg, var(--accent), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      font-size: 18px;
+      color: var(--text-muted);
+      max-width: 560px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
+    }
+
+    /* --- Install box --- */
+    .install-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      max-width: 580px;
+      margin: 0 auto 12px;
+      text-align: left;
+    }
+    .install-label {
+      font-size: 11px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+    .install-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .install-cmd {
+      font-family: var(--mono);
+      font-size: 15px;
+      color: var(--green);
+      flex: 1;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+    .copy-btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .copy-btn:hover { background: #5a47e6; }
+
+    .install-sub {
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+    .install-sub code {
+      font-family: var(--mono);
+      color: var(--text-muted);
+    }
+
+    .win-alt {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* --- Platform chips --- */
+    .platforms {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin: 32px 0;
+    }
+    .chip {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 6px 16px;
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* --- Screenshot --- */
+    .screenshot-wrap {
+      margin: 60px auto 0;
+      max-width: 800px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+    }
+    .screenshot-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 12px 16px;
+      background: var(--bg-elevated);
+      border-bottom: 1px solid var(--border);
+    }
+    .screenshot-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+    .screenshot-url {
+      margin-left: 12px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    .screenshot-body {
+      padding: 24px;
+    }
+
+    /* --- Fake dashboard preview --- */
+    .dash-header { display: flex; gap: 20px; align-items: flex-start; margin-bottom: 20px; }
+    .dash-score {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 20px;
+      text-align: center;
+    }
+    .dash-score-num { font-size: 36px; font-weight: 800; color: var(--green); }
+    .dash-score-label { font-size: 11px; color: var(--text-dim); }
+    .dash-stats { display: flex; gap: 10px; flex-wrap: wrap; flex: 1; }
+    .dash-stat {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      min-width: 80px;
+    }
+    .dash-stat-num { font-size: 20px; font-weight: 700; color: var(--accent); }
+    .dash-stat-label { font-size: 10px; color: var(--text-dim); }
+
+    .dash-search {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: var(--text-dim);
+      font-family: var(--font);
+      font-size: 13px;
+      width: 100%;
+      margin-bottom: 12px;
+    }
+
+    .dash-chips { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+    .dash-chip {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 3px 10px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .dash-chip.active { border-color: var(--purple); color: var(--purple); background: var(--purple-dim); }
+
+    .dash-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .dash-table th {
+      text-align: left;
+      padding: 6px 10px;
+      background: var(--bg-elevated);
+      color: var(--text-dim);
+      font-size: 10px;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .dash-table td {
+      padding: 8px 10px;
+      border-top: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+    }
+    .dash-table tr:hover { background: rgba(109, 90, 255, 0.04); }
+    .tag-src { background: rgba(88, 166, 255, 0.15); color: #58a6ff; padding: 1px 6px; border-radius: 3px; font-size: 10px; }
+    .tag-proj { background: var(--purple-dim); color: var(--purple); padding: 1px 6px; border-radius: 3px; font-size: 10px; }
+    .tag-fresh { color: var(--green); font-size: 11px; }
+    .tag-match { color: var(--text-dim); font-size: 10px; }
+
+    /* --- Features --- */
+    .features {
+      padding: 80px 0;
+    }
+    .features h2 {
+      font-size: 28px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+    .feature {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+    }
+    .feature-icon { font-size: 24px; margin-bottom: 12px; }
+    .feature h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+    .feature p { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+
+    /* --- How it works --- */
+    .how {
+      padding: 80px 0;
+    }
+    .how h2 {
+      font-size: 28px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .steps {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .step {
+      text-align: center;
+      max-width: 240px;
+    }
+    .step-num {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--accent-glow);
+      border: 1px solid rgba(109, 90, 255, 0.3);
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+    .step h3 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+    .step p { font-size: 13px; color: var(--text-muted); }
+    .step-arrow {
+      color: var(--text-dim);
+      font-size: 24px;
+      align-self: center;
+      padding-top: 10px;
+    }
+
+    /* --- CTA --- */
+    .cta {
+      padding: 80px 0 120px;
+      text-align: center;
+    }
+    .cta h2 { font-size: 28px; font-weight: 700; margin-bottom: 12px; }
+    .cta p { color: var(--text-muted); margin-bottom: 32px; font-size: 16px; }
+    .cta-free { color: var(--text-dim); font-size: 13px; margin-top: 16px; }
+
+    /* --- Footer --- */
+    footer {
+      padding: 32px 0;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 13px;
+    }
+    footer a { color: var(--text-muted); text-decoration: none; }
+    footer a:hover { color: var(--text); }
+
+    @media (max-width: 640px) {
+      .hero { padding: 80px 0 60px; }
+      .dash-header { flex-direction: column; }
+      .steps { flex-direction: column; align-items: center; }
+      .step-arrow { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <div class="badge">Free &middot; Local &middot; Private</div>
+    <h1>See what your AI<br><span class="highlight">actually remembers</span></h1>
+    <p class="subtitle">
+      One control panel for all your AI memories. Claude Code, Cursor, Windsurf, ChatGPT.
+      Search by meaning. Edit. Delete. Share across tools.
+      Give your agents a Central Intelligence.
+    </p>
+
+    <!-- Install -->
+    <div class="install-box">
+      <div class="install-label" id="os-label">Mac / Linux</div>
+      <div class="install-row">
+        <code class="install-cmd" id="install-cmd">curl -fsSL https://centralintelligence.online/install.sh | sh</code>
+        <button class="copy-btn" id="copy-btn" onclick="copyCmd()">Copy</button>
+      </div>
+      <div class="win-alt" id="win-alt">
+        <div class="install-label">Windows (PowerShell)</div>
+        <code class="install-cmd" style="font-size:13px;">irm https://centralintelligence.online/install.ps1 | iex</code>
+      </div>
+    </div>
+    <p class="install-sub">Then run <code>ci dashboard</code> &rarr; opens <code>localhost:3141</code></p>
+
+    <!-- Platforms -->
+    <div class="platforms">
+      <span class="chip">Claude Code</span>
+      <span class="chip">Cursor</span>
+      <span class="chip">Windsurf</span>
+      <span class="chip">Codex</span>
+      <span class="chip">GitHub Copilot</span>
+      <span class="chip">ChatGPT</span>
+    </div>
+
+    <!-- Dashboard preview -->
+    <div class="screenshot-wrap">
+      <div class="screenshot-bar">
+        <div class="screenshot-dot"></div>
+        <div class="screenshot-dot"></div>
+        <div class="screenshot-dot"></div>
+        <span class="screenshot-url">localhost:3141</span>
+      </div>
+      <div class="screenshot-body">
+        <div class="dash-header">
+          <div class="dash-score">
+            <div class="dash-score-num">9/10</div>
+            <div class="dash-score-label">Health</div>
+          </div>
+          <div class="dash-stats">
+            <div class="dash-stat"><div class="dash-stat-num">89</div><div class="dash-stat-label">Total</div></div>
+            <div class="dash-stat"><div class="dash-stat-num">67</div><div class="dash-stat-label">Database</div></div>
+            <div class="dash-stat"><div class="dash-stat-num">22</div><div class="dash-stat-label">Files</div></div>
+            <div class="dash-stat"><div class="dash-stat-num">3</div><div class="dash-stat-label">Platforms</div></div>
+          </div>
+        </div>
+        <div class="dash-search">Search memories by meaning...</div>
+        <div class="dash-chips">
+          <span class="dash-chip active">All</span>
+          <span class="dash-chip">CI Architecture (14)</span>
+          <span class="dash-chip">Payment Setup (12)</span>
+          <span class="dash-chip">Claude Code (8)</span>
+          <span class="dash-chip">Cursor (4)</span>
+        </div>
+        <table class="dash-table">
+          <tr><th></th><th>Project</th><th>Source</th><th>Memory</th><th></th><th></th></tr>
+          <tr>
+            <td><input type="checkbox" disabled></td>
+            <td><span class="tag-proj">CI Architecture</span></td>
+            <td><span class="tag-src">chatgpt</span></td>
+            <td>Use Hono over Express for all API endpoints</td>
+            <td><span class="tag-fresh">fresh</span></td>
+            <td><span class="tag-match">87%</span></td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" disabled></td>
+            <td><span class="tag-proj">CI Architecture</span></td>
+            <td><span class="tag-src">claude_md</span></td>
+            <td>Hybrid search: vector + BM25 + temporal decay</td>
+            <td><span class="tag-fresh">fresh</span></td>
+            <td><span class="tag-match">82%</span></td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" disabled></td>
+            <td><span class="tag-proj">Payment Setup</span></td>
+            <td><span class="tag-src">chatgpt</span></td>
+            <td>Use Lemon Squeezy for MVP payment processing</td>
+            <td><span class="tag-fresh">fresh</span></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" disabled></td>
+            <td><span class="tag-proj">Preferences</span></td>
+            <td><span class="tag-src">cursor</span></td>
+            <td>Always use TypeScript strict mode</td>
+            <td><span class="tag-fresh">fresh</span></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td><input type="checkbox" disabled></td>
+            <td><span class="tag-proj">Deploy</span></td>
+            <td><span class="tag-src">claude_mem</span></td>
+            <td>Deploy to Fly.io using flyctl deploy</td>
+            <td style="color: var(--amber); font-size: 11px;">aging</td>
+            <td></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="features">
+  <div class="container">
+    <h2>Everything you need to manage AI memory</h2>
+    <div class="feature-grid">
+      <div class="feature">
+        <div class="feature-icon">🔍</div>
+        <h3>Semantic Search</h3>
+        <p>Search by meaning, not keywords. Type "how do I deploy" and find Fly.io, Docker, and CI/CD memories instantly.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🏷️</div>
+        <h3>Project Tags</h3>
+        <p>Every memory is tagged by source project and tool. Filter by project, source, or both. Click any tag to filter.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🔄</div>
+        <h3>Cross-Tool Memory</h3>
+        <p>Memories from Claude Code available in Cursor. Cursor rules visible in Windsurf. One memory, every tool.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">📊</div>
+        <h3>Health Score</h3>
+        <p>Spot stale memories, duplicates, and bloat before they make your agent worse. Memory health at a glance.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🗑️</div>
+        <h3>Bulk Management</h3>
+        <p>Select by search, by project, or one by one. Click rows to select. Delete what's wrong in one click.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">💬</div>
+        <h3>ChatGPT Transfer</h3>
+        <p>Bring your ChatGPT knowledge to Claude and Cursor. One prompt extracts your preferences and decisions.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section class="how">
+  <div class="container">
+    <h2>Up and running in 30 seconds</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Install</h3>
+        <p>One command. Handles Node.js, dependencies, PATH. Mac, Linux, Windows.</p>
+      </div>
+      <span class="step-arrow">&rarr;</span>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Dashboard</h3>
+        <p>Run <code style="font-family:var(--mono);color:var(--green);">ci dashboard</code>. Auto-detects memories from every tool on your machine.</p>
+      </div>
+      <span class="step-arrow">&rarr;</span>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Connect</h3>
+        <p>Add CI Local as an MCP server. Your tools start sharing memories automatically.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Bottom CTA -->
+<section class="cta">
+  <div class="container">
+    <h2>Your AI has memories. See them.</h2>
+    <p>Stop guessing what your agent knows. Start managing it.</p>
+    <div class="install-box" style="margin: 0 auto;">
+      <div class="install-row">
+        <code class="install-cmd" id="install-cmd-2">curl -fsSL https://centralintelligence.online/install.sh | sh</code>
+        <button class="copy-btn" onclick="copyCmd2()">Copy</button>
+      </div>
+    </div>
+    <p class="cta-free">Free for 500 memories. Local only. Nothing leaves your machine.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <a href="https://centralintelligence.online">Central Intelligence</a> &middot;
+    <a href="https://github.com/AlekseiMarchenko/central-intelligence">GitHub</a> &middot;
+    Built for builders.
+  </div>
+</footer>
+
+<script>
+(function() {
+  var ua = navigator.userAgent.toLowerCase();
+  if (ua.indexOf('win') > -1) {
+    document.getElementById('os-label').textContent = 'Windows (PowerShell)';
+    document.getElementById('install-cmd').textContent = 'irm https://centralintelligence.online/install.ps1 | iex';
+    document.getElementById('install-cmd-2').textContent = 'irm https://centralintelligence.online/install.ps1 | iex';
+    document.getElementById('win-alt').style.display = 'none';
+  }
+})();
+
+function copyCmd() {
+  navigator.clipboard.writeText(document.getElementById('install-cmd').textContent).then(function() {
+    var btn = document.getElementById('copy-btn');
+    btn.textContent = 'Copied!';
+    btn.style.background = '#22c55e';
+    setTimeout(function() { btn.textContent = 'Copy'; btn.style.background = '#6d5aff'; }, 2000);
+  });
+}
+function copyCmd2() {
+  navigator.clipboard.writeText(document.getElementById('install-cmd-2').textContent);
+}
+</script>
+
+</body>
+</html>
