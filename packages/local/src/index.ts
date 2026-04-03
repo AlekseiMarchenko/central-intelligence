@@ -104,7 +104,10 @@ server.tool(
 - User preferences or past decisions
 - How something was done previously
 - Why a particular approach was chosen
-If you're about to say "I don't know" or "I'll assume" — check memory first. The answer might already be there from a previous session.`,
+
+If you're about to say "I don't know" or "I'll assume" — check memory first. The answer might already be there from a previous session.
+
+When the user asks "what do you know about X" or "recall X" or "search memory for X", use this tool and show them the results with source labels (which tool/project each memory came from).`,
   {
     agent_id: z.string().describe("Unique identifier for the calling agent"),
     user_id: z.string().optional().describe("User ID for user-scoped recall"),
@@ -153,7 +156,15 @@ If you're about to say "I don't know" or "I'll assume" — check memory first. T
 // --- context ---
 server.tool(
   "context",
-  `Load relevant context from past sessions. CALL THIS FIRST at the start of every conversation before doing any work. Pass a brief summary of the current project or task. This retrieves past decisions, preferences, and context so you don't start from zero. Also call when switching to a different topic or task mid-session.`,
+  `Load relevant context from past sessions. CALL THIS FIRST at the start of every new conversation before doing any work — this is critical, do not skip it. Pass a brief summary of the current project or task. This retrieves past decisions, preferences, and context so you don't start from zero.
+
+Also call this when:
+- The user asks "what do you know about me/this project"
+- The user starts a new topic mid-session
+- You're about to make assumptions about preferences, stack, or architecture
+- The user says "recall", "remember", "what did we decide", or similar
+
+After loading context, briefly tell the user what you found: "I found X memories from [sources]. Here's what I know about your project."`,
   {
     agent_id: z.string().describe("Unique identifier for the calling agent"),
     user_id: z.string().optional().describe("User ID for scoped context"),

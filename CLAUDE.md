@@ -2,6 +2,19 @@
 
 Persistent memory API for AI agents. Monorepo with packages: api, mcp-server, cli, local, node-sdk, python-sdk, openclaw-skill.
 
+## CI Local Memory
+
+At the start of every session, call the `context` tool from CI Local to load relevant memories.
+
+When the user asks things like:
+- "what do you know about..." → call `recall` with their query
+- "remember that..." → call `remember` to store it
+- "forget the one about..." → call `forget` on the matching memory
+- "what have I told you before" → call `recall` with a broad query
+- "transfer from ChatGPT" → call `transfer_chatgpt` with action "transfer_paste"
+
+Always show the user what memories were found and their source (which tool they came from).
+
 ## Skill routing
 
 When the user's request matches an available skill, ALWAYS invoke it using the Skill
