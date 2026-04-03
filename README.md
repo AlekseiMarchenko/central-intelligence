@@ -65,19 +65,35 @@ npx agent-memory-benchmark --provider central-intelligence --api-key $CI_API_KEY
 
 > **Note:** AMB is maintained by the same author as Central Intelligence. Run it yourself and verify the results. PRs with new provider adapters are welcome.
 
+## Cross-Tool Memory (NEW in v0.5.0)
+
+CI Local reads config files from **5 AI coding platforms** and makes them searchable alongside your stored memories:
+
+| Platform | Config file | How it's parsed |
+|----------|------------|-----------------|
+| Claude Code | `CLAUDE.md` | Section-based (## headings) |
+| Cursor | `.cursor/rules` | Paragraph-based |
+| Windsurf | `.windsurf/rules` | Paragraph-based |
+| Codex | `codex.md` | Section-based |
+| GitHub Copilot | `.github/copilot-instructions.md` | Section-based |
+
+Memories stored via Claude Code are discoverable when using Cursor, and vice versa. Your AI memory works everywhere, not just in one tool.
+
+Recall responses now include `source` (which tool the memory came from), `freshness_score` (how recent), and `duplicate_group` (near-duplicate detection across tools).
+
 ## How It Works
 
 ```
-Agent (Claude, GPT, etc.)
+Agent (Claude, Cursor, Windsurf, Copilot, Codex)
     ↓ MCP protocol
 Central Intelligence MCP Server (local, thin client)
-    ↓ HTTPS
-Central Intelligence API (hosted)
     ↓
-PostgreSQL + vector embeddings (semantic search)
+SQLite + vector embeddings + config file parsing
+    ↓
+Hybrid search: vector + FTS5 + fuzzy + temporal decay
 ```
 
-Memories are stored as text with vector embeddings. Recall uses cosine similarity to find semantically relevant memories, not just keyword matches.
+Memories are stored as text with vector embeddings. Recall uses cosine similarity to find semantically relevant memories, not just keyword matches. Config files from all supported platforms are parsed, embedded, and cached locally.
 
 ## Memory Scopes
 

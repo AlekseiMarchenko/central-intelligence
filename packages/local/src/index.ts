@@ -9,7 +9,7 @@ import { hybridSearch } from "./search.js";
 
 const server = new McpServer({
   name: "Central Intelligence Local",
-  version: "1.0.0",
+  version: "1.1.0",
 });
 
 // --- remember ---
@@ -210,7 +210,7 @@ server.tool(
 );
 
 // --- Update check (non-blocking, silent on failure) ---
-const CURRENT_VERSION = "1.0.0";
+const CURRENT_VERSION = "1.1.0";
 
 async function checkForUpdates() {
   try {
