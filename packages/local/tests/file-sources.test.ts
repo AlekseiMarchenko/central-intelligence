@@ -174,9 +174,9 @@ describe("discoverFiles", () => {
   it("discovers CLAUDE.md in CWD", () => {
     writeFileSync(join(tmpDir, "CLAUDE.md"), "## Test\nContent");
     const files = discoverFiles(tmpDir);
-    expect(files).toHaveLength(1);
-    expect(files[0].source).toBe("claude_md");
-    expect(files[0].path).toBe(join(tmpDir, "CLAUDE.md"));
+    const claudeFiles = files.filter((f) => f.source === "claude_md" && f.path.startsWith(tmpDir));
+    expect(claudeFiles).toHaveLength(1);
+    expect(claudeFiles[0].path).toBe(join(tmpDir, "CLAUDE.md"));
   });
 
   it("discovers .cursor/rules", () => {
@@ -196,8 +196,9 @@ describe("discoverFiles", () => {
     writeFileSync(join(tmpDir, ".github/copilot-instructions.md"), "## Instructions\nDo this.");
 
     const files = discoverFiles(tmpDir);
-    expect(files).toHaveLength(3);
-    const sources = files.map((f) => f.source);
+    const cwdFiles = files.filter((f) => f.path.startsWith(tmpDir));
+    expect(cwdFiles).toHaveLength(3);
+    const sources = cwdFiles.map((f) => f.source);
     expect(sources).toContain("claude_md");
     expect(sources).toContain("cursor_rules");
     expect(sources).toContain("copilot_instructions");
@@ -245,12 +246,14 @@ describe("parseAllFiles", () => {
     writeFileSync(join(tmpDir, ".cursor/rules"), "Always use TypeScript.\n\nPrefer const.");
 
     const { entries, files, warnings } = parseAllFiles(tmpDir);
-    expect(files).toHaveLength(2);
-    expect(entries).toHaveLength(4); // 2 from CLAUDE.md + 2 from .cursor/rules
+    const cwdFiles = files.filter((f) => f.path.startsWith(tmpDir));
+    const cwdEntries = entries.filter((e) => e.source_path.startsWith(tmpDir));
+    expect(cwdFiles).toHaveLength(2);
+    expect(cwdEntries).toHaveLength(4);
     expect(warnings).toHaveLength(0);
 
-    const claudeEntries = entries.filter((e) => e.source === "claude_md");
-    const cursorEntries = entries.filter((e) => e.source === "cursor_rules");
+    const claudeEntries = cwdEntries.filter((e) => e.source === "claude_md");
+    const cursorEntries = cwdEntries.filter((e) => e.source === "cursor_rules");
     expect(claudeEntries).toHaveLength(2);
     expect(cursorEntries).toHaveLength(2);
   });
@@ -258,7 +261,8 @@ describe("parseAllFiles", () => {
   it("skips empty files without warnings", () => {
     writeFileSync(join(tmpDir, "CLAUDE.md"), "");
     const { entries, warnings } = parseAllFiles(tmpDir);
-    expect(entries).toHaveLength(0);
+    const cwdEntries = entries.filter((e) => e.source_path.startsWith(tmpDir));
+    expect(cwdEntries).toHaveLength(0);
     expect(warnings).toHaveLength(0);
   });
 

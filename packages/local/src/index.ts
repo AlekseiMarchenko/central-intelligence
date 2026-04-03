@@ -3,10 +3,14 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { store, softDelete, updateScope } from "./db.js";
+import { store, softDelete, updateScope, getMemoryCount } from "./db.js";
 import { embed } from "./embeddings.js";
 import { hybridSearch } from "./search.js";
-import { transferChatGPT, listChatGPTConversations, transferFromLinks } from "./chatgpt-transfer.js";
+import { transferChatGPT, listChatGPTConversations, transferFromPaste } from "./chatgpt-transfer.js";
+
+const FREE_MEMORY_LIMIT = 500;
+const CLOUD_SIGNUP_URL = "https://centralintelligence.online";
+const CLOUD_SETUP_CMD = "npx central-intelligence-cli signup";
 
 const server = new McpServer({
   name: "Central Intelligence Local",
@@ -32,8 +36,39 @@ Do NOT wait for the user to say "remember this" — if it would be useful in a f
   },
   async ({ agent_id, user_id, content, tags, scope }) => {
     try {
+      const count = getMemoryCount();
+
+      // Hard limit: block storage above free tier
+      if (count >= FREE_MEMORY_LIMIT) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({
+                stored: false,
+                limit_reached: true,
+                current: count,
+                limit: FREE_MEMORY_LIMIT,
+                message: `Local memory limit reached (${count}/${FREE_MEMORY_LIMIT}). Upgrade to CI Cloud for unlimited memories, cross-device sync, and team sharing. Run: ${CLOUD_SETUP_CMD}`,
+                upgrade_url: CLOUD_SIGNUP_URL,
+              }),
+            },
+          ],
+        };
+      }
+
       const embedding = await embed(content);
       const memory = store(agent_id, content, embedding, { userId: user_id, scope, tags });
+
+      // Nudge at 80% and 90% usage
+      const usage = count + 1;
+      let nudge: string | undefined;
+      if (usage >= FREE_MEMORY_LIMIT * 0.9) {
+        nudge = `${FREE_MEMORY_LIMIT - usage} memories remaining. Upgrade to CI Cloud for unlimited storage: ${CLOUD_SETUP_CMD}`;
+      } else if (usage >= FREE_MEMORY_LIMIT * 0.8) {
+        nudge = `${FREE_MEMORY_LIMIT - usage} memories remaining on free tier. Cloud sync available: ${CLOUD_SIGNUP_URL}`;
+      }
+
       return {
         content: [
           {
@@ -46,6 +81,8 @@ Do NOT wait for the user to say "remember this" — if it would be useful in a f
                 scope: memory.scope,
                 created_at: memory.created_at,
               },
+              usage: { current: usage, limit: FREE_MEMORY_LIMIT },
+              ...(nudge ? { nudge } : {}),
             }),
           },
         ],
@@ -79,6 +116,7 @@ If you're about to say "I don't know" or "I'll assume" — check memory first. T
   async ({ agent_id, query, scope, tags, limit }) => {
     try {
       const memories = await hybridSearch(agent_id, query, { scope, tags, limit });
+      const usage = { current: getMemoryCount(), limit: FREE_MEMORY_LIMIT };
       return {
         content: [
           {
@@ -98,6 +136,7 @@ If you're about to say "I don't know" or "I'll assume" — check memory first. T
               })),
               count: memories.length,
               mode: "local",
+              usage,
             }),
           },
         ],
@@ -126,6 +165,7 @@ server.tool(
       const memories = await hybridSearch(agent_id, current_context, {
         limit: max_memories || 5,
       });
+      const usage = { current: getMemoryCount(), limit: FREE_MEMORY_LIMIT };
       return {
         content: [
           {
@@ -141,6 +181,7 @@ server.tool(
               })),
               count: memories.length,
               mode: "local",
+              usage,
             }),
           },
         ],
@@ -214,58 +255,58 @@ server.tool(
 server.tool(
   "transfer_chatgpt",
   `Transfer memories from ChatGPT conversations into CI Local.
+Everything stays local. Nothing is shared publicly.
 
-PREFERRED METHOD (no export needed):
-Ask the user to share specific ChatGPT conversations via share links.
-In ChatGPT: open a conversation → click Share → Copy Link.
-Then call this tool with action "transfer_links" and the URLs.
-
-ALTERNATIVE METHOD (bulk, requires export file):
-If the user has a ChatGPT data export (conversations.json), they can place it at
-~/.central-intelligence/chatgpt-export/conversations.json
-Then use action "list" to browse and "import" to transfer.
+PREFERRED METHOD — paste:
+1. Ask the user which ChatGPT conversation they want to transfer
+2. Tell them: "Open that chat in ChatGPT, select all (Cmd+A), copy (Cmd+C), paste here"
+3. Call action "transfer_paste" with the pasted text
+4. CI parses the conversation, extracts instructional memories, stores locally
 
 Use this tool when the user says things like:
 - "Transfer my ChatGPT project about X to here"
 - "Import my ChatGPT conversations"
 - "Get my ChatGPT context/memories"
+- "Bring over my ChatGPT chat about Y"
 
-Typical flow:
-1. Ask the user which ChatGPT conversation they want
-2. Ask them to share it: "Open that chat in ChatGPT, click Share → Copy Link, paste here"
-3. Call action "transfer_links" with the pasted URLs
-4. Done — memories are now searchable by all tools`,
+ALTERNATIVE METHOD (bulk, requires export file):
+For transferring many conversations at once, the user can export their ChatGPT data
+(Settings → Data controls → Export) and place conversations.json at
+~/.central-intelligence/chatgpt-export/conversations.json
+Then use action "list" to browse and "import" to transfer.`,
   {
-    action: z.enum(["transfer_links", "list", "import"]).describe(
-      "'transfer_links' to import from shared ChatGPT URLs (preferred), " +
+    action: z.enum(["transfer_paste", "list", "import"]).describe(
+      "'transfer_paste' to import from pasted conversation text (preferred, private), " +
       "'list' to browse a local export file, " +
       "'import' to transfer from local export"
     ),
-    urls: z.array(z.string()).optional().describe("ChatGPT share links (for transfer_links action)"),
+    text: z.string().optional().describe("Pasted ChatGPT conversation text (for transfer_paste action)"),
+    conversation_name: z.string().optional().describe("Name to label this conversation (for transfer_paste)"),
     filter: z.string().optional().describe("Search term to filter conversations (for list action)"),
     conversations: z.array(z.string()).optional().describe("Conversation titles to import (for import action)"),
     project: z.string().optional().describe("ChatGPT project name to import (for import action)"),
     limit: z.number().optional().describe("Max memories to import (default 50)"),
   },
-  async ({ action, urls, filter, conversations: convTitles, project, limit }) => {
+  async ({ action, text, conversation_name, filter, conversations: convTitles, project, limit }) => {
     try {
-      if (action === "transfer_links") {
-        if (!urls || urls.length === 0) {
+      if (action === "transfer_paste") {
+        if (!text || text.trim().length < 50) {
           return {
             content: [{
               type: "text" as const,
               text: JSON.stringify({
-                error: "No URLs provided. Ask the user to share a ChatGPT conversation: open it → Share → Copy Link.",
+                error: "No conversation text provided. Ask the user to copy their ChatGPT conversation (Cmd+A, Cmd+C in the chat) and paste it here.",
               }),
             }],
             isError: true,
           };
         }
 
-        const result = await transferFromLinks({
-          urls,
+        const result = await transferFromPaste({
+          text,
+          conversationName: conversation_name || "ChatGPT Conversation",
           limit: limit || 50,
-          storeFn: async (content, tags, timestamp) => {
+          storeFn: async (content, tags) => {
             const embedding = await embed(content);
             return store("chatgpt-transfer", content, embedding, {
               scope: "user",
@@ -290,7 +331,7 @@ Typical flow:
               type: "text" as const,
               text: JSON.stringify({
                 has_export: false,
-                message: "No ChatGPT export file found. Use the share link method instead: ask the user to share specific conversations from ChatGPT (Share → Copy Link), then call with action 'transfer_links'.",
+                message: "No export file found. Use the paste method instead: ask the user to copy conversation text from ChatGPT and paste it here, then call with action 'transfer_paste'.",
               }),
             }],
           };
@@ -303,7 +344,7 @@ Typical flow:
           conversationTitles: convTitles,
           projectName: project,
           limit: limit || 50,
-          storeFn: async (content, tags, timestamp) => {
+          storeFn: async (content, tags) => {
             const embedding = await embed(content);
             return store("chatgpt-transfer", content, embedding, { scope: "user", tags });
           },

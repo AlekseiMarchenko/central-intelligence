@@ -164,6 +164,12 @@ export function updateScope(memoryId: string, targetScope: string, userId?: stri
   return result.changes > 0;
 }
 
+export function getMemoryCount(): number {
+  const db = getDb();
+  const row = db.prepare("SELECT COUNT(*) as count FROM memories WHERE deleted_at IS NULL").get() as { count: number };
+  return row.count;
+}
+
 export function getById(memoryId: string): MemoryRow | null {
   const db = getDb();
   return (db.prepare("SELECT * FROM memories WHERE id = ?").get(memoryId) as MemoryRow) || null;
