@@ -6,7 +6,7 @@ import { z } from "zod";
 import { store, softDelete, updateScope } from "./db.js";
 import { embed } from "./embeddings.js";
 import { hybridSearch } from "./search.js";
-import { transferChatGPT, listChatGPTConversations } from "./chatgpt-transfer.js";
+import { transferChatGPT, listChatGPTConversations, transferFromLinks } from "./chatgpt-transfer.js";
 
 const server = new McpServer({
   name: "Central Intelligence Local",
@@ -215,39 +215,55 @@ server.tool(
   "transfer_chatgpt",
   `Transfer memories from ChatGPT conversations into CI Local.
 
-PREREQUISITE: The user must first export their ChatGPT data:
-  chat.openai.com → Settings → Data controls → Export data
-Then place conversations.json at ~/.central-intelligence/chatgpt-export/conversations.json
+PREFERRED METHOD (no export needed):
+Ask the user to share specific ChatGPT conversations via share links.
+In ChatGPT: open a conversation → click Share → Copy Link.
+Then call this tool with action "transfer_links" and the URLs.
+
+ALTERNATIVE METHOD (bulk, requires export file):
+If the user has a ChatGPT data export (conversations.json), they can place it at
+~/.central-intelligence/chatgpt-export/conversations.json
+Then use action "list" to browse and "import" to transfer.
 
 Use this tool when the user says things like:
 - "Transfer my ChatGPT project about X to here"
 - "Import my ChatGPT conversations"
 - "Get my ChatGPT context/memories"
 
-Call with action "list" first to show available conversations, then "import" with the selected names.`,
+Typical flow:
+1. Ask the user which ChatGPT conversation they want
+2. Ask them to share it: "Open that chat in ChatGPT, click Share → Copy Link, paste here"
+3. Call action "transfer_links" with the pasted URLs
+4. Done — memories are now searchable by all tools`,
   {
-    action: z.enum(["list", "import"]).describe("'list' to show available conversations/projects, 'import' to transfer selected ones"),
-    filter: z.string().optional().describe("Search term to filter conversations by title (e.g. 'Central Intelligence', 'React')"),
-    conversations: z.array(z.string()).optional().describe("Conversation titles to import (from the list action). Pass exact titles."),
-    project: z.string().optional().describe("ChatGPT project/folder name to import all conversations from"),
+    action: z.enum(["transfer_links", "list", "import"]).describe(
+      "'transfer_links' to import from shared ChatGPT URLs (preferred), " +
+      "'list' to browse a local export file, " +
+      "'import' to transfer from local export"
+    ),
+    urls: z.array(z.string()).optional().describe("ChatGPT share links (for transfer_links action)"),
+    filter: z.string().optional().describe("Search term to filter conversations (for list action)"),
+    conversations: z.array(z.string()).optional().describe("Conversation titles to import (for import action)"),
+    project: z.string().optional().describe("ChatGPT project name to import (for import action)"),
     limit: z.number().optional().describe("Max memories to import (default 50)"),
   },
-  async ({ action, filter, conversations: convTitles, project, limit }) => {
+  async ({ action, urls, filter, conversations: convTitles, project, limit }) => {
     try {
-      if (action === "list") {
-        const result = await listChatGPTConversations(filter);
-        return {
-          content: [{
-            type: "text" as const,
-            text: JSON.stringify(result),
-          }],
-        };
-      }
+      if (action === "transfer_links") {
+        if (!urls || urls.length === 0) {
+          return {
+            content: [{
+              type: "text" as const,
+              text: JSON.stringify({
+                error: "No URLs provided. Ask the user to share a ChatGPT conversation: open it → Share → Copy Link.",
+              }),
+            }],
+            isError: true,
+          };
+        }
 
-      if (action === "import") {
-        const result = await transferChatGPT({
-          conversationTitles: convTitles,
-          projectName: project,
+        const result = await transferFromLinks({
+          urls,
           limit: limit || 50,
           storeFn: async (content, tags, timestamp) => {
             const embedding = await embed(content);
@@ -257,6 +273,7 @@ Call with action "list" first to show available conversations, then "import" wit
             });
           },
         });
+
         return {
           content: [{
             type: "text" as const,
@@ -265,15 +282,38 @@ Call with action "list" first to show available conversations, then "import" wit
         };
       }
 
-      return {
-        content: [{ type: "text" as const, text: "Unknown action. Use 'list' or 'import'." }],
-        isError: true,
-      };
+      if (action === "list") {
+        const result = await listChatGPTConversations(filter);
+        if (!result.has_export) {
+          return {
+            content: [{
+              type: "text" as const,
+              text: JSON.stringify({
+                has_export: false,
+                message: "No ChatGPT export file found. Use the share link method instead: ask the user to share specific conversations from ChatGPT (Share → Copy Link), then call with action 'transfer_links'.",
+              }),
+            }],
+          };
+        }
+        return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+      }
+
+      if (action === "import") {
+        const result = await transferChatGPT({
+          conversationTitles: convTitles,
+          projectName: project,
+          limit: limit || 50,
+          storeFn: async (content, tags, timestamp) => {
+            const embedding = await embed(content);
+            return store("chatgpt-transfer", content, embedding, { scope: "user", tags });
+          },
+        });
+        return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+      }
+
+      return { content: [{ type: "text" as const, text: "Unknown action." }], isError: true };
     } catch (err: any) {
-      return {
-        content: [{ type: "text" as const, text: `Error: ${err.message}` }],
-        isError: true,
-      };
+      return { content: [{ type: "text" as const, text: `Error: ${err.message}` }], isError: true };
     }
   }
 );
