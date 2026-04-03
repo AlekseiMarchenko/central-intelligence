@@ -1,96 +1,172 @@
 #!/bin/sh
-# CI Local Pro — install script
-# Usage: curl -fsSL https://centralintelligence.online/install.sh | sh
+# CI Local Pro — one-command installer
+# macOS / Linux: curl -fsSL https://centralintelligence.online/install.sh | sh
 set -e
 
 VERSION="0.1.0"
 REPO="AlekseiMarchenko/ci-local-pro"
 INSTALL_DIR="$HOME/.ci-local-pro"
-BIN_LINK="/usr/local/bin/ci"
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+DIM='\033[2m'
+BOLD='\033[1m'
+NC='\033[0m'
 
 echo ""
-echo "  🧠 CI Local Pro v${VERSION}"
-echo "  Cross-tool memory dashboard"
+echo "  ${BOLD}🧠 CI Local Pro${NC} v${VERSION}"
+echo "  ${DIM}See what your AI actually remembers${NC}"
 echo ""
 
-# Check Node.js
-if ! command -v node >/dev/null 2>&1; then
-  echo "  ❌ Node.js is required but not installed."
-  echo "     Install it: https://nodejs.org or brew install node"
-  exit 1
-fi
+# --- Detect platform ---
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+ARCH=$(uname -m)
 
-NODE_VERSION=$(node -v | sed 's/v//' | cut -d. -f1)
-if [ "$NODE_VERSION" -lt 18 ] 2>/dev/null; then
-  echo "  ❌ Node.js 18+ required (you have $(node -v))"
-  exit 1
-fi
+case "$OS" in
+  darwin) PLATFORM="macOS" ;;
+  linux)  PLATFORM="Linux" ;;
+  *)      echo "  ${RED}❌ Unsupported platform: $OS${NC}"; echo "  Windows: download from https://github.com/${REPO}/releases"; exit 1 ;;
+esac
 
-echo "  ✓ Node.js $(node -v)"
+case "$ARCH" in
+  x86_64|amd64) ARCH_LABEL="x64" ;;
+  arm64|aarch64) ARCH_LABEL="arm64" ;;
+  *)             ARCH_LABEL="$ARCH" ;;
+esac
 
-# Download
-echo "  → Downloading..."
-TARBALL_URL="https://github.com/${REPO}/releases/download/v${VERSION}/ci-local-pro-v${VERSION}.tar.gz"
+echo "  ${DIM}Platform: ${PLATFORM} ${ARCH_LABEL}${NC}"
 
-# Try GitHub release first, fall back to git clone
-if command -v curl >/dev/null 2>&1; then
-  if curl -fsSL --head "$TARBALL_URL" >/dev/null 2>&1; then
-    mkdir -p "$INSTALL_DIR"
-    curl -fsSL "$TARBALL_URL" | tar xz -C "$INSTALL_DIR" --strip-components=1
-  else
-    echo "  → Release not found, cloning from GitHub..."
-    if command -v git >/dev/null 2>&1; then
-      rm -rf "$INSTALL_DIR"
-      git clone --depth 1 "https://github.com/${REPO}.git" "$INSTALL_DIR" 2>/dev/null || {
-        echo "  ❌ Failed to clone. The repo may be private."
-        echo "     Contact: https://centralintelligence.online for access."
-        exit 1
-      }
+# --- Check/install Node.js ---
+install_node() {
+  echo ""
+  echo "  ${BOLD}Node.js 18+ is required.${NC}"
+  echo ""
+
+  if [ "$OS" = "darwin" ]; then
+    # macOS: try brew first, then direct download
+    if command -v brew >/dev/null 2>&1; then
+      echo "  → Installing Node.js via Homebrew..."
+      brew install node
     else
-      echo "  ❌ git is required when release tarball is unavailable."
-      exit 1
+      echo "  → Installing Node.js..."
+      curl -fsSL https://nodejs.org/dist/v22.14.0/node-v22.14.0-darwin-${ARCH}.tar.gz -o /tmp/node.tar.gz
+      sudo mkdir -p /usr/local/lib/nodejs
+      sudo tar xzf /tmp/node.tar.gz -C /usr/local/lib/nodejs
+      export PATH="/usr/local/lib/nodejs/node-v22.14.0-darwin-${ARCH}/bin:$PATH"
+      rm /tmp/node.tar.gz
+      # Add to shell profile
+      SHELL_RC="$HOME/.zshrc"
+      [ -f "$HOME/.bashrc" ] && SHELL_RC="$HOME/.bashrc"
+      echo "export PATH=\"/usr/local/lib/nodejs/node-v22.14.0-darwin-${ARCH}/bin:\$PATH\"" >> "$SHELL_RC"
+    fi
+  else
+    # Linux: use NodeSource
+    if command -v apt-get >/dev/null 2>&1; then
+      echo "  → Installing Node.js via apt..."
+      curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+      sudo apt-get install -y nodejs
+    elif command -v dnf >/dev/null 2>&1; then
+      echo "  → Installing Node.js via dnf..."
+      curl -fsSL https://rpm.nodesource.com/setup_22.x | sudo bash -
+      sudo dnf install -y nodejs
+    else
+      echo "  → Installing Node.js via binary..."
+      curl -fsSL "https://nodejs.org/dist/v22.14.0/node-v22.14.0-linux-${ARCH}.tar.xz" -o /tmp/node.tar.xz
+      sudo mkdir -p /usr/local/lib/nodejs
+      sudo tar xJf /tmp/node.tar.xz -C /usr/local/lib/nodejs
+      export PATH="/usr/local/lib/nodejs/node-v22.14.0-linux-${ARCH}/bin:$PATH"
+      rm /tmp/node.tar.xz
+      echo "export PATH=\"/usr/local/lib/nodejs/node-v22.14.0-linux-${ARCH}/bin:\$PATH\"" >> "$HOME/.bashrc"
     fi
   fi
+}
+
+if command -v node >/dev/null 2>&1; then
+  NODE_VERSION=$(node -v | sed 's/v//' | cut -d. -f1)
+  if [ "$NODE_VERSION" -lt 18 ] 2>/dev/null; then
+    echo "  ${RED}Node.js is outdated ($(node -v), need 18+)${NC}"
+    install_node
+  else
+    echo "  ${GREEN}✓${NC} Node.js $(node -v)"
+  fi
 else
-  echo "  ❌ curl is required."
+  install_node
+fi
+
+# Verify Node works now
+if ! command -v node >/dev/null 2>&1; then
+  echo "  ${RED}❌ Node.js installation failed. Install manually: https://nodejs.org${NC}"
   exit 1
 fi
+echo "  ${GREEN}✓${NC} Node.js $(node -v)"
 
-# Install dependencies
-echo "  → Installing dependencies..."
-cd "$INSTALL_DIR"
-npm install --production --silent 2>/dev/null || npm install --omit=dev --silent
+# --- Download CI Local Pro ---
+echo "  → Downloading CI Local Pro..."
 
-# Create launcher script
-mkdir -p "$(dirname "$BIN_LINK")" 2>/dev/null || true
-cat > "$INSTALL_DIR/ci-launcher.sh" << 'LAUNCHER'
-#!/bin/sh
-exec node --import tsx "$HOME/.ci-local-pro/src/cli.ts" "$@"
-LAUNCHER
-chmod +x "$INSTALL_DIR/ci-launcher.sh"
+TARBALL_URL="https://github.com/${REPO}/releases/download/v${VERSION}/ci-local-pro-v${VERSION}.tar.gz"
+CLONE_URL="https://github.com/${REPO}.git"
 
-# Link to PATH
-if [ -w "$(dirname "$BIN_LINK")" ]; then
-  ln -sf "$INSTALL_DIR/ci-launcher.sh" "$BIN_LINK"
-  echo "  ✓ Installed: ci (in $BIN_LINK)"
-else
-  # Try with sudo
-  echo "  → Need permission to install to $BIN_LINK"
-  sudo ln -sf "$INSTALL_DIR/ci-launcher.sh" "$BIN_LINK" 2>/dev/null || {
-    # Fall back to user bin
-    USER_BIN="$HOME/.local/bin"
-    mkdir -p "$USER_BIN"
-    ln -sf "$INSTALL_DIR/ci-launcher.sh" "$USER_BIN/ci"
-    echo "  ✓ Installed: ci (in $USER_BIN)"
-    echo "  → Add to PATH if needed: export PATH=\"$USER_BIN:\$PATH\""
-  }
+rm -rf "$INSTALL_DIR"
+mkdir -p "$INSTALL_DIR"
+
+# Try release tarball first
+DOWNLOADED=false
+if curl -fsSL --head "$TARBALL_URL" >/dev/null 2>&1; then
+  curl -fsSL "$TARBALL_URL" | tar xz -C "$INSTALL_DIR" --strip-components=1 2>/dev/null && DOWNLOADED=true
 fi
 
+if [ "$DOWNLOADED" = false ]; then
+  echo "  ${DIM}→ Tarball unavailable, trying git clone...${NC}"
+  if command -v git >/dev/null 2>&1; then
+    git clone --depth 1 "$CLONE_URL" "$INSTALL_DIR" 2>/dev/null || {
+      echo "  ${RED}❌ Download failed. The repo may require access.${NC}"
+      echo "  ${DIM}Request access: https://centralintelligence.online${NC}"
+      exit 1
+    }
+  else
+    echo "  ${RED}❌ git required when release is unavailable.${NC}"
+    exit 1
+  fi
+fi
+
+# --- Install dependencies ---
+echo "  → Installing dependencies..."
+cd "$INSTALL_DIR"
+npm install --omit=dev --silent 2>/dev/null || npm install --production --silent 2>/dev/null
+
+# --- Create launcher ---
+cat > "$INSTALL_DIR/ci" << 'LAUNCHER'
+#!/bin/sh
+DIR="$(cd "$(dirname "$0")" && pwd)"
+exec npx --yes tsx "$DIR/src/cli.ts" "$@"
+LAUNCHER
+chmod +x "$INSTALL_DIR/ci"
+
+# --- Link to PATH ---
+BIN_DIR="/usr/local/bin"
+if [ ! -w "$BIN_DIR" ]; then
+  BIN_DIR="$HOME/.local/bin"
+  mkdir -p "$BIN_DIR"
+fi
+
+ln -sf "$INSTALL_DIR/ci" "$BIN_DIR/ci" 2>/dev/null || {
+  sudo ln -sf "$INSTALL_DIR/ci" "/usr/local/bin/ci" 2>/dev/null || {
+    BIN_DIR="$HOME/.local/bin"
+    mkdir -p "$BIN_DIR"
+    ln -sf "$INSTALL_DIR/ci" "$BIN_DIR/ci"
+  }
+}
+
+# Check if BIN_DIR is in PATH
+case ":$PATH:" in
+  *":$BIN_DIR:"*) ;;
+  *) echo "  ${DIM}Add to your PATH: export PATH=\"$BIN_DIR:\$PATH\"${NC}" ;;
+esac
+
 echo ""
-echo "  ✅ CI Local Pro installed!"
+echo "  ${GREEN}${BOLD}✅ CI Local Pro installed!${NC}"
 echo ""
-echo "  Run:  ci dashboard"
-echo "  Open: http://localhost:3141"
+echo "  ${BOLD}Next:${NC}  ci dashboard"
+echo "  ${BOLD}Open:${NC}  http://localhost:3141"
 echo ""
-echo "  Your AI memories are waiting."
+echo "  ${DIM}Your AI memories are waiting.${NC}"
 echo ""
