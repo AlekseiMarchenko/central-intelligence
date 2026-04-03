@@ -5,7 +5,7 @@ import { createHash } from "crypto";
 
 export interface FileSourceEntry {
   content_hash: string;
-  source: "claude_md" | "cursor_rules" | "windsurf_rules" | "codex_config" | "copilot_instructions";
+  source: "claude_md" | "cursor_rules" | "windsurf_rules" | "codex_config" | "copilot_instructions" | "chatgpt_instructions";
   source_path: string;
   section_title: string | null;
   content: string;
@@ -147,6 +147,11 @@ const PLATFORMS: PlatformConfig[] = [
     source: "copilot_instructions",
     paths: [".github/copilot-instructions.md"],
     parser: (content, path) => parseMarkdownSections(content, path, "copilot_instructions"),
+  },
+  {
+    source: "chatgpt_instructions",
+    paths: [".chatgpt/instructions.md", ".chatgpt/custom-instructions.md"],
+    parser: (content, path) => parseMarkdownSections(content, path, "chatgpt_instructions"),
   },
 ];
 
