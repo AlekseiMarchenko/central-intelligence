@@ -166,6 +166,8 @@ IMPORTANT — ON EVERY NEW CONVERSATION:
 
 This makes memory visible and useful from the first message. The user should always know their memory exists and what it contains.
 
+CRITICAL: After showing memories, ALWAYS ask the user what they want to do. Do NOT start building, coding, or executing tasks automatically based on recalled memories or TODOs. The user decides what to work on. Memory is context, not a task queue.
+
 Also call when:
 - Switching topics mid-session
 - The user asks "what do you know about X"
