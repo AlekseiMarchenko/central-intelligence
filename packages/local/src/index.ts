@@ -6,6 +6,7 @@ import { z } from "zod";
 import { store, softDelete, updateScope } from "./db.js";
 import { embed } from "./embeddings.js";
 import { hybridSearch } from "./search.js";
+import { transferChatGPT, listChatGPTConversations } from "./chatgpt-transfer.js";
 
 const server = new McpServer({
   name: "Central Intelligence Local",
@@ -203,6 +204,74 @@ server.tool(
     } catch (err: any) {
       return {
         content: [{ type: "text" as const, text: `Error sharing: ${err.message}` }],
+        isError: true,
+      };
+    }
+  }
+);
+
+// --- transfer_chatgpt ---
+server.tool(
+  "transfer_chatgpt",
+  `Transfer memories from ChatGPT conversations into CI Local.
+
+PREREQUISITE: The user must first export their ChatGPT data:
+  chat.openai.com → Settings → Data controls → Export data
+Then place conversations.json at ~/.central-intelligence/chatgpt-export/conversations.json
+
+Use this tool when the user says things like:
+- "Transfer my ChatGPT project about X to here"
+- "Import my ChatGPT conversations"
+- "Get my ChatGPT context/memories"
+
+Call with action "list" first to show available conversations, then "import" with the selected names.`,
+  {
+    action: z.enum(["list", "import"]).describe("'list' to show available conversations/projects, 'import' to transfer selected ones"),
+    filter: z.string().optional().describe("Search term to filter conversations by title (e.g. 'Central Intelligence', 'React')"),
+    conversations: z.array(z.string()).optional().describe("Conversation titles to import (from the list action). Pass exact titles."),
+    project: z.string().optional().describe("ChatGPT project/folder name to import all conversations from"),
+    limit: z.number().optional().describe("Max memories to import (default 50)"),
+  },
+  async ({ action, filter, conversations: convTitles, project, limit }) => {
+    try {
+      if (action === "list") {
+        const result = await listChatGPTConversations(filter);
+        return {
+          content: [{
+            type: "text" as const,
+            text: JSON.stringify(result),
+          }],
+        };
+      }
+
+      if (action === "import") {
+        const result = await transferChatGPT({
+          conversationTitles: convTitles,
+          projectName: project,
+          limit: limit || 50,
+          storeFn: async (content, tags, timestamp) => {
+            const embedding = await embed(content);
+            return store("chatgpt-transfer", content, embedding, {
+              scope: "user",
+              tags,
+            });
+          },
+        });
+        return {
+          content: [{
+            type: "text" as const,
+            text: JSON.stringify(result),
+          }],
+        };
+      }
+
+      return {
+        content: [{ type: "text" as const, text: "Unknown action. Use 'list' or 'import'." }],
+        isError: true,
+      };
+    } catch (err: any) {
+      return {
+        content: [{ type: "text" as const, text: `Error: ${err.message}` }],
         isError: true,
       };
     }
