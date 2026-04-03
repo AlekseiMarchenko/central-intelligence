@@ -156,15 +156,20 @@ When the user asks "what do you know about X" or "recall X" or "search memory fo
 // --- context ---
 server.tool(
   "context",
-  `Load relevant context from past sessions. CALL THIS FIRST at the start of every new conversation before doing any work — this is critical, do not skip it. Pass a brief summary of the current project or task. This retrieves past decisions, preferences, and context so you don't start from zero.
+  `Load relevant context from past sessions.
 
-Also call this when:
-- The user asks "what do you know about me/this project"
-- The user starts a new topic mid-session
-- You're about to make assumptions about preferences, stack, or architecture
-- The user says "recall", "remember", "what did we decide", or similar
+IMPORTANT — ON EVERY NEW CONVERSATION:
+1. Call this tool with current_context set to "session start" to get the memory count.
+2. Then tell the user: "You have [usage.current] memories in CI Local across [count] sources. What are you working on? I'll pull up the relevant context."
+3. After the user responds, call this tool again with their actual topic.
+4. Show what you found: the top memories with their source labels (chatgpt, claude_md, cursor, etc).
 
-After loading context, briefly tell the user what you found: "I found X memories from [sources]. Here's what I know about your project."`,
+This makes memory visible and useful from the first message. The user should always know their memory exists and what it contains.
+
+Also call when:
+- Switching topics mid-session
+- The user asks "what do you know about X"
+- You're about to assume something about the project`,
   {
     agent_id: z.string().describe("Unique identifier for the calling agent"),
     user_id: z.string().optional().describe("User ID for scoped context"),
