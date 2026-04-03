@@ -5,7 +5,7 @@ import { createHash } from "crypto";
 
 export interface FileSourceEntry {
   content_hash: string;
-  source: "claude_md" | "cursor_rules" | "windsurf_rules" | "codex_config" | "copilot_instructions" | "chatgpt_instructions";
+  source: "claude_md" | "claude_memory" | "cursor_rules" | "windsurf_rules" | "codex_config" | "copilot_instructions" | "chatgpt_instructions";
   source_path: string;
   section_title: string | null;
   content: string;
@@ -153,6 +153,13 @@ const PLATFORMS: PlatformConfig[] = [
     paths: [".chatgpt/instructions.md", ".chatgpt/custom-instructions.md"],
     parser: (content, path) => parseMarkdownSections(content, path, "chatgpt_instructions"),
   },
+  // Claude Code MEMORY.md — individual memory files in project memory dirs
+  // These are the richest source of existing context on any developer's machine
+  {
+    source: "claude_memory",
+    paths: [], // Handled by special scanner in discoverFiles
+    parser: (content, path) => parseMarkdownSections(content, path, "claude_memory"),
+  },
 ];
 
 // --- Discovery ---
@@ -167,6 +174,8 @@ export function discoverFiles(cwd: string = process.cwd()): DiscoveredFile[] {
   const found: DiscoveredFile[] = [];
 
   for (const platform of PLATFORMS) {
+    if (platform.source === "claude_memory") continue; // Handled below
+
     for (const relPath of platform.paths) {
       const absPath = relPath.startsWith("/") ? relPath : join(cwd, relPath);
 
@@ -182,6 +191,37 @@ export function discoverFiles(cwd: string = process.cwd()): DiscoveredFile[] {
         }
       }
     }
+  }
+
+  // Scan Claude Code memory directories
+  // Individual memory files (*.md, not MEMORY.md index) contain the actual memories
+  const claudeMemoryDirs = [
+    join(homedir(), ".claude", "projects"),
+  ];
+
+  for (const memDir of claudeMemoryDirs) {
+    if (!existsSync(memDir)) continue;
+    try {
+      const { readdirSync } = require("fs");
+      const projects = readdirSync(memDir) as string[];
+      for (const project of projects) {
+        const memoryDir = join(memDir, project, "memory");
+        if (!existsSync(memoryDir)) continue;
+        try {
+          const files = readdirSync(memoryDir) as string[];
+          for (const file of files) {
+            if (!file.endsWith(".md") || file === "MEMORY.md") continue;
+            const absPath = join(memoryDir, file);
+            try {
+              const stat = statSync(absPath);
+              if (stat.isFile() && stat.size > 0) {
+                found.push({ source: "claude_memory", path: absPath, size: stat.size });
+              }
+            } catch {}
+          }
+        } catch {}
+      }
+    } catch {}
   }
 
   return found;
