@@ -40,6 +40,22 @@ export function getDb(): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_memories_deleted ON memories(deleted_at);
   `);
 
+  // File source cache — tracks content hashes and embeddings for parsed config files
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS file_source_cache (
+      content_hash TEXT PRIMARY KEY,
+      source TEXT NOT NULL,
+      source_path TEXT NOT NULL,
+      section_title TEXT,
+      content TEXT NOT NULL,
+      embedding BLOB,
+      first_seen TEXT NOT NULL DEFAULT (datetime('now')),
+      last_seen TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_fsc_source ON file_source_cache(source);
+  `);
+
   // FTS5 virtual table for full-text search
   db.exec(`
     CREATE VIRTUAL TABLE IF NOT EXISTS memories_fts USING fts5(
@@ -151,4 +167,50 @@ export function updateScope(memoryId: string, targetScope: string, userId?: stri
 export function getById(memoryId: string): MemoryRow | null {
   const db = getDb();
   return (db.prepare("SELECT * FROM memories WHERE id = ?").get(memoryId) as MemoryRow) || null;
+}
+
+// --- File source cache ---
+
+export interface CachedFileEntry {
+  content_hash: string;
+  source: string;
+  source_path: string;
+  section_title: string | null;
+  content: string;
+  embedding: Buffer | null;
+  first_seen: string;
+  last_seen: string;
+}
+
+export function getCachedEntry(contentHash: string): CachedFileEntry | null {
+  const db = getDb();
+  return (db.prepare("SELECT * FROM file_source_cache WHERE content_hash = ?").get(contentHash) as CachedFileEntry) || null;
+}
+
+export function upsertCacheEntry(entry: {
+  content_hash: string;
+  source: string;
+  source_path: string;
+  section_title: string | null;
+  content: string;
+  embedding: Buffer | null;
+}): void {
+  const db = getDb();
+  const existing = getCachedEntry(entry.content_hash);
+
+  if (existing) {
+    db.prepare(
+      "UPDATE file_source_cache SET last_seen = datetime('now'), source_path = ?, section_title = ? WHERE content_hash = ?"
+    ).run(entry.source_path, entry.section_title, entry.content_hash);
+  } else {
+    db.prepare(
+      `INSERT INTO file_source_cache (content_hash, source, source_path, section_title, content, embedding)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    ).run(entry.content_hash, entry.source, entry.source_path, entry.section_title, entry.content, entry.embedding);
+  }
+}
+
+export function getAllCachedEntries(): CachedFileEntry[] {
+  const db = getDb();
+  return db.prepare("SELECT * FROM file_source_cache ORDER BY last_seen DESC").all() as CachedFileEntry[];
 }
