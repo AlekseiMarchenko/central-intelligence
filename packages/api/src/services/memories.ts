@@ -1,6 +1,11 @@
 import { sql } from "../db/connection.js";
 import { embed, embeddingTokenEstimate } from "./embeddings.js";
 import { encrypt, decrypt, isEncrypted } from "./encryption.js";
+import { rerank } from "./rerank.js";
+import { isPgvectorAvailable } from "../db/migrate-pgvector.js";
+
+// Cache pgvector availability check (set on first recall)
+let _pgvectorAvailable: boolean | null = null;
 
 export interface Memory {
   id: string;
@@ -39,6 +44,8 @@ interface RecallParams {
   scope?: "agent" | "user" | "org";
   tags?: string[];
   limit?: number;
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 // --- Vector similarity ---
@@ -135,6 +142,60 @@ async function bm25Search(
 // Context compression removed: it sent decrypted memory content to OpenAI GPT-4o-mini,
 // contradicting the encryption-at-rest guarantee. Clients handle summarization if needed.
 
+// --- pgvector ANN search ---
+
+async function pgvectorSearch(
+  apiKeyId: string,
+  agentId: string,
+  queryVector: number[],
+  limit: number = 200,
+  dateFrom?: string,
+  dateTo?: string,
+  includeShared: boolean = false,
+): Promise<{ id: string; rank: number; score: number }[]> {
+  const vecStr = `[${queryVector.join(",")}]`;
+
+  // Agent's own memories
+  const agentResults = await sql`
+    SELECT id, 1 - (embedding_vec <=> ${vecStr}::vector) as similarity
+    FROM memories
+    WHERE api_key_id = ${apiKeyId}
+      AND agent_id = ${agentId}
+      AND deleted_at IS NULL
+      AND embedding_vec IS NOT NULL
+      ${dateFrom ? sql`AND created_at >= ${dateFrom}::timestamptz` : sql``}
+      ${dateTo ? sql`AND created_at <= ${dateTo}::timestamptz` : sql``}
+    ORDER BY embedding_vec <=> ${vecStr}::vector
+    LIMIT ${limit}
+  `;
+
+  let allResults = [...(agentResults as any[])];
+
+  // Shared memories (user/org scope)
+  if (includeShared) {
+    const sharedResults = await sql`
+      SELECT id, 1 - (embedding_vec <=> ${vecStr}::vector) as similarity
+      FROM memories
+      WHERE api_key_id = ${apiKeyId}
+        AND scope IN ('user', 'org')
+        AND agent_id != ${agentId}
+        AND deleted_at IS NULL
+        AND embedding_vec IS NOT NULL
+        ${dateFrom ? sql`AND created_at >= ${dateFrom}::timestamptz` : sql``}
+        ${dateTo ? sql`AND created_at <= ${dateTo}::timestamptz` : sql``}
+      ORDER BY embedding_vec <=> ${vecStr}::vector
+      LIMIT ${Math.floor(limit / 2)}
+    `;
+    allResults = [...allResults, ...(sharedResults as any[])];
+  }
+
+  return allResults.map((r: any, i: number) => ({
+    id: r.id,
+    rank: i + 1,
+    score: parseFloat(r.similarity),
+  }));
+}
+
 // --- Store ---
 
 export async function store(params: StoreParams): Promise<Memory> {
@@ -157,11 +218,13 @@ export async function store(params: StoreParams): Promise<Memory> {
 
   // Generate tsvector from plaintext BEFORE encryption for BM25 search.
   // This leaks word stems (not full content) — accepted tradeoff for search functionality.
+  const vecStr = `[${vector.join(",")}]`;
   const [memory] = await sql`
-    INSERT INTO memories (api_key_id, agent_id, user_id, org_id, scope, content, tags, embedding, content_tsv)
+    INSERT INTO memories (api_key_id, agent_id, user_id, org_id, scope, content, tags, embedding, embedding_vec, content_tsv)
     VALUES (
       ${apiKeyId}, ${agentId}, ${userId || null}, ${orgId || null}, ${scope},
       ${encryptedContent}, ${tags}, ${JSON.stringify(vector)}::jsonb,
+      ${vecStr}::vector,
       to_tsvector('english', ${content})
     )
     RETURNING id, agent_id, user_id, org_id, scope, content, tags, created_at, updated_at
@@ -207,6 +270,8 @@ export async function recall(params: RecallParams): Promise<MemoryWithScore[]> {
     scope,
     tags,
     limit = 10,
+    dateFrom,
+    dateTo,
   } = params;
 
   const queryVector = await embed(query);
@@ -214,65 +279,89 @@ export async function recall(params: RecallParams): Promise<MemoryWithScore[]> {
   // Determine if we should include shared (user/org scope) memories
   const includeShared = scope !== "agent";
 
-  // === Strategy 1: Vector search (semantic) ===
-  // Always fetch agent's own memories
-  const candidates = await sql`
-    SELECT
-      id, agent_id, user_id, org_id, scope, content, tags, embedding, created_at, updated_at
-    FROM memories
-    WHERE api_key_id = ${apiKeyId}
-      AND deleted_at IS NULL
-      AND embedding IS NOT NULL
-      AND agent_id = ${agentId}
-    ORDER BY created_at DESC
-    LIMIT 500
-  `;
+  // Check pgvector availability (cached after first call)
+  if (_pgvectorAvailable === null) {
+    _pgvectorAvailable = await isPgvectorAvailable();
+    console.log(`[recall] pgvector available: ${_pgvectorAvailable}`);
+  }
 
-  // Also fetch shared memories (user/org scope from other agents)
-  let scopeMemories: any[] = [];
-  if (includeShared) {
-    scopeMemories = await sql`
-      SELECT
-        id, agent_id, user_id, org_id, scope, content, tags, embedding, created_at, updated_at
+  // === Strategy 1: Vector search (semantic) ===
+  let vectorRanked: { id: string; rank: number }[];
+  const vectorScores = new Map<string, number>();
+  const memoryMap = new Map<string, any>();
+
+  if (_pgvectorAvailable) {
+    // pgvector ANN search — searches ALL memories via HNSW index
+    const pgResults = await pgvectorSearch(
+      apiKeyId, agentId, queryVector, 200, dateFrom, dateTo, includeShared
+    );
+    vectorRanked = pgResults.map((r) => ({ id: r.id, rank: r.rank }));
+    for (const r of pgResults) {
+      vectorScores.set(r.id, r.score);
+    }
+
+    // Batch-fetch full memory rows for vector results
+    const vectorIds = pgResults.map((r) => r.id);
+    if (vectorIds.length > 0) {
+      const rows = await sql`
+        SELECT id, agent_id, user_id, org_id, scope, content, tags, embedding, created_at, updated_at
+        FROM memories WHERE id = ANY(${vectorIds})
+      `;
+      for (const row of rows) {
+        memoryMap.set((row as any).id, row);
+      }
+    }
+  } else {
+    // Fallback: old in-app cosine similarity (fetches top 500 recent)
+    const candidates = await sql`
+      SELECT id, agent_id, user_id, org_id, scope, content, tags, embedding, created_at, updated_at
       FROM memories
       WHERE api_key_id = ${apiKeyId}
         AND deleted_at IS NULL
         AND embedding IS NOT NULL
-        AND scope IN ('user', 'org')
-        AND agent_id != ${agentId}
+        AND agent_id = ${agentId}
       ORDER BY created_at DESC
-      LIMIT 200
+      LIMIT 500
     `;
-  }
 
-  const allCandidates = [...(candidates as any[]), ...(scopeMemories as any[])];
+    let scopeMemories: any[] = [];
+    if (includeShared) {
+      scopeMemories = await sql`
+        SELECT id, agent_id, user_id, org_id, scope, content, tags, embedding, created_at, updated_at
+        FROM memories
+        WHERE api_key_id = ${apiKeyId}
+          AND deleted_at IS NULL
+          AND embedding IS NOT NULL
+          AND scope IN ('user', 'org')
+          AND agent_id != ${agentId}
+        ORDER BY created_at DESC
+        LIMIT 200
+      `;
+    }
 
-  // Filter by tags if specified
-  let filtered = allCandidates;
-  if (tags && tags.length > 0) {
-    filtered = allCandidates.filter((m: any) => {
-      const memTags = m.tags || [];
-      return tags.some((t) => memTags.includes(t));
+    const allCandidates = [...(candidates as any[]), ...(scopeMemories as any[])];
+    let filtered = allCandidates;
+    if (tags && tags.length > 0) {
+      filtered = allCandidates.filter((m: any) => {
+        const memTags = m.tags || [];
+        return tags.some((t: string) => memTags.includes(t));
+      });
+    }
+
+    filtered.forEach((m: any) => {
+      const emb = typeof m.embedding === "string" ? JSON.parse(m.embedding) : m.embedding;
+      const score = cosineSimilarity(queryVector, emb);
+      vectorScores.set(m.id, score);
+      memoryMap.set(m.id, m);
     });
+
+    vectorRanked = [...vectorScores.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([id], i) => ({ id, rank: i + 1 }));
   }
-
-  // Compute vector similarities and build ranked list
-  const vectorScores = new Map<string, number>();
-  const memoryMap = new Map<string, any>();
-
-  filtered.forEach((m: any) => {
-    const emb = typeof m.embedding === "string" ? JSON.parse(m.embedding) : m.embedding;
-    const score = cosineSimilarity(queryVector, emb);
-    vectorScores.set(m.id, score);
-    memoryMap.set(m.id, m);
-  });
-
-  const vectorRanked = [...vectorScores.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .map(([id], i) => ({ id, rank: i + 1 }));
 
   // === Strategy 2: BM25 full-text search ===
-  const bm25Ranked = await bm25Search(apiKeyId, agentId, query, 50, includeShared);
+  const bm25Ranked = await bm25Search(apiKeyId, agentId, query, 100, includeShared);
 
   // Batch-fetch BM25-only results not already in memoryMap
   const missingBm25Ids = bm25Ranked
@@ -297,9 +386,10 @@ export async function recall(params: RecallParams): Promise<MemoryWithScore[]> {
   let fusedScores: Map<string, number>;
   if (rankedLists.length > 1) {
     fusedScores = reciprocalRankFusion(rankedLists);
-  } else {
-    // Fallback to vector-only if BM25 isn't available
+  } else if (vectorRanked.length > 0) {
     fusedScores = new Map(vectorRanked.map((item) => [item.id, vectorScores.get(item.id) || 0]));
+  } else {
+    fusedScores = new Map();
   }
 
   // === Apply temporal decay ===
@@ -329,39 +419,32 @@ export async function recall(params: RecallParams): Promise<MemoryWithScore[]> {
   // Sort by final score
   finalScored.sort((a, b) => b.relevance_score - a.relevance_score);
 
-  // === Minimum relevance threshold ===
-  const MIN_VECTOR_SIMILARITY = 0.25;
-  const relevantResults = finalScored.filter((m) => {
-    const mem = memoryMap.get(m.id);
-    if (!mem) return false;
-
-    // If this memory was found by BM25 (keyword match), keep it
-    // regardless of vector similarity — the text matched directly.
-    const inBm25 = bm25Ranked.some((r) => r.id === m.id);
-    if (inBm25) return true;
-
-    // For vector-only matches, check raw cosine similarity
-    const emb = typeof mem.embedding === "string" ? JSON.parse(mem.embedding) : mem.embedding;
-    const vecSim = cosineSimilarity(queryVector, emb);
-    return vecSim >= MIN_VECTOR_SIMILARITY;
-  });
-
-  // === Decrypt content at rest ===
-  const topResults = relevantResults.slice(0, limit);
-  const decrypted = topResults.map((m) => ({
+  // === Decrypt top candidates for reranking ===
+  // Decrypt more than `limit` so the cross-encoder can rerank a wider set.
+  const rerankCandidateCount = Math.min(finalScored.length, Math.max(limit * 5, 100));
+  const topCandidates = finalScored.slice(0, rerankCandidateCount);
+  const decryptedCandidates = topCandidates.map((m) => ({
     ...m,
     content: decrypt(m.content, rawApiKey),
   }));
 
+  // === Cross-encoder reranking ===
+  const rerankDocs = decryptedCandidates.map((m) => ({ id: m.id, content: m.content }));
+  const reranked = await rerank(query, rerankDocs, limit);
+
+  // Build final results from reranked order
+  const rerankedMap = new Map(decryptedCandidates.map((m) => [m.id, m]));
+  const decrypted = reranked.map((r) => {
+    const m = rerankedMap.get(r.id)!;
+    return { ...m, relevance_score: Math.round(r.score * 10000) / 10000 };
+  });
+
   // === Lazy backfill tsvectors for encrypted memories ===
-  // Old memories may have empty/null tsvectors (pre-fix). When we decrypt them
-  // during recall, update their tsvector so BM25 works on them going forward.
   const toBackfill = decrypted.filter((m) => {
     const mem = memoryMap.get(m.id);
     return mem && isEncrypted(mem.content) && (!mem.content_tsv || mem.content_tsv === "");
   });
   if (toBackfill.length > 0) {
-    // Fire and forget — don't block the response
     Promise.all(
       toBackfill.map((m) =>
         sql`UPDATE memories SET content_tsv = to_tsvector('english', ${m.content}) WHERE id = ${m.id}`

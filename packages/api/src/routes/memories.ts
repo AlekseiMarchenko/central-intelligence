@@ -61,6 +61,8 @@ const recallSchema = z.object({
   scope: z.enum(["agent", "user", "org"]).optional(),
   tags: z.array(z.string().max(100)).max(20).optional(),
   limit: z.number().int().min(1).max(50).default(10),
+  date_from: z.string().optional(),
+  date_to: z.string().optional(),
 });
 
 app.post("/recall", async (c) => {
@@ -70,7 +72,7 @@ app.post("/recall", async (c) => {
     return c.json({ error: "Invalid request", details: parsed.error.issues }, 400);
   }
 
-  const { agent_id, user_id, query, scope, tags, limit } = parsed.data;
+  const { agent_id, user_id, query, scope, tags, limit, date_from, date_to } = parsed.data;
   const apiKeyId = c.get("apiKeyId");
   const orgId = c.get("orgId");
   const rawApiKey = c.get("rawApiKey");
@@ -86,6 +88,8 @@ app.post("/recall", async (c) => {
       scope,
       tags,
       limit,
+      dateFrom: date_from,
+      dateTo: date_to,
     });
 
     return c.json({ memories });

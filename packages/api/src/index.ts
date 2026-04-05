@@ -14,6 +14,7 @@ import { keysRouter } from "./routes/keys.js";
 import { usageRouter } from "./routes/usage.js";
 import { docsRouter } from "./routes/docs.js";
 import { dashboardRouter } from "./routes/dashboard.js";
+import { appRouter } from "./routes/app.js";
 import { paymentsRouter } from "./routes/payments.js";
 import { billingMiddleware } from "./middleware/billing.js";
 import { x402Middleware } from "./middleware/x402.js";
@@ -39,6 +40,7 @@ app.use(
       // Block all others
       return "";
     },
+    credentials: true,
   }),
 );
 app.use("*", logger());
@@ -316,6 +318,7 @@ app.route("/keys", keysRouter);
 app.route("/docs", docsRouter);
 app.route("/demo", demoRouter);
 app.route("/dashboard", dashboardRouter);
+app.route("/app", appRouter);
 
 // Protected routes
 app.use("/memories/*", authMiddleware);
@@ -412,10 +415,12 @@ app.post("/probe", async (c) => {
 
 // Run migrations and start server
 import { migrateHybridSearch } from "./db/migrate-hybrid.js";
+import { migrateDashboard } from "./db/migrate-dashboard.js";
+import { migratePgvector } from "./db/migrate-pgvector.js";
 
 const port = parseInt(process.env.PORT || "3141", 10);
 
-migrateHybridSearch().then(() => {
+Promise.all([migrateHybridSearch(), migrateDashboard(), migratePgvector()]).then(() => {
   console.log(`
   ╔═══════════════════════════════════════╗
   ║       CENTRAL INTELLIGENCE            ║

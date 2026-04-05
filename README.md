@@ -10,6 +10,9 @@ Persistent memory for AI agents. Store, recall, and share information across ses
 
 [![Central Intelligence MCP server](https://glama.ai/mcp/servers/AlekseiMarchenko/central-intelligence/badges/card.svg)](https://glama.ai/mcp/servers/AlekseiMarchenko/central-intelligence)
 
+[![LifeBench 44.4%](https://img.shields.io/badge/LifeBench_(2026)-44.4%25-6d5aff?style=for-the-badge)](https://arxiv.org/abs/2603.03781)
+[![AMB 90/100](https://img.shields.io/badge/AMB_Score-90%2F100_(A%2B)-22c55e?style=for-the-badge)](https://github.com/AlekseiMarchenko/agent-memory-benchmark)
+
 ## Quick Start (30 seconds)
 
 ```bash
@@ -55,7 +58,19 @@ Five MCP tools give your agent a long-term memory:
 | **`forget`** | Delete outdated or incorrect memories | `forget("memory_abc123")` |
 | **`share`** | Make memories available to other agents | scope: "agent" → "org" |
 
-## Benchmark
+## Benchmarks
+
+### LifeBench (2026) — Long-Term Multi-Source Memory
+
+CI scores **44.4%** on [LifeBench](https://arxiv.org/abs/2603.03781), the hardest published memory benchmark (2,003 questions across 10 users, 51K real-world events including messages, calendar, health records, notes, and calls).
+
+| Overall | Info Extraction | Multi-hop | Temporal |
+|---------|-----------------|-----------|----------|
+| **44.4%** | **50.0%** | **45.6%** | **28.6%** |
+
+Evaluation harness: [lifebench-eval](https://github.com/AlekseiMarchenko/lifebench-eval)
+
+### Agent Memory Benchmark (AMB) — Infrastructure Testing
 
 Test CI against other providers using the open-source [Agent Memory Benchmark](https://github.com/AlekseiMarchenko/agent-memory-benchmark):
 

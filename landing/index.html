@@ -750,6 +750,7 @@
       <a href="#features">Features</a>
       <a href="#pricing">Pricing</a>
       <a href="#benchmark">Benchmark</a>
+      <a href="#dashboard" style="color: var(--accent);">Dashboard</a>
       <a href="https://central-intelligence-api.fly.dev/docs">Docs</a>
       <a href="#cta" class="btn btn-primary">Get Started</a>
     </div>
@@ -767,7 +768,7 @@
     </p>
     <div class="hero-actions">
       <a href="#integrations" class="btn btn-primary">Get Your API Key</a>
-      <a href="#local" class="btn btn-secondary" style="border-color: #10b981; color: #10b981;">🔒 Run Locally</a>
+      <a href="#local" class="btn btn-secondary" style="border-color: #10b981; color: #10b981;">Run Locally</a>
       <a href="https://github.com/AlekseiMarchenko/central-intelligence" class="btn btn-secondary">View on GitHub</a>
     </div>
 
@@ -780,87 +781,16 @@
       </div>
       <div class="terminal-body">
         <span class="comment"># Local mode — no cloud, no signup, no API key</span><br>
-        <span class="prompt">$</span> <span class="cmd">npx central-intelligence-cli init claude --local</span><br>
-        <span class="output">🔒 Local mode — your data never leaves your machine</span><br>
-        <span class="output">✓ Central Intelligence added to Claude Code!</span><br>
+        <span class="prompt">$</span> <span class="cmd">npx central-intelligence-local</span><br>
+        <span class="output">Central Intelligence Local — MCP server running</span><br>
         <span class="output">Tools: remember, recall, forget, context, share</span><br><br>
         <span class="comment"># Or use cloud mode for cross-device sync</span><br>
-        <span class="prompt">$</span> <span class="cmd">npx central-intelligence-cli signup</span><br>
-        <span class="prompt">$</span> <span class="cmd">npx central-intelligence-cli init claude</span>
+        <span class="prompt">$</span> <span class="cmd">npx central-intelligence-local sync --key ci_sk_xxx</span><br>
+        <span class="output">130 memories synced. Claude Code configured.</span>
       </div>
     </div>
   </div>
 </section>
-
-<!-- Dashboard CTA -->
-<section id="dashboard" style="padding: 60px 0; border-bottom: 1px solid var(--border);">
-  <div class="container" style="text-align: center;">
-    <div style="display: inline-block; background: rgba(109, 90, 255, 0.1); border: 1px solid rgba(109, 90, 255, 0.3); border-radius: 20px; padding: 4px 14px; font-size: 13px; color: var(--accent); margin-bottom: 16px;">New</div>
-    <h2 style="font-size: 32px; margin-bottom: 12px;">See what your AI actually remembers</h2>
-    <p style="color: var(--text-muted); max-width: 500px; margin: 0 auto 32px;">
-      Memory dashboard for Claude Code, Cursor, Windsurf, and ChatGPT.
-      Auto-detects your existing memories. No account needed.
-    </p>
-
-    <!-- Install command with copy button -->
-    <div id="install-box" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; max-width: 600px; margin: 0 auto 16px; text-align: left; position: relative;">
-      <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;" id="os-label">macOS / Linux</div>
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <code id="install-cmd" style="font-family: var(--mono); font-size: 15px; color: var(--green); flex: 1; overflow-x: auto; white-space: nowrap;">curl -fsSL https://centralintelligence.online/install.sh | sh</code>
-        <button onclick="copyInstall()" id="copy-btn" style="background: var(--accent); color: white; border: none; border-radius: 8px; padding: 8px 16px; cursor: pointer; font-size: 13px; font-weight: 600; white-space: nowrap;">Copy</button>
-      </div>
-      <div id="win-cmd" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
-        <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">Windows (PowerShell)</div>
-        <code style="font-family: var(--mono); font-size: 15px; color: var(--green);">irm https://centralintelligence.online/install.ps1 | iex</code>
-      </div>
-    </div>
-
-    <p style="color: var(--text-dim); font-size: 13px; margin-bottom: 32px;">
-      Then run: <code style="font-family: var(--mono); color: var(--text-muted);">ci dashboard</code> → opens <code style="font-family: var(--mono); color: var(--text-muted);">localhost:3141</code>
-    </p>
-
-    <!-- What it detects -->
-    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 24px;">
-      <span style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--text-muted);">Claude Code</span>
-      <span style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--text-muted);">Cursor</span>
-      <span style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--text-muted);">Windsurf</span>
-      <span style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--text-muted);">Codex</span>
-      <span style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--text-muted);">Copilot</span>
-      <span style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--text-muted);">ChatGPT</span>
-    </div>
-
-    <p style="color: var(--text-dim); font-size: 12px;">Free for 500 memories. Local only. Nothing leaves your machine.</p>
-  </div>
-</section>
-
-<script>
-// Detect OS and show appropriate command
-(function() {
-  var ua = navigator.userAgent.toLowerCase();
-  var isWin = ua.indexOf('win') > -1;
-  if (isWin) {
-    document.getElementById('os-label').textContent = 'Windows (PowerShell)';
-    document.getElementById('install-cmd').textContent = 'irm https://centralintelligence.online/install.ps1 | iex';
-    document.getElementById('win-cmd').style.display = 'none';
-  } else {
-    // Show Windows as secondary option
-    document.getElementById('win-cmd').style.display = 'block';
-  }
-})();
-
-function copyInstall() {
-  var cmd = document.getElementById('install-cmd').textContent;
-  navigator.clipboard.writeText(cmd).then(function() {
-    var btn = document.getElementById('copy-btn');
-    btn.textContent = 'Copied!';
-    btn.style.background = '#22c55e';
-    setTimeout(function() {
-      btn.textContent = 'Copy';
-      btn.style.background = '#6d5aff';
-    }, 2000);
-  });
-}
-</script>
 
 <!-- Problem -->
 <section class="problem">
@@ -1428,6 +1358,59 @@ npx central-intelligence-cli init claude</pre>
   </div>
 </section>
 
+<!-- LifeBench Results -->
+<section id="lifebench" style="padding: 100px 0; border-bottom: 1px solid var(--border);">
+  <div class="container" style="max-width: 900px;">
+    <p style="color: var(--accent); font-weight: 600; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px;"><a href="https://arxiv.org/abs/2603.03781" style="color: var(--accent); text-decoration: none;">LifeBench (2026)</a></p>
+    <h2 style="font-size: 42px; font-weight: 700; letter-spacing: -2px; margin-bottom: 16px;">44.4% on <a href="https://arxiv.org/abs/2603.03781" style="color: var(--accent); text-decoration: none;">LifeBench</a></h2>
+    <p style="color: var(--text-muted); font-size: 18px; line-height: 1.7; margin-bottom: 48px;"><a href="https://arxiv.org/abs/2603.03781" style="color: var(--text-muted); text-decoration: underline;">LifeBench</a> is a 2026 academic benchmark testing long-term memory across real-world data: messages, calendar, health records, notes, and calls. 2,003 questions, 10 users, 51K events. The hardest memory benchmark published to date.</p>
+
+    <!-- Results table — CI only -->
+    <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 32px;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 15px;">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border);">
+            <th style="text-align: left; padding: 14px 20px; color: var(--text-muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">System</th>
+            <th style="text-align: right; padding: 14px 20px; color: var(--text-muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Overall</th>
+            <th style="text-align: right; padding: 14px 20px; color: var(--text-muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Info Extraction</th>
+            <th style="text-align: right; padding: 14px 20px; color: var(--text-muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Multi-hop</th>
+            <th style="text-align: right; padding: 14px 20px; color: var(--text-muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Temporal</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="background: rgba(109, 90, 255, 0.05);">
+            <td style="padding: 14px 20px; font-weight: 700; color: var(--accent);">Central Intelligence</td>
+            <td style="text-align: right; padding: 14px 20px; font-weight: 700; color: var(--accent);">44.4%</td>
+            <td style="text-align: right; padding: 14px 20px; font-weight: 600; color: var(--text);">50.0%</td>
+            <td style="text-align: right; padding: 14px 20px; font-weight: 600; color: var(--text);">45.6%</td>
+            <td style="text-align: right; padding: 14px 20px; font-weight: 600; color: var(--text);">28.6%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- What makes it hard -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 32px;">
+      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px;">Multi-source, not just chat</div>
+        <div style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">SMS, calendar, health records, notes, photos, calls. Real-world signals, not synthetic conversations.</div>
+      </div>
+      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px;">15K memories per user</div>
+        <div style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">A full year of behavioral data. Tests retrieval at real scale, not toy examples.</div>
+      </div>
+      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px;">SOTA is only 55%</div>
+        <div style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">The top system barely passes half. This benchmark is unsolved. We're working on it.</div>
+      </div>
+    </div>
+
+    <p style="color: var(--text-dim); font-size: 13px; line-height: 1.6; margin-bottom: 0;">
+      Paper: <a href="https://arxiv.org/abs/2603.03781" style="color: var(--accent);">arxiv.org/abs/2603.03781</a> (March 2026, Nanjing University + Huawei). Evaluation harness: <a href="https://github.com/AlekseiMarchenko/lifebench-eval" style="color: var(--accent);">lifebench-eval</a>.
+    </p>
+  </div>
+</section>
+
 <!-- Benchmark -->
 <section id="benchmark" style="padding: 100px 0; background: linear-gradient(180deg, rgba(109,90,255,0.05) 0%, transparent 100%);">
   <div class="container" style="max-width: 900px;">
@@ -1473,6 +1456,97 @@ npx central-intelligence-cli init claude</pre>
     <div style="display: flex; gap: 16px; flex-wrap: wrap;">
       <a href="https://github.com/AlekseiMarchenko/agent-memory-benchmark" class="btn btn-primary" style="font-size: 14px; padding: 12px 24px;">View on GitHub</a>
       <a href="https://www.npmjs.com/package/agent-memory-benchmark" class="btn btn-secondary" style="font-size: 14px; padding: 12px 24px;">npm: agent-memory-benchmark</a>
+    </div>
+  </div>
+</section>
+
+<!-- Memory Dashboard -->
+<section id="dashboard" style="padding: 100px 0; border-bottom: 1px solid var(--border);">
+  <div class="container" style="text-align: center;">
+    <div style="display: inline-block; background: rgba(109, 90, 255, 0.1); border: 1px solid rgba(109, 90, 255, 0.3); border-radius: 20px; padding: 4px 14px; font-size: 13px; color: var(--accent); margin-bottom: 16px;">New</div>
+    <h2 style="font-size: 36px; font-weight: 800; letter-spacing: -1px; margin-bottom: 12px;">See what your AI actually remembers</h2>
+    <p style="color: var(--text-muted); max-width: 520px; margin: 0 auto 32px; font-size: 17px; line-height: 1.6;">
+      Memory dashboard for Claude Code, Cursor, Windsurf, and ChatGPT.
+      Search, clean up duplicates, import from ChatGPT. Free.
+    </p>
+
+    <a href="/dashboard" style="display:inline-flex;align-items:center;gap:8px;padding:14px 32px;background:var(--accent);color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;text-decoration:none;margin-bottom:40px;transition:background 0.15s;" onmouseover="this.style.background='#5a47e6'" onmouseout="this.style.background='var(--accent)'">Open Memory Dashboard &rarr;</a>
+
+    <!-- Dashboard preview -->
+    <a href="/dashboard" style="display:block;max-width:900px;margin:0 auto;text-decoration:none;transition:transform 0.2s;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:#0d1117;" onmouseover="this.style.transform='translateY(-4px)';this.style.borderColor='var(--accent)'" onmouseout="this.style.transform='';this.style.borderColor='var(--border)'">
+      <div style="background:#21262d;padding:8px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #30363d;">
+        <div style="width:10px;height:10px;border-radius:50%;background:#f85149"></div>
+        <div style="width:10px;height:10px;border-radius:50%;background:#d29922"></div>
+        <div style="width:10px;height:10px;border-radius:50%;background:#3fb950"></div>
+        <span style="color:#8b949e;font-size:12px;margin-left:8px;font-family:var(--mono)">centralintelligence.online/app</span>
+      </div>
+      <div style="padding:20px 24px;">
+        <div style="display:flex;gap:16px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
+          <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 18px;text-align:center;">
+            <div style="font-size:32px;font-weight:800;color:#3fb950;">9/10</div>
+            <div style="font-size:11px;color:#8b949e;">Health</div>
+          </div>
+          <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 14px;">
+            <div style="font-size:20px;font-weight:700;color:#58a6ff;">142</div>
+            <div style="font-size:11px;color:#8b949e;">Total</div>
+          </div>
+          <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 14px;">
+            <div style="font-size:20px;font-weight:700;color:#58a6ff;">3</div>
+            <div style="font-size:11px;color:#8b949e;">Agents</div>
+          </div>
+          <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 14px;">
+            <div style="font-size:20px;font-weight:700;color:#d29922;">5</div>
+            <div style="font-size:11px;color:#8b949e;">Stale</div>
+          </div>
+          <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 14px;">
+            <div style="font-size:20px;font-weight:700;color:#f85149;">2</div>
+            <div style="font-size:11px;color:#8b949e;">Duplicates</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
+          <span style="font-size:11px;color:#8b949e;padding:3px 0;">Projects:</span>
+          <span style="background:#a371f722;color:#a371f7;padding:3px 10px;border-radius:12px;font-size:11px;">CI Development 30</span>
+          <span style="background:#a371f722;color:#a371f7;padding:3px 10px;border-radius:12px;font-size:11px;">Lemon Squeezy 20</span>
+          <span style="background:#a371f722;color:#a371f7;padding:3px 10px;border-radius:12px;font-size:11px;">ChatGPT Transfer 39</span>
+        </div>
+        <div style="border-radius:8px;overflow:hidden;border:1px solid #21262d;">
+          <div style="display:grid;grid-template-columns:30px 140px 100px 1fr 80px 60px;padding:6px 10px;background:#21262d;font-size:11px;color:#8b949e;font-weight:600;text-transform:uppercase;gap:8px;">
+            <span></span><span>Project</span><span>Source</span><span>Content</span><span>Freshness</span><span>Flags</span>
+          </div>
+          <div style="display:grid;grid-template-columns:30px 140px 100px 1fr 80px 60px;padding:8px 10px;font-size:13px;gap:8px;border-top:1px solid #21262d;align-items:center;">
+            <span style="width:14px;height:14px;border:2px solid #30363d;border-radius:3px;display:block;"></span>
+            <span style="background:#a371f722;color:#a371f7;padding:2px 8px;border-radius:4px;font-size:11px;width:fit-content;">CI Development</span>
+            <span style="background:#58a6ff22;color:#58a6ff;padding:2px 6px;border-radius:4px;font-size:11px;width:fit-content;">claude-code</span>
+            <span style="color:#c9d1d9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Phase 1: hosted dashboard. Move from localhost to web app...</span>
+            <span style="color:#3fb950;font-size:12px;">fresh</span>
+            <span></span>
+          </div>
+          <div style="display:grid;grid-template-columns:30px 140px 100px 1fr 80px 60px;padding:8px 10px;font-size:13px;gap:8px;border-top:1px solid #21262d;align-items:center;">
+            <span style="width:14px;height:14px;border:2px solid #30363d;border-radius:3px;display:block;"></span>
+            <span style="background:#a371f722;color:#a371f7;padding:2px 8px;border-radius:4px;font-size:11px;width:fit-content;">Lemon Squeezy</span>
+            <span style="background:#58a6ff22;color:#58a6ff;padding:2px 6px;border-radius:4px;font-size:11px;width:fit-content;">chatgpt-transfer</span>
+            <span style="color:#c9d1d9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Open-core licensing: MCP server open (trust), CLI closed...</span>
+            <span style="color:#3fb950;font-size:12px;">fresh</span>
+            <span style="background:#f8514922;color:#f85149;padding:2px 6px;border-radius:4px;font-size:11px;">dup</span>
+          </div>
+          <div style="display:grid;grid-template-columns:30px 140px 100px 1fr 80px 60px;padding:8px 10px;font-size:13px;gap:8px;border-top:1px solid #21262d;align-items:center;">
+            <span style="width:14px;height:14px;border:2px solid #30363d;border-radius:3px;display:block;"></span>
+            <span style="color:#484f58;">&mdash;</span>
+            <span style="background:#58a6ff22;color:#58a6ff;padding:2px 6px;border-radius:4px;font-size:11px;width:fit-content;">cursor</span>
+            <span style="color:#c9d1d9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">User prefers TypeScript with strict null checks enabled...</span>
+            <span style="color:#d29922;font-size:12px;">aging</span>
+            <span></span>
+          </div>
+        </div>
+        <div style="text-align:center;padding:12px 0 4px;font-size:12px;color:#58a6ff;">Open your memory dashboard &rarr;</div>
+      </div>
+    </a>
+
+    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 24px;">
+      <span style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--text-muted);">Claude Code</span>
+      <span style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--text-muted);">Cursor</span>
+      <span style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--text-muted);">Windsurf</span>
+      <span style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--text-muted);">ChatGPT</span>
     </div>
   </div>
 </section>
