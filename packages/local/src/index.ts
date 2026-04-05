@@ -398,8 +398,17 @@ async function checkForUpdates() {
   }
 }
 
-// Start the server
+// CLI subcommands (run before MCP server)
 async function main() {
+  const subcommand = process.argv[2];
+
+  if (subcommand === "sync") {
+    const { syncCommand } = await import("./sync.js");
+    await syncCommand();
+    process.exit(0);
+  }
+
+  // Default: start MCP server
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error("Central Intelligence Local — MCP server running (local SQLite + local embeddings)");

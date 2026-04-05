@@ -13,114 +13,44 @@ interface ParsedMemory {
   content_hash: string;
 }
 
-// --- Shared link approach (preferred — no export file needed) ---
+// === Paste-based transfer (preferred — fully private) ===
 
 /**
- * Fetch a ChatGPT shared conversation link and extract user messages.
- * ChatGPT share links look like: https://chatgpt.com/share/abc123
- * The page contains the full conversation in the HTML.
+ * Parse pasted ChatGPT conversation text and extract instructional memories.
+ *
+ * ChatGPT copy-paste output typically looks like:
+ *
+ *   You said:
+ *   [user message text]
+ *
+ *   ChatGPT said:
+ *   [assistant response text]
+ *
+ * Or in some formats:
+ *   User: [text]
+ *   Assistant: [text]
+ *
+ * We extract only user messages that contain instructional content.
  */
-export async function fetchSharedConversation(url: string): Promise<{
-  title: string;
-  memories: ParsedMemory[];
-  message_count: number;
+export async function transferFromPaste(options: {
+  text: string;
+  conversationName: string;
+  limit: number;
+  storeFn: (content: string, tags: string[]) => Promise<any>;
+}): Promise<{
+  imported: number;
+  skipped: number;
+  total_messages: number;
+  extracted: number;
+  conversation: string;
 }> {
-  // Validate URL
-  if (!url.match(/^https?:\/\/(chat\.openai\.com|chatgpt\.com)\/(share|s)\//)) {
-    throw new Error(
-      `Not a ChatGPT share link. Expected: https://chatgpt.com/share/...\n` +
-      `To share a conversation: open it in ChatGPT → click Share → Copy Link`
-    );
-  }
+  const userMessages = parseConversationText(options.text);
 
-  // Fetch the shared page
-  const res = await fetch(url, {
-    headers: { "User-Agent": "CI-Local/1.1" },
-    signal: AbortSignal.timeout(15000),
-  });
-
-  if (!res.ok) {
-    if (res.status === 404) {
-      throw new Error("Shared conversation not found. The link may have been revoked.");
-    }
-    throw new Error(`Failed to fetch: HTTP ${res.status}`);
-  }
-
-  const html = await res.text();
-
-  // ChatGPT shared pages embed conversation data in a script tag as JSON
-  // Look for the __NEXT_DATA__ or similar JSON blob
-  let conversationData: any = null;
-
-  // Try __NEXT_DATA__ pattern
-  const nextDataMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
-  if (nextDataMatch) {
-    try {
-      const nextData = JSON.parse(nextDataMatch[1]);
-      conversationData = nextData?.props?.pageProps?.serverResponse?.data
-        || nextData?.props?.pageProps?.data
-        || nextData?.props?.pageProps;
-    } catch {}
-  }
-
-  // Try JSON-LD or other embedded JSON patterns
-  if (!conversationData) {
-    const jsonMatches = html.match(/<script[^>]*type="application\/json"[^>]*>([\s\S]*?)<\/script>/g);
-    if (jsonMatches) {
-      for (const match of jsonMatches) {
-        const jsonStr = match.replace(/<script[^>]*>/, "").replace(/<\/script>/, "");
-        try {
-          const data = JSON.parse(jsonStr);
-          if (data?.mapping || data?.title || data?.linear_conversation) {
-            conversationData = data;
-            break;
-          }
-        } catch {}
-      }
-    }
-  }
-
-  // Fallback: parse the visible HTML for message content
-  const title = extractTitle(html, conversationData);
+  // Filter for instructional memories
   const memories: ParsedMemory[] = [];
-  let messageCount = 0;
-
-  if (conversationData?.mapping) {
-    // Structured data available
-    for (const node of Object.values(conversationData.mapping) as any[]) {
-      const msg = node?.message;
-      if (!msg || msg.author?.role !== "user") continue;
-      messageCount++;
-
-      const parts = msg.content?.parts;
-      if (!Array.isArray(parts)) continue;
-      const text = parts.filter((p: any) => typeof p === "string").join("\n").trim();
-
-      const memory = extractMemory(text, title, msg.create_time);
-      if (memory) memories.push(memory);
-    }
-  } else if (conversationData?.linear_conversation) {
-    // Alternative format
-    for (const item of conversationData.linear_conversation) {
-      const msg = item?.message;
-      if (!msg || msg.author?.role !== "user") continue;
-      messageCount++;
-
-      const parts = msg.content?.parts;
-      if (!Array.isArray(parts)) continue;
-      const text = parts.filter((p: any) => typeof p === "string").join("\n").trim();
-
-      const memory = extractMemory(text, title, msg.create_time);
-      if (memory) memories.push(memory);
-    }
-  } else {
-    // Last resort: extract text from HTML
-    const userMessages = extractMessagesFromHtml(html);
-    messageCount = userMessages.length;
-    for (const text of userMessages) {
-      const memory = extractMemory(text, title);
-      if (memory) memories.push(memory);
-    }
+  for (const msg of userMessages) {
+    const memory = extractMemory(msg, options.conversationName);
+    if (memory) memories.push(memory);
   }
 
   // Deduplicate
@@ -131,68 +61,113 @@ export async function fetchSharedConversation(url: string): Promise<{
     return true;
   });
 
-  return { title, memories: unique, message_count: messageCount };
-}
+  // Apply limit
+  const toImport = unique.slice(0, options.limit);
 
-/**
- * Transfer memories from multiple shared links.
- */
-export async function transferFromLinks(options: {
-  urls: string[];
-  limit: number;
-  storeFn: (content: string, tags: string[], timestamp: string) => Promise<any>;
-}): Promise<{
-  imported: number;
-  skipped: number;
-  conversations: { title: string; memories: number; messages: number }[];
-  errors: string[];
-}> {
-  const conversations: { title: string; memories: number; messages: number }[] = [];
-  const allMemories: ParsedMemory[] = [];
-  const errors: string[] = [];
-
-  for (const url of options.urls) {
-    try {
-      const result = await fetchSharedConversation(url);
-      conversations.push({
-        title: result.title,
-        memories: result.memories.length,
-        messages: result.message_count,
-      });
-      allMemories.push(...result.memories);
-    } catch (err: any) {
-      errors.push(`${url}: ${err.message}`);
-    }
-  }
-
-  // Apply limit and import
-  const toImport = allMemories.slice(0, options.limit);
   let imported = 0;
   let skipped = 0;
 
   for (const m of toImport) {
     try {
-      await options.storeFn(
-        m.content,
-        ["chatgpt-transfer", `chat:${m.conversation_title.slice(0, 50)}`],
-        m.timestamp
-      );
+      await options.storeFn(m.content, [
+        "chatgpt-transfer",
+        `chat:${options.conversationName.slice(0, 50)}`,
+      ]);
       imported++;
     } catch {
       skipped++;
     }
   }
 
-  return { imported, skipped, conversations, errors };
+  return {
+    imported,
+    skipped,
+    total_messages: userMessages.length,
+    extracted: unique.length,
+    conversation: options.conversationName,
+  };
 }
 
-// --- Helpers ---
+/**
+ * Parse conversation text into user messages.
+ * Handles multiple ChatGPT copy-paste formats.
+ */
+function parseConversationText(text: string): string[] {
+  const messages: string[] = [];
 
-function extractMemory(
-  text: string,
-  title: string,
-  createTime?: number
-): ParsedMemory | null {
+  // Format 1: "You said:" / "ChatGPT said:" (most common from web copy)
+  if (text.includes("You said:") || text.includes("You said:\n")) {
+    const blocks = text.split(/(?=You said:)/i);
+    for (const block of blocks) {
+      if (!block.match(/^You said:/i)) continue;
+      // Extract text between "You said:" and "ChatGPT said:" (or end)
+      const content = block
+        .replace(/^You said:\s*/i, "")
+        .replace(/ChatGPT said:[\s\S]*$/i, "")
+        .trim();
+      if (content) messages.push(content);
+    }
+    if (messages.length > 0) return messages;
+  }
+
+  // Format 2: "User:" / "Assistant:" style
+  if (text.includes("User:") || text.includes("Human:")) {
+    const userPattern = /(?:^|\n)(?:User|Human):\s*([\s\S]*?)(?=\n(?:Assistant|AI|ChatGPT):|\n(?:User|Human):|\s*$)/gi;
+    let match;
+    while ((match = userPattern.exec(text)) !== null) {
+      const content = match[1].trim();
+      if (content) messages.push(content);
+    }
+    if (messages.length > 0) return messages;
+  }
+
+  // Format 3: Alternating blocks separated by blank lines
+  // Assume odd blocks (1st, 3rd, 5th...) are user messages
+  const blocks = text
+    .split(/\n{3,}/)
+    .map((b) => b.trim())
+    .filter((b) => b.length > 0);
+
+  if (blocks.length >= 2) {
+    for (let i = 0; i < blocks.length; i += 2) {
+      messages.push(blocks[i]);
+    }
+    if (messages.length > 0) return messages;
+  }
+
+  // Format 4: Can't determine structure — treat the whole thing as one block
+  // and try to extract instructional sentences
+  const sentences = text
+    .split(/(?<=[.!?\n])\s+/)
+    .filter((s) => s.trim().length > 20);
+
+  if (sentences.length > 0) {
+    // Group consecutive instructional sentences into chunks
+    let currentChunk: string[] = [];
+    for (const sentence of sentences) {
+      const isInstructional =
+        /\b(always|never|prefer|use|don't|avoid|make sure|remember|important)\b/i.test(sentence) ||
+        /\b(i want|i need|i like|my preference|my style)\b/i.test(sentence) ||
+        /\b(the project|the codebase|the stack|our team|we use)\b/i.test(sentence);
+
+      if (isInstructional) {
+        currentChunk.push(sentence.trim());
+      } else if (currentChunk.length > 0) {
+        messages.push(currentChunk.join(" "));
+        currentChunk = [];
+      }
+    }
+    if (currentChunk.length > 0) {
+      messages.push(currentChunk.join(" "));
+    }
+  }
+
+  return messages;
+}
+
+// === Helpers ===
+
+function extractMemory(text: string, title: string, createTime?: number): ParsedMemory | null {
   if (!text || text.length < 30 || text.length > 2000) return null;
 
   // Skip questions
@@ -200,7 +175,6 @@ function extractMemory(
   const sentences = text.split(/[.!?\n]/).filter((s) => s.trim().length > 0).length;
   if (sentences > 0 && questionMarks / sentences > 0.5) return null;
 
-  // Instructional filter
   const isInstructional =
     /\b(always|never|prefer|use|don't|avoid|make sure|remember|important)\b/i.test(text) ||
     /\b(i want|i need|i like|my preference|my style)\b/i.test(text) ||
@@ -217,40 +191,7 @@ function extractMemory(
   };
 }
 
-function extractTitle(html: string, data: any): string {
-  if (data?.title) return data.title;
-  const titleMatch = html.match(/<title>([^<]+)<\/title>/);
-  if (titleMatch) {
-    const title = titleMatch[1].replace(" - ChatGPT", "").replace("ChatGPT - ", "").trim();
-    if (title && title !== "ChatGPT") return title;
-  }
-  return "Untitled Conversation";
-}
-
-function extractMessagesFromHtml(html: string): string[] {
-  // Strip HTML tags, look for message-like blocks
-  // This is a rough fallback for when structured data isn't available
-  const messages: string[] = [];
-  const textBlocks = html
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<[^>]+>/g, "\n")
-    .split(/\n{2,}/)
-    .map((b) => b.trim())
-    .filter((b) => b.length > 30 && b.length < 2000);
-
-  // Rough heuristic: every other block might be user vs assistant
-  // This is unreliable but better than nothing
-  for (const block of textBlocks) {
-    if (/\b(always|never|prefer|use|i want|i need|the project)\b/i.test(block)) {
-      messages.push(block);
-    }
-  }
-
-  return messages;
-}
-
-// --- File-based approach (legacy, for users who already exported) ---
+// === File-based approach (bulk, for users who exported) ===
 
 export async function listChatGPTConversations(filter?: string): Promise<{
   conversations: { title: string; instructional_count: number; date: string; project?: string }[];
@@ -260,13 +201,7 @@ export async function listChatGPTConversations(filter?: string): Promise<{
   has_export: boolean;
 }> {
   if (!existsSync(CONVERSATIONS_PATH)) {
-    return {
-      conversations: [],
-      projects: [],
-      total_memories: 0,
-      export_path: CONVERSATIONS_PATH,
-      has_export: false,
-    };
+    return { conversations: [], projects: [], total_memories: 0, export_path: CONVERSATIONS_PATH, has_export: false };
   }
 
   const conversations = JSON.parse(readFileSync(CONVERSATIONS_PATH, "utf-8"));
@@ -279,7 +214,6 @@ export async function listChatGPTConversations(filter?: string): Promise<{
     const project = conv.folder_name || conv.project_name || undefined;
     const count = allMemories.filter((m) => m.conversation_title === title).length;
     if (count === 0) continue;
-
     convMap.set(convId, {
       title,
       instructional_count: count,
@@ -297,11 +231,9 @@ export async function listChatGPTConversations(filter?: string): Promise<{
   }
   convList.sort((a, b) => b.instructional_count - a.instructional_count);
 
-  const projects = [...new Set(convList.map((c) => c.project).filter(Boolean))] as string[];
-
   return {
     conversations: convList.slice(0, 20),
-    projects,
+    projects: [...new Set(convList.map((c) => c.project).filter(Boolean))] as string[],
     total_memories: allMemories.length,
     export_path: CONVERSATIONS_PATH,
     has_export: true,
@@ -312,7 +244,7 @@ export async function transferChatGPT(options: {
   conversationTitles?: string[];
   projectName?: string;
   limit: number;
-  storeFn: (content: string, tags: string[], timestamp: string) => Promise<any>;
+  storeFn: (content: string, tags: string[]) => Promise<any>;
 }): Promise<{ imported: number; skipped: number; conversations_matched: string[] }> {
   const conversations = JSON.parse(readFileSync(CONVERSATIONS_PATH, "utf-8"));
   const allMemories = extractMemoriesFromExport(conversations);
@@ -339,7 +271,7 @@ export async function transferChatGPT(options: {
   let imported = 0, skipped = 0;
   for (const m of toImport) {
     try {
-      await options.storeFn(m.content, ["chatgpt-transfer", `chat:${m.conversation_title.slice(0, 50)}`], m.timestamp);
+      await options.storeFn(m.content, ["chatgpt-transfer", `chat:${m.conversation_title.slice(0, 50)}`]);
       imported++;
     } catch { skipped++; }
   }

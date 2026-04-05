@@ -28,6 +28,6 @@ export async function embed(text: string): Promise<number[]> {
   return Array.from(output.data as Float32Array);
 }
 
-export function embeddingFromBuffer(buf: Buffer): number[] {
+export function embeddingFromBuffer(buf: Buffer | Uint8Array): number[] {
   return Array.from(new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4));
 }

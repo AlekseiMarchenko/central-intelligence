@@ -230,7 +230,7 @@ export async function hybridSearch(
       tags,
     });
     if (mem.embedding) {
-      const memVec = embeddingFromBuffer(mem.embedding as Buffer);
+      const memVec = embeddingFromBuffer(mem.embedding as Uint8Array);
       const score = cosineSimilarity(queryVec, memVec);
       vectorScored.push({ id: mem.id, rank: 0, score });
     }

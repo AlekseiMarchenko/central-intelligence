@@ -377,11 +377,17 @@
     <p class="subtitle">
       One control panel for all your AI memories. Claude Code, Cursor, Windsurf, ChatGPT.
       Search by meaning. Edit. Delete. Share across tools.
-      Give your agents a Central Intelligence.
     </p>
 
-    <!-- Install -->
-    <div class="install-box">
+    <!-- Primary CTAs -->
+    <div style="display: flex; gap: 12px; justify-content: center; margin-bottom: 32px; flex-wrap: wrap;">
+      <a href="/app" style="display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; background: var(--accent); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; text-decoration: none; transition: background 0.15s;">Open Memory Dashboard</a>
+      <a href="#install-local" style="display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; background: transparent; color: var(--green); border: 1px solid var(--green); border-radius: 10px; font-size: 16px; font-weight: 600; text-decoration: none;">Run Locally</a>
+    </div>
+    <p style="color: var(--text-dim); font-size: 13px; margin-bottom: 24px;">Free up to 500 memories. No credit card required.</p>
+
+    <!-- Install (secondary, for local users) -->
+    <div class="install-box" id="install-local">
       <div class="install-label" id="os-label">Mac / Linux</div>
       <div class="install-row">
         <code class="install-cmd" id="install-cmd">curl -fsSL https://centralintelligence.online/install.sh | sh</code>
@@ -648,6 +654,42 @@ function copyCmd() {
 function copyCmd2() {
   navigator.clipboard.writeText(document.getElementById('install-cmd-2').textContent);
 }
+  // Cloud dashboard signup
+  async function cloudSignup(e) {
+    e.preventDefault();
+    const email = document.getElementById('cloud-email').value.trim();
+    const btn = document.getElementById('cloud-btn');
+    const msg = document.getElementById('cloud-msg');
+    if (!email) return false;
+
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+
+    try {
+      const res = await fetch('https://central-intelligence-api.fly.dev/app/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        msg.textContent = 'Check your email for a sign-in link!';
+        msg.style.color = 'var(--green)';
+        btn.textContent = 'Sent!';
+      } else {
+        msg.textContent = data.error || 'Something went wrong. Try again.';
+        msg.style.color = 'var(--red)';
+        btn.disabled = false;
+        btn.textContent = 'Get started';
+      }
+    } catch {
+      msg.textContent = 'Network error. Try again.';
+      msg.style.color = 'var(--red)';
+      btn.disabled = false;
+      btn.textContent = 'Get started';
+    }
+    return false;
+  }
 </script>
 
 </body>

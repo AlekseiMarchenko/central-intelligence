@@ -97,3 +97,31 @@ CREATE TABLE IF NOT EXISTS payment_debits (
 );
 
 CREATE INDEX IF NOT EXISTS idx_payment_debits_api_key ON payment_debits (api_key_id);
+
+-- Dashboard: add email to api_keys (for magic link auth)
+-- ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS email TEXT;
+-- CREATE UNIQUE INDEX IF NOT EXISTS idx_api_keys_email ON api_keys (email) WHERE email IS NOT NULL AND revoked_at IS NULL;
+
+-- Magic links for passwordless auth
+CREATE TABLE IF NOT EXISTS magic_links (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  api_key_id UUID REFERENCES api_keys(id) ON DELETE CASCADE,
+  email      TEXT NOT NULL,
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  used_at    TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_magic_links_expires ON magic_links (expires_at);
+
+-- Dashboard sessions (cookie-based auth for hosted dashboard)
+CREATE TABLE IF NOT EXISTS dashboard_sessions (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  api_key_id   UUID NOT NULL REFERENCES api_keys(id) ON DELETE CASCADE,
+  session_hash TEXT NOT NULL UNIQUE,
+  expires_at   TIMESTAMPTZ NOT NULL,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_dashboard_sessions_expires ON dashboard_sessions (expires_at);

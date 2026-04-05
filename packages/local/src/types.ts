@@ -24,7 +24,7 @@ export interface MemoryRow {
   scope: string;
   content: string;
   tags: string;
-  embedding: Buffer | null;
+  embedding: Buffer | Uint8Array | null;
   created_at: string;
   deleted_at: string | null;
 }

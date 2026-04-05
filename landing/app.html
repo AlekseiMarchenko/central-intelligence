@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en" style="color-scheme: dark;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Central Intelligence — Memory Dashboard</title>
+  <meta name="description" content="Manage your AI agent memories. Search, view, and organize memories across Claude, Cursor, Windsurf, and more.">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #c9d1d9; padding: 24px; min-height: 100vh; }
+    h1 { color: #fafafa; margin-bottom: 8px; font-size: 24px; }
+    h1 span { color: #6d5aff; }
+    .subtitle { color: #8b949e; margin-bottom: 24px; }
+    .toolbar { display: flex; gap: 12px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
+    .search-box { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 8px 12px; color: #c9d1d9; font-size: 14px; outline: none; }
+    .search-box:focus { border-color: #58a6ff; }
+    .btn { padding: 8px 16px; border-radius: 6px; border: 1px solid #30363d; background: #21262d; color: #c9d1d9; cursor: pointer; font-size: 13px; }
+    .btn:hover { background: #30363d; }
+    .btn-danger { border-color: #f8514933; color: #f85149; }
+    .btn-danger:hover { background: #f8514922; }
+    .btn-primary { border-color: #58a6ff33; color: #58a6ff; }
+    .btn-primary:hover { background: #58a6ff22; }
+    .score-card { display: inline-block; background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px 24px; margin-bottom: 16px; }
+    .score-num { font-size: 48px; font-weight: bold; }
+    .score-label { color: #8b949e; font-size: 14px; }
+    .score-good { color: #3fb950; }
+    .score-warn { color: #d29922; }
+    .score-bad { color: #f85149; }
+    .stats { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .stat { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 10px 14px; min-width: 100px; }
+    .stat-num { font-size: 22px; font-weight: bold; color: #58a6ff; }
+    .stat-label { font-size: 11px; color: #8b949e; }
+    .selection-bar { background: #161b22; border: 1px solid #58a6ff33; border-radius: 6px; padding: 8px 16px; margin-bottom: 12px; display: none; align-items: center; gap: 12px; font-size: 13px; }
+    .selection-bar.active { display: flex; }
+    table { width: 100%; border-collapse: collapse; background: #161b22; border-radius: 8px; overflow: hidden; }
+    th { text-align: left; padding: 8px 12px; background: #21262d; color: #8b949e; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+    td { padding: 8px 12px; border-top: 1px solid #21262d; font-size: 14px; }
+    td.content-cell { max-width: 500px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    tr.selected { background: #58a6ff11; }
+    tr:hover { background: #161b2288; }
+    input[type="checkbox"] { accent-color: #58a6ff; width: 16px; height: 16px; cursor: pointer; }
+    .tag-fresh { color: #3fb950; }
+    .tag-aging { color: #d29922; }
+    .tag-stale { color: #f85149; }
+    .tag-dup { background: #f8514922; color: #f85149; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    .tag-source { background: #58a6ff22; color: #58a6ff; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    .tag-tag { background: #8b949e22; color: #8b949e; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 4px; }
+    .tag-project { background: #a371f722; color: #a371f7; padding: 2px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+    .tag-project:hover { background: #a371f744; }
+    .project-bar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+    .project-chip { background: #161b22; border: 1px solid #30363d; border-radius: 16px; padding: 4px 12px; font-size: 12px; color: #c9d1d9; cursor: pointer; }
+    .project-chip:hover { border-color: #a371f7; color: #a371f7; }
+    .project-chip.active { border-color: #a371f7; background: #a371f722; color: #a371f7; }
+    .project-chip .count { color: #8b949e; margin-left: 4px; }
+    .search-mode { font-size: 11px; color: #8b949e; margin-left: 8px; }
+    .similarity { font-size: 11px; color: #8b949e; }
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #3fb950; color: #0d1117; padding: 12px 20px; border-radius: 8px; font-weight: 600; display: none; z-index: 100; }
+    .toast.error { background: #f85149; color: white; }
+    .empty { color: #484f58; text-align: center; padding: 40px; }
+    .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .btn-transfer { background: #7c3aed; color: white; border: none; border-radius: 8px; padding: 10px 18px; cursor: pointer; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: background 0.15s; }
+    .btn-transfer:hover { background: #6d28d9; }
+    .btn-transfer svg { width: 16px; height: 16px; }
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 200; align-items: center; justify-content: center; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 32px; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto; position: relative; }
+    .modal-close { position: absolute; top: 12px; right: 16px; background: none; border: none; color: #8b949e; font-size: 24px; cursor: pointer; }
+    .modal-close:hover { color: #c9d1d9; }
+    .transfer-section h2 { font-size: 18px; margin-bottom: 8px; color: #c9d1d9; }
+    .transfer-section p { color: #8b949e; font-size: 14px; margin-bottom: 16px; line-height: 1.6; }
+    .prompt-box { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 16px; font-family: monospace; font-size: 13px; color: #c9d1d9; line-height: 1.6; white-space: pre-wrap; position: relative; margin-bottom: 16px; }
+    .prompt-copy { position: absolute; top: 8px; right: 8px; background: #58a6ff; color: #0d1117; border: none; border-radius: 6px; padding: 6px 14px; cursor: pointer; font-size: 12px; font-weight: 600; }
+    .prompt-copy:hover { background: #79b8ff; }
+    .transfer-steps { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+    .transfer-step { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; flex: 1; min-width: 200px; }
+    .transfer-step-num { display: inline-block; width: 24px; height: 24px; border-radius: 50%; background: #58a6ff22; color: #58a6ff; text-align: center; line-height: 24px; font-size: 12px; font-weight: 700; margin-bottom: 8px; }
+    .transfer-step h3 { font-size: 14px; margin-bottom: 4px; }
+    .transfer-step p { font-size: 12px; color: #8b949e; margin-bottom: 0; }
+
+    /* --- Auth --- */
+    .auth-wrap { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 48px); }
+    .auth-card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 40px; max-width: 420px; width: 100%; }
+    .auth-card h2 { font-size: 22px; margin-bottom: 6px; color: #c9d1d9; }
+    .auth-card p { color: #8b949e; font-size: 14px; margin-bottom: 24px; }
+    .auth-card label { display: block; font-size: 12px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .auth-card .form-group { margin-bottom: 20px; }
+    .auth-input { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px 14px; color: #c9d1d9; font-size: 14px; width: 100%; outline: none; }
+    .auth-input:focus { border-color: #58a6ff; }
+    .auth-btn { width: 100%; padding: 12px; background: #58a6ff; color: #0d1117; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .auth-btn:hover { background: #79b8ff; }
+    .auth-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .auth-link { color: #58a6ff; text-decoration: none; font-size: 13px; cursor: pointer; }
+    .auth-link:hover { text-decoration: underline; }
+    .auth-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: #484f58; font-size: 12px; }
+    .auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: #30363d; }
+    .auth-error { background: #f8514922; color: #f85149; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; display: none; }
+    .auth-right { position: fixed; top: 16px; right: 24px; display: flex; align-items: center; gap: 12px; font-size: 13px; color: #8b949e; z-index: 50; }
+
+    /* --- Onboarding --- */
+    .onboard-wrap { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 48px); text-align: center; }
+    .onboard { max-width: 560px; width: 100%; position: relative; }
+    .onboard-glow { position: absolute; top: -80px; left: 50%; transform: translateX(-50%); width: 400px; height: 400px; background: radial-gradient(circle, rgba(88,166,255,0.08) 0%, transparent 70%); pointer-events: none; }
+    .onboard h2 { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px; color: #c9d1d9; }
+    .onboard .sub { color: #8b949e; font-size: 16px; margin-bottom: 40px; }
+    .terminal-box { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 20px 24px; text-align: left; }
+    .terminal-dots { display: flex; gap: 6px; margin-bottom: 14px; }
+    .terminal-dots span { width: 10px; height: 10px; border-radius: 50%; }
+    .terminal-dots span:nth-child(1) { background: #f85149; }
+    .terminal-dots span:nth-child(2) { background: #d29922; }
+    .terminal-dots span:nth-child(3) { background: #3fb950; }
+    .cmd-row { display: flex; align-items: center; gap: 12px; }
+    .cmd-prompt { color: #8b949e; font-family: monospace; font-size: 14px; }
+    .cmd-text { font-family: monospace; font-size: 15px; color: #3fb950; flex: 1; }
+    .cmd-copy { background: #21262d; border: 1px solid #30363d; color: #8b949e; padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+    .cmd-copy:hover { color: #c9d1d9; border-color: #58a6ff; }
+    .onboard-hint { color: #8b949e; font-size: 13px; margin-top: 20px; }
+    .onboard-tools { display: flex; align-items: center; justify-content: center; gap: 24px; margin-top: 28px; }
+    .onboard-tool { display: flex; align-items: center; gap: 8px; color: #8b949e; font-size: 13px; }
+    .onboard-tool-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; font-family: monospace; }
+    .onboard-tool-icon.t-c { background: #58a6ff22; color: #58a6ff; }
+    .onboard-tool-icon.t-cu { background: #3b82f622; color: #3b82f6; }
+    .onboard-tool-icon.t-w { background: #3fb95022; color: #3fb950; }
+
+    /* --- Mobile responsive --- */
+    @media (max-width: 768px) {
+      body { padding: 12px; }
+      .top-bar { flex-direction: column; gap: 12px; align-items: flex-start; }
+      .toolbar { flex-direction: column; }
+      .search-box { width: 100% !important; }
+      .stats { flex-direction: column; }
+      .score-card { padding: 12px 16px; }
+      .score-num { font-size: 36px; }
+      table { font-size: 12px; display: block; overflow-x: auto; }
+      th, td { padding: 6px 8px; white-space: nowrap; }
+      td.content-cell { max-width: 200px; }
+      .project-bar { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
+      .modal { padding: 20px; max-width: 95%; }
+      .transfer-steps { flex-direction: column; }
+      .auth-card { padding: 24px; margin: 0 8px; }
+      .btn-transfer { font-size: 12px; padding: 8px 12px; }
+      .auth-right { position: static; margin-bottom: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app"></div>
+<div id="toast" class="toast"></div>
+
+<script>
+const API = 'https://central-intelligence-api.fly.dev';
+
+// --- Session ---
+function getToken() { return localStorage.getItem('ci_session'); }
+function setToken(t) { localStorage.setItem('ci_session', t); }
+function clearToken() { localStorage.removeItem('ci_session'); }
+
+async function apiFetch(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json', ...opts.headers };
+  const token = getToken();
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  const ciKey = localStorage.getItem('ci_api_key');
+  if (ciKey) headers['X-CI-Key'] = ciKey;
+  const res = await fetch(API + '/app' + path, { headers, ...opts });
+  if (res.status === 401 && currentView !== 'auth') { currentView = 'auth'; renderApp(); return null; }
+  return res;
+}
+
+// --- State ---
+let currentView = 'loading'; // loading | auth | check-email | link-key | onboard | dashboard
+let userEmail = '';
+let pendingEmail = '';
+let authError = '';
+
+// Dashboard state
+let allMemories = [];
+let selected = new Set();
+let currentFilter = '';
+let activeProject = null;
+let projects = [];
+let tags = [];
+let statsData = null;
+let dupData = { duplicates: [], group_count: 0 };
+let showDuplicates = false;
+let totalMemories = 0;
+let currentPage = 1;
+let totalPages = 1;
+
+// --- Init ---
+async function init() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+
+  if (token) {
+    window.history.replaceState({}, '', window.location.pathname);
+    const res = await apiFetch('/auth/verify', { method: 'POST', body: JSON.stringify({ token }) });
+    if (res && res.ok) {
+      const data = await res.json();
+      setToken(data.session_token);
+      if (data.api_key) localStorage.setItem('ci_api_key', data.api_key);
+      await checkSession();
+      return;
+    }
+    authError = 'This link has expired. Request a new one.';
+    currentView = 'auth';
+    renderApp();
+    return;
+  }
+
+  await checkSession();
+}
+
+async function checkSession() {
+  const res = await apiFetch('/auth/me');
+  if (!res || !res.ok) { currentView = 'auth'; renderApp(); return; }
+  const data = await res.json();
+  userEmail = data.email;
+  totalMemories = data.memory_count;
+  if (data.memory_count === 0) {
+    // Auto-fetch API key for onboarding
+    if (!localStorage.getItem('ci_api_key')) {
+      const kr = await apiFetch('/auth/new-key', { method: 'POST' });
+      if (kr && kr.ok) { const kd = await kr.json(); localStorage.setItem('ci_api_key', kd.api_key); }
+    }
+    currentView = 'onboard';
+    startPolling();
+  } else {
+    currentView = 'dashboard';
+    await loadDashboard();
+  }
+  renderApp();
+}
+
+// --- Polling for onboarding ---
+let pollTimer;
+function startPolling() {
+  stopPolling();
+  pollTimer = setInterval(async () => {
+    const r = await apiFetch('/auth/me');
+    if (r && r.ok) {
+      const d = await r.json();
+      if (d.memory_count > 0) { stopPolling(); currentView = 'dashboard'; await loadDashboard(); renderApp(); }
+    }
+  }, 5000);
+}
+function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+
+// --- Dashboard data loading ---
+async function loadDashboard() {
+  await Promise.all([loadMemories(), loadTags(), loadStats(), loadDuplicates()]);
+}
+
+async function loadMemories() {
+  let path;
+  if (currentFilter) {
+    path = '/api/memories/search?q=' + encodeURIComponent(currentFilter) + '&mode=smart&limit=50';
+  } else {
+    const tagParam = activeProject ? '&tag=' + encodeURIComponent('chat:' + activeProject) : '';
+    path = '/api/memories?page=' + currentPage + '&limit=50' + tagParam;
+  }
+  const res = await apiFetch(path);
+  if (res && res.ok) {
+    const data = await res.json();
+    allMemories = data.memories || [];
+    totalMemories = data.total || allMemories.length;
+    currentPage = data.page || 1;
+    totalPages = data.pages || 1;
+  }
+}
+
+async function loadTags() {
+  const res = await apiFetch('/api/memories/tags');
+  if (res && res.ok) { tags = (await res.json()).tags || []; }
+}
+
+async function loadStats() {
+  const res = await apiFetch('/api/memories/stats');
+  if (res && res.ok) { statsData = await res.json(); }
+}
+
+async function loadDuplicates() {
+  const res = await apiFetch('/api/memories/duplicates');
+  if (res && res.ok) { dupData = await res.json(); }
+}
+
+// --- Render ---
+function renderApp() {
+  const app = document.getElementById('app');
+  if (currentView === 'loading') { app.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;color:#8b949e">Loading...</div>'; return; }
+  if (currentView === 'auth') { app.innerHTML = renderAuth(); return; }
+  if (currentView === 'check-email') { app.innerHTML = renderCheckEmail(); return; }
+  if (currentView === 'link-key') { app.innerHTML = renderLinkKey(); return; }
+  if (currentView === 'onboard') { app.innerHTML = renderOnboard(); return; }
+  if (currentView === 'dashboard') { app.innerHTML = renderDashboard(); setupDashboardEvents(); return; }
+}
+
+function renderAuth() {
+  return '<div class="auth-wrap"><div class="auth-card">' +
+    '<h2 style="color:#fafafa">Central <span style="color:#6d5aff">Intelligence</span></h2>' +
+    '<p>Sign in or create an account to manage your AI agent memories.</p>' +
+    (authError ? '<div class="auth-error" style="display:block">' + esc(authError) + '</div>' : '') +
+    '<div class="form-group"><label>Email</label><input class="auth-input" type="email" id="authEmail" placeholder="you@example.com" value="' + esc(pendingEmail) + '" onkeydown="if(event.key===\'Enter\')doSignup()"></div>' +
+    '<button class="auth-btn" onclick="doSignup()" id="signupBtn">Get started</button>' +
+    '<div class="auth-divider">or</div>' +
+    '<div style="text-align:center"><span class="auth-link" onclick="currentView=\'link-key\';renderApp()">Already have an API key? Link it</span></div>' +
+    '</div></div>';
+}
+
+function renderCheckEmail() {
+  return '<div class="auth-wrap"><div class="auth-card" style="text-align:center">' +
+    '<div style="font-size:48px;margin-bottom:16px">&#9993;</div>' +
+    '<h2>Check your email</h2>' +
+    '<p>We sent a sign-in link to <strong>' + esc(pendingEmail) + '</strong></p>' +
+    '<p style="color:#484f58;font-size:13px">The link expires in 15 minutes.</p>' +
+    '<button class="btn" style="margin-top:16px" onclick="currentView=\'auth\';renderApp()">Back</button>' +
+    '</div></div>';
+}
+
+function renderLinkKey() {
+  return '<div class="auth-wrap"><div class="auth-card">' +
+    '<h2 style="color:#fafafa">Link your API key</h2>' +
+    '<p>Enter your API key from <code style="color:#58a6ff">npx central-intelligence-cli signup</code></p>' +
+    '<div class="auth-error" id="linkError"></div>' +
+    '<div class="form-group"><label>Email</label><input class="auth-input" type="email" id="linkEmail" placeholder="you@example.com" value="' + esc(pendingEmail) + '"></div>' +
+    '<div class="form-group"><label>API Key</label><input class="auth-input" type="text" id="linkKeyInput" placeholder="ci_sk_..." style="font-family:monospace;font-size:13px"></div>' +
+    '<button class="auth-btn" onclick="doLinkKey()">Link & Sign in</button>' +
+    '<div style="text-align:center;margin-top:16px"><span class="auth-link" onclick="currentView=\'auth\';renderApp()">Back</span></div>' +
+    '</div></div>';
+}
+
+function renderOnboard() {
+  const apiKey = localStorage.getItem('ci_api_key') || 'YOUR_KEY';
+  const cmd = 'npx central-intelligence-local sync --key ' + apiKey;
+  return '<div class="auth-right"><span>' + esc(userEmail) + '</span> <button class="btn" onclick="doLogout()" style="padding:4px 12px;font-size:12px">Sign out</button></div>' +
+    '<div class="onboard-wrap"><div class="onboard"><div class="onboard-glow"></div>' +
+    '<h2>Your AI memory is ready</h2>' +
+    '<p class="sub">One command syncs your memories and configures your AI tools</p>' +
+    '<div class="terminal-box"><div class="terminal-dots"><span></span><span></span><span></span></div>' +
+    '<div class="cmd-row"><span class="cmd-prompt">$</span><span class="cmd-text" style="font-size:13px">' + esc(cmd) + '</span>' +
+    '<button class="cmd-copy" onclick="navigator.clipboard.writeText(\'' + cmd.replace(/'/g, "\\'") + '\');this.textContent=\'Copied!\';setTimeout(()=>this.textContent=\'Copy\',1500)">Copy</button></div></div>' +
+    '<p class="onboard-hint">Syncs local memories to cloud and configures Claude Code, Cursor, and Windsurf.</p>' +
+    '<div class="onboard-tools">' +
+    '<div class="onboard-tool"><div class="onboard-tool-icon t-c">C</div>Claude Code</div>' +
+    '<div class="onboard-tool"><div class="onboard-tool-icon t-cu">Cu</div>Cursor</div>' +
+    '<div class="onboard-tool"><div class="onboard-tool-icon t-w">W</div>Windsurf</div>' +
+    '</div></div></div>';
+}
+
+function renderDashboard() {
+  const s = statsData || {};
+  const health = s.health ?? 10;
+  const sc = health >= 8 ? 'score-good' : health >= 5 ? 'score-warn' : 'score-bad';
+  const stale = s.stale_count || 0;
+  const agents = s.agents || 0;
+  const dupGroups = dupData.group_count || 0;
+  const dupIds = new Set(dupData.duplicates?.map(d => d.id) || []);
+  const dupGroupMap = {};
+  (dupData.duplicates || []).forEach(d => { dupGroupMap[d.id] = d.duplicate_group; });
+
+  // Mark dups on normal memories
+  allMemories.forEach(m => { if (dupIds.has(m.id)) m.duplicate_group = dupGroupMap[m.id]; });
+
+  // Projects from tags
+  const projectTags = tags.filter(t => t.tag.startsWith('chat:'));
+  projects = projectTags.map(t => ({ name: t.tag.slice(5), count: t.count }));
+
+  // Which memories to show
+  const displayMems = showDuplicates ? (dupData.duplicates || []) : allMemories;
+
+  let h = '';
+
+  // Top bar
+  h += '<div class="top-bar"><div>' +
+    '<h1>Central <span>Intelligence</span></h1>' +
+    '<p class="subtitle">Cross-tool memory dashboard</p></div>' +
+    '<div style="display:flex;align-items:center;gap:16px">' +
+    '<span style="font-size:13px;color:#8b949e">' + esc(userEmail) + '</span>' +
+    '<button class="btn" onclick="doLogout()" style="padding:4px 12px;font-size:12px">Sign out</button>' +
+    '<button class="btn-transfer" onclick="openTransfer()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Transfer from ChatGPT</button>' +
+    '</div></div>';
+
+  // Search + select filtered
+  h += '<div class="toolbar">' +
+    '<input class="search-box" type="text" placeholder="Search memories..." id="searchBox" style="flex:1;width:auto" value="' + esc(currentFilter) + '" />' +
+    '<button class="btn btn-primary" onclick="selectAllVisible()">Select filtered</button>' +
+    '<span class="search-mode" id="searchMode"></span></div>';
+
+  // Projects
+  if (projects.length > 0) {
+    h += '<div class="project-bar" id="projectBar"><span style="color:#8b949e;font-size:12px">Projects:</span> ';
+    for (const p of projects) {
+      const cls = activeProject === p.name ? 'project-chip active' : 'project-chip';
+      h += '<span class="' + cls + '" onclick="filterByProject(\'' + esc(p.name).replace(/'/g, "\\'") + '\')">' + esc(p.name) + '<span class="count">' + p.count + '</span></span>';
+    }
+    h += '</div>';
+  }
+
+  // Selection bar
+  h += '<div class="selection-bar' + (selected.size > 0 ? ' active' : '') + '" id="selBar">' +
+    '<span id="selCount">' + selected.size + ' selected</span>' +
+    '<button class="btn btn-danger" onclick="deleteSelected()">Delete selected</button>' +
+    '<button class="btn" onclick="clearSelection()">Clear</button></div>';
+
+  // Stats
+  h += '<div style="display:flex;gap:24px;align-items:flex-start;margin-bottom:16px">' +
+    '<div class="score-card"><div class="score-num ' + sc + '">' + health + '/10</div><div class="score-label">Health</div></div>' +
+    '<div class="stats">' +
+    statCard(totalMemories, 'Total') +
+    statCard(agents, 'Agents') +
+    statCard(stale, 'Stale') +
+    '<div class="stat" style="cursor:pointer;border-color:' + (dupGroups > 0 ? '#f8514966' : '#30363d') + '" onclick="toggleDuplicates()"><div class="stat-num" style="color:' + (dupGroups > 0 ? '#f85149' : '#58a6ff') + '">' + dupGroups + '</div><div class="stat-label">Duplicates</div></div>' +
+    statCard(tags.length, 'Tags') +
+    '<div class="stat"><div class="stat-label" style="margin-top:6px;font-size:13px;color:' + (totalMemories >= (s.memory_limit || 500) ? '#f85149' : '#8b949e') + '">' + totalMemories + ' / ' + (s.memory_limit || 500) + ' ' + (s.tier || 'free') + '</div></div>' +
+    '</div></div>';
+
+  // Duplicates header
+  if (showDuplicates) {
+    h += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">' +
+      '<span style="font-size:14px;font-weight:600;color:#f85149">' + (dupData.duplicates?.length || 0) + ' duplicate memories in ' + dupGroups + ' groups</span>' +
+      '<button class="btn btn-danger" style="font-size:12px;padding:4px 12px" onclick="selectAllDuplicates()">Select all duplicates</button>' +
+      '<button class="btn" style="font-size:12px;padding:4px 12px" onclick="showDuplicates=false;renderApp()">Back to all</button></div>';
+  }
+
+  // Table
+  h += '<table><tr><th style="width:36px"><input type="checkbox" onchange="toggleAll(this.checked)" /></th>' +
+    '<th>Project</th><th>Source</th><th>Content</th><th>Freshness</th><th>Flags</th></tr>';
+
+  for (const m of displayMems) {
+    const content = m.content || '';
+    const preview = esc(content.slice(0, 150));
+    const fr = getFreshness(m.created_at);
+    const frLabel = fr >= 0.7 ? 'fresh' : fr >= 0.3 ? 'aging' : 'stale';
+    const frClass = fr >= 0.7 ? 'tag-fresh' : fr >= 0.3 ? 'tag-aging' : 'tag-stale';
+    const memTags = Array.isArray(m.tags) ? m.tags : [];
+    const project = extractProject(memTags);
+    const dup = m.duplicate_group ? '<span class="tag-dup">dup</span>' : '';
+    const isChecked = selected.has(m.id);
+    const rowCls = isChecked ? 'selected' : '';
+    const proj = project ? '<span class="tag-project" onclick="event.stopPropagation();filterByProject(\'' + esc(project).replace(/'/g, "\\'") + '\')">' + esc(project) + '</span>' : '<span style="color:#484f58">\u2014</span>';
+    const tagHtml = memTags.filter(t => !t.startsWith('chat:')).map(t => ' <span class="tag-tag">' + esc(t) + '</span>').join('');
+
+    h += '<tr class="' + rowCls + '" onclick="rowClick(event,\'' + m.id + '\')">' +
+      '<td><input type="checkbox" ' + (isChecked ? 'checked' : '') + ' onchange="toggleMem(\'' + m.id + '\',this.checked)" /></td>' +
+      '<td>' + proj + '</td>' +
+      '<td><span class="tag-source">' + esc(m.agent_id || 'unknown') + '</span></td>' +
+      '<td class="content-cell" title="' + esc(content) + '">' + preview + tagHtml + '</td>' +
+      '<td class="' + frClass + '">' + frLabel + '</td>' +
+      '<td>' + dup + '</td></tr>';
+  }
+
+  if (displayMems.length === 0) {
+    h += '<tr><td colspan="6" class="empty">' + (showDuplicates ? 'No duplicates found' : 'No memories' + (currentFilter ? ' match "' + esc(currentFilter) + '"' : '')) + '</td></tr>';
+  }
+  h += '</table>';
+
+  // Pagination
+  if (!currentFilter && !showDuplicates && totalPages > 1) {
+    h += '<div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:20px;font-size:13px;color:#8b949e">' +
+      '<button class="btn" onclick="goPage(' + (currentPage - 1) + ')" ' + (currentPage <= 1 ? 'disabled' : '') + ' style="padding:4px 12px;font-size:12px">Prev</button>' +
+      ' Page ' + currentPage + ' of ' + totalPages + ' ' +
+      '<button class="btn" onclick="goPage(' + (currentPage + 1) + ')" ' + (currentPage >= totalPages ? 'disabled' : '') + ' style="padding:4px 12px;font-size:12px">Next</button></div>';
+  }
+
+  // Transfer modal
+  h += '<div class="modal-overlay" id="transferModal"><div class="modal">' +
+    '<button class="modal-close" onclick="closeTransfer()">&times;</button>' +
+    '<div class="transfer-section"><h2>Transfer from ChatGPT</h2>' +
+    '<p>Your ChatGPT conversations hold preferences, decisions, and project context. Three steps to bring them here.</p>' +
+    '<div class="transfer-steps">' +
+    '<div class="transfer-step"><div class="transfer-step-num">1</div><h3>Copy the prompt</h3><p>Copy the extraction prompt below.</p></div>' +
+    '<div class="transfer-step"><div class="transfer-step-num">2</div><h3>Paste in ChatGPT</h3><p>Open the conversation you want. Paste the prompt.</p></div>' +
+    '<div class="transfer-step"><div class="transfer-step-num">3</div><h3>Paste the output here</h3><p>Copy ChatGPT\'s response. Paste below. Click Import.</p></div></div>' +
+    '<h3 style="margin-bottom:8px">Step 1: Copy this into ChatGPT</h3>' +
+    '<div class="prompt-box" id="extractPrompt">Review our entire conversation. Extract every preference, decision, project detail, architectural choice, and instruction I shared. Ignore questions, debugging, code blocks, and small talk.\n\nWrite each as a standalone fact useful to a different AI assistant with zero context. Start each with an action word (Use, Prefer, Always, Never, Deploy, etc).\n\nOutput ONLY this format, nothing else:\n\nTRANSFER TO CI:\nProject: [name of this conversation as shown in your sidebar]\n- [fact 1]\n- [fact 2]\n- [fact 3]\n...<button class="prompt-copy" onclick="copyPrompt()">Copy prompt</button></div>' +
+    '<h3 style="margin-top:20px;margin-bottom:8px">Step 3: Paste ChatGPT\'s output</h3>' +
+    '<textarea id="transferInput" style="width:100%;height:180px;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:16px;font-family:monospace;font-size:13px;color:#c9d1d9;resize:vertical;" placeholder="Paste the TRANSFER TO CI output from ChatGPT here..."></textarea>' +
+    '<div style="margin-top:12px;display:flex;gap:12px;align-items:center;">' +
+    '<button onclick="processTransfer()" id="transferBtn" style="background:#7c3aed;color:white;border:none;border-radius:8px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600;">Import memories</button>' +
+    '<span id="transferStatus" style="color:#8b949e;font-size:13px;"></span></div></div></div></div>';
+
+  return h;
+}
+
+function statCard(n, label) { return '<div class="stat"><div class="stat-num">' + n + '</div><div class="stat-label">' + label + '</div></div>'; }
+
+// Partial re-render: update just the table without rebuilding search/toolbar
+function updateTable() {
+  if (currentView !== 'dashboard') return;
+  // Re-render entire dashboard but preserve search focus
+  const sb = document.getElementById('searchBox');
+  const cursorPos = sb?.selectionStart;
+  const val = sb?.value;
+  renderApp();
+  // Restore search state
+  const sb2 = document.getElementById('searchBox');
+  if (sb2 && val !== undefined) {
+    sb2.value = val;
+    sb2.setSelectionRange(cursorPos, cursorPos);
+    sb2.focus();
+  }
+}
+
+// --- Dashboard events ---
+function setupDashboardEvents() {
+  const sb = document.getElementById('searchBox');
+  if (!sb) return;
+  let timer;
+  sb.addEventListener('input', function() {
+    clearTimeout(timer);
+    const val = this.value;
+    timer = setTimeout(async () => { currentFilter = val; activeProject = null; showDuplicates = false; await loadMemories(); updateTable(); }, 500);
+  });
+  sb.addEventListener('keydown', function(e) { if (e.key === 'Enter') selectAllVisible(); });
+
+  // Transfer modal
+  const tm = document.getElementById('transferModal');
+  if (tm) {
+    tm.addEventListener('click', function(e) { if (e.target === this) closeTransfer(); });
+  }
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeTransfer(); });
+}
+
+// --- Auth actions ---
+async function doSignup() {
+  const emailEl = document.getElementById('authEmail');
+  const email = emailEl?.value?.trim();
+  if (!email) { authError = 'Please enter your email address.'; renderApp(); return; }
+  if (!email.includes('@') || !email.includes('.')) { authError = 'Please enter a valid email address.'; renderApp(); return; }
+  pendingEmail = email; // preserve for re-render
+  const btn = document.getElementById('signupBtn');
+  btn.disabled = true; btn.textContent = 'Sending...';
+  authError = '';
+  const res = await apiFetch('/auth/signup', { method: 'POST', body: JSON.stringify({ email }) });
+  if (res && res.ok) { currentView = 'check-email'; renderApp(); }
+  else {
+    const data = res ? await res.json().catch(() => ({})) : {};
+    authError = data.error || 'Something went wrong. Try again.';
+    renderApp();
+  }
+}
+
+async function doLinkKey() {
+  const email = document.getElementById('linkEmail')?.value?.trim();
+  const key = document.getElementById('linkKeyInput')?.value?.trim();
+  if (!email || !key) return;
+  const res = await apiFetch('/auth/link-key', { method: 'POST', body: JSON.stringify({ email, api_key: key }) });
+  if (res && res.ok) { pendingEmail = email; currentView = 'check-email'; renderApp(); }
+  else { const el = document.getElementById('linkError'); if (el) { el.style.display = 'block'; el.textContent = 'Invalid key or email already in use.'; } }
+}
+
+async function doLogout() {
+  await apiFetch('/auth/logout', { method: 'POST' });
+  clearToken(); stopPolling();
+  currentView = 'auth'; renderApp();
+}
+
+// --- Dashboard actions ---
+function extractProject(tags) {
+  if (!Array.isArray(tags)) return null;
+  const t = tags.find(t => t.startsWith('chat:'));
+  return t ? t.slice(5) : null;
+}
+
+function getFreshness(ts) {
+  if (!ts) return 0;
+  const ageDays = (Date.now() - new Date(ts).getTime()) / 86400000;
+  return Math.pow(0.5, ageDays / 90);
+}
+
+function filterByProject(name) {
+  activeProject = activeProject === name ? null : name;
+  currentFilter = '';
+  showDuplicates = false;
+  currentPage = 1;
+  loadMemories().then(renderApp);
+}
+
+function toggleMem(id, checked) {
+  if (checked) selected.add(id); else selected.delete(id);
+  renderApp();
+}
+
+function rowClick(event, id) {
+  if (event.target.tagName === 'INPUT' || event.target.tagName === 'SPAN') return;
+  if (selected.has(id)) selected.delete(id); else selected.add(id);
+  renderApp();
+}
+
+function toggleAll(checked) {
+  const mems = showDuplicates ? (dupData.duplicates || []) : allMemories;
+  mems.forEach(m => { if (checked) selected.add(m.id); else selected.delete(m.id); });
+  renderApp();
+}
+
+function clearSelection() { selected.clear(); renderApp(); }
+
+function selectAllVisible() {
+  const mems = showDuplicates ? (dupData.duplicates || []) : allMemories;
+  selected.clear();
+  mems.forEach(m => selected.add(m.id));
+  renderApp();
+  toast(selected.size + ' memories selected');
+}
+
+async function deleteSelected() {
+  if (selected.size === 0) return;
+  if (!confirm('Delete ' + selected.size + ' memories? This cannot be undone.')) return;
+  const ids = Array.from(selected);
+  for (let i = 0; i < ids.length; i += 50) {
+    await apiFetch('/api/memories/delete', { method: 'POST', body: JSON.stringify({ ids: ids.slice(i, i + 50) }) });
+  }
+  selected.clear();
+  toast(ids.length + ' memories deleted');
+  await loadDashboard();
+  renderApp();
+}
+
+function toggleDuplicates() {
+  showDuplicates = !showDuplicates;
+  selected.clear();
+  renderApp();
+}
+
+function selectAllDuplicates() {
+  const groups = {};
+  (dupData.duplicates || []).forEach(d => {
+    if (!groups[d.duplicate_group]) groups[d.duplicate_group] = [];
+    groups[d.duplicate_group].push(d);
+  });
+  selected.clear();
+  for (const g in groups) {
+    groups[g].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    for (let i = 1; i < groups[g].length; i++) selected.add(groups[g][i].id);
+  }
+  renderApp();
+  toast(selected.size + ' older duplicates selected (keeping newest)');
+}
+
+function goPage(p) {
+  if (p < 1 || p > totalPages) return;
+  currentPage = p;
+  loadMemories().then(renderApp);
+}
+
+// --- Transfer ---
+function openTransfer() { document.getElementById('transferModal')?.classList.add('active'); }
+function closeTransfer() { document.getElementById('transferModal')?.classList.remove('active'); }
+
+function copyPrompt() {
+  const text = document.getElementById('extractPrompt')?.textContent?.replace('Copy prompt', '').trim();
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.prompt-copy');
+    btn.textContent = 'Copied!'; btn.style.background = '#3fb950';
+    setTimeout(() => { btn.textContent = 'Copy prompt'; btn.style.background = '#58a6ff'; }, 2000);
+  });
+}
+
+async function processTransfer() {
+  const input = document.getElementById('transferInput')?.value?.trim();
+  const status = document.getElementById('transferStatus');
+  const btn = document.getElementById('transferBtn');
+  if (!input) { status.textContent = 'Paste ChatGPT output first.'; return; }
+
+  const lines = input.split('\n');
+  let projectName = 'ChatGPT Transfer';
+  const memories = [];
+  for (const line of lines) {
+    const pm = line.match(/^Project:\s*(.+)/i);
+    if (pm) { projectName = pm[1].trim().slice(0, 50); continue; }
+    const mm = line.match(/^[-*]\s+(.+)/);
+    if (mm) memories.push(mm[1].trim());
+  }
+  if (memories.length === 0) { status.textContent = 'No memories found. Use bullet points.'; status.style.color = '#f85149'; return; }
+
+  btn.disabled = true; btn.textContent = 'Importing...';
+  const apiKey = localStorage.getItem('ci_api_key');
+  let imported = 0;
+  for (const mem of memories) {
+    const r = await fetch(API + '/memories/remember', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + apiKey },
+      body: JSON.stringify({ agent_id: 'chatgpt-transfer', content: mem, tags: ['chatgpt-transfer', 'chat:' + projectName], scope: 'user' }),
+    });
+    if (r.ok) imported++;
+  }
+  status.textContent = 'Imported ' + imported + '/' + memories.length + ' memories.';
+  status.style.color = '#3fb950';
+  btn.textContent = 'Done!';
+  setTimeout(async () => { closeTransfer(); await loadDashboard(); renderApp(); }, 1500);
+}
+
+// --- Helpers ---
+function esc(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+function toast(msg, isError) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast' + (isError ? ' error' : '');
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
+// --- Boot ---
+init();
+</script>
+</body>
+</html>

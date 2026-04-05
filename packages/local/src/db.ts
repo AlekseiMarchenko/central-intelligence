@@ -1,25 +1,28 @@
-import Database from "better-sqlite3";
 import { v4 as uuid } from "uuid";
 import { join } from "path";
 import { mkdirSync, existsSync } from "fs";
 import { homedir } from "os";
 import type { MemoryRow } from "./types.js";
 
+// Dynamic require to load node:sqlite — avoids Vite/bundler resolution issues
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { DatabaseSync } = require("node:sqlite");
+
 const DB_DIR = join(homedir(), ".central-intelligence");
 const DB_PATH = join(DB_DIR, "memories.db");
 
-let db: Database.Database;
+let db: any;
 
-export function getDb(): Database.Database {
+export function getDb(): any {
   if (db) return db;
 
   if (!existsSync(DB_DIR)) {
     mkdirSync(DB_DIR, { recursive: true });
   }
 
-  db = new Database(DB_PATH);
-  db.pragma("journal_mode = WAL");
-  db.pragma("foreign_keys = ON");
+  db = new DatabaseSync(DB_PATH);
+  db.exec("PRAGMA journal_mode = WAL");
+  db.exec("PRAGMA foreign_keys = ON");
 
   // Create tables
   db.exec(`
@@ -183,7 +186,7 @@ export interface CachedFileEntry {
   source_path: string;
   section_title: string | null;
   content: string;
-  embedding: Buffer | null;
+  embedding: Uint8Array | null;
   first_seen: string;
   last_seen: string;
 }
@@ -199,7 +202,7 @@ export function upsertCacheEntry(entry: {
   source_path: string;
   section_title: string | null;
   content: string;
-  embedding: Buffer | null;
+  embedding: Uint8Array | null;
 }): void {
   const db = getDb();
   const existing = getCachedEntry(entry.content_hash);
@@ -219,4 +222,10 @@ export function upsertCacheEntry(entry: {
 export function getAllCachedEntries(): CachedFileEntry[] {
   const db = getDb();
   return db.prepare("SELECT * FROM file_source_cache ORDER BY last_seen DESC").all() as CachedFileEntry[];
+}
+
+// Re-export getAllMemories for ci-local-pro compatibility
+export function getAllMemories(): MemoryRow[] {
+  const db = getDb();
+  return db.prepare("SELECT * FROM memories WHERE deleted_at IS NULL ORDER BY created_at DESC").all() as MemoryRow[];
 }
