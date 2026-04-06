@@ -4,13 +4,15 @@
 
 Persistent memory for AI agents. Store, recall, and share information across sessions. Works with Claude Code, Cursor, LangChain, CrewAI, and any agent that supports MCP.
 
+**CI never rewrites your memories.** Facts are extracted for search, but your content is always returned verbatim. No junk memories, no hallucinated rewrites, no data loss.
+
 [![npm](https://img.shields.io/npm/v/central-intelligence-mcp)](https://www.npmjs.com/package/central-intelligence-mcp)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 
 [![Central Intelligence MCP server](https://glama.ai/mcp/servers/AlekseiMarchenko/central-intelligence/badges/card.svg)](https://glama.ai/mcp/servers/AlekseiMarchenko/central-intelligence)
 
-[![LifeBench 44.4%](https://img.shields.io/badge/LifeBench_(2026)-44.4%25-6d5aff?style=for-the-badge)](https://arxiv.org/abs/2603.03781)
+[![LifeBench 45.9%](https://img.shields.io/badge/LifeBench_(2026)-45.9%25-6d5aff?style=for-the-badge)](https://arxiv.org/abs/2603.03781)
 [![AMB 90/100](https://img.shields.io/badge/AMB_Score-90%2F100_(A%2B)-22c55e?style=for-the-badge)](https://github.com/AlekseiMarchenko/agent-memory-benchmark)
 
 ## Quick Start (30 seconds)
@@ -62,11 +64,11 @@ Five MCP tools give your agent a long-term memory:
 
 ### LifeBench (2026) — Long-Term Multi-Source Memory
 
-CI scores **44.4%** on [LifeBench](https://arxiv.org/abs/2603.03781), the hardest published memory benchmark (2,003 questions across 10 users, 51K real-world events including messages, calendar, health records, notes, and calls).
+CI scores **45.9%** on [LifeBench](https://arxiv.org/abs/2603.03781), the hardest published memory benchmark (2,003 questions across 10 users, 51K real-world events including messages, calendar, health records, notes, and calls).
 
 | Overall | Info Extraction | Multi-hop | Temporal |
 |---------|-----------------|-----------|----------|
-| **44.4%** | **50.0%** | **45.6%** | **28.6%** |
+| **45.9%** | **52.8%** | **45.6%** | **39.3%** |
 
 Evaluation harness: [lifebench-eval](https://github.com/AlekseiMarchenko/lifebench-eval)
 
