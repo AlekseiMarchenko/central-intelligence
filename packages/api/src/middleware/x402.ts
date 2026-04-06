@@ -8,6 +8,8 @@ import {
 } from "x402/shared";
 import { useFacilitator } from "x402/verify";
 import { settleResponseHeader } from "x402/types";
+import { sql } from "../db/connection.js";
+import { generateApiKey, hashKey } from "../services/auth.js";
 
 const TREASURY_WALLET = process.env.TREASURY_WALLET || "0x3056e50A9cAf93020544720cA186f77577982b5f";
 const NETWORK = "base" as const;
@@ -170,13 +172,45 @@ export async function x402Middleware(c: Context, next: Next) {
     );
   }
 
-  // Payment verified — process the request
-  // Set a flag so downstream handlers know this is an x402-paid request
-  c.set("x402Paid", true);
+  // Payment verified — set auth context for downstream memory handlers
+  c.set("x402Paid" as any, true);
   const payer = "payload" in decodedPayment && decodedPayment.payload && "authorization" in decodedPayment.payload
     ? (decodedPayment.payload as any).authorization?.from
     : "unknown";
-  c.set("x402Payer", payer);
+  c.set("x402Payer" as any, payer);
+
+  // Create or lookup a system API key for this wallet address.
+  // Without this, the memories router receives undefined for apiKeyId/rawApiKey,
+  // which breaks encryption (encrypt with key derived from "undefined").
+  const walletId = `x402:${payer}`;
+  try {
+    const [existing] = await sql`
+      SELECT id, key_hash FROM api_keys
+      WHERE name = ${walletId} AND revoked_at IS NULL
+      LIMIT 1
+    `;
+    if (existing) {
+      c.set("apiKeyId", (existing as any).id);
+      c.set("rawApiKey", walletId); // deterministic key for encryption
+      c.set("tier", "x402");
+      c.set("orgId", undefined);
+    } else {
+      // Create a new API key record for this wallet
+      const { key, hash, prefix } = generateApiKey();
+      const [record] = await sql`
+        INSERT INTO api_keys (key_hash, key_prefix, name, tier)
+        VALUES (${hash}, ${prefix}, ${walletId}, 'x402')
+        RETURNING id
+      `;
+      c.set("apiKeyId", (record as any).id);
+      c.set("rawApiKey", key); // use the generated key for encryption
+      c.set("tier", "x402");
+      c.set("orgId", undefined);
+    }
+  } catch (err: any) {
+    console.error("[x402] Failed to setup auth context:", err.message);
+    return c.json({ error: "Internal error setting up x402 auth context" }, 500);
+  }
 
   await next();
 

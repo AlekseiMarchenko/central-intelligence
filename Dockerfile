@@ -25,9 +25,13 @@ COPY packages/api/src/db/schema.sql ./src/db/schema.sql
 # Copy cached ONNX model from builder stage (optional, skip if not cached)
 COPY --from=builder /app/.model-cache /app/.model-cache
 
+RUN addgroup --system app && adduser --system --ingroup app app
+RUN chown -R app:app /app
+
 ENV NODE_ENV=production
 ENV PORT=3141
 ENV TRANSFORMERS_CACHE=/app/.model-cache
 EXPOSE 3141
 
+USER app
 CMD ["node", "dist/index.js"]

@@ -3,6 +3,16 @@ import { sql } from "../db/connection.js";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import crypto from "crypto";
 
+/** Escape HTML special characters to prevent XSS in server-rendered templates. */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 const app = new Hono();
 
 // --- Session store (in-memory, survives across requests) ---
@@ -83,7 +93,7 @@ app.get("/callback", async (c) => {
 
   // Check if user is allowed
   if (!ALLOWED_USERS().includes(username)) {
-    return c.html(`<h1>Access denied</h1><p>User <b>${user.login}</b> is not authorized to access this dashboard.</p><p><a href='/dashboard'>Back</a></p>`, 403);
+    return c.html(`<h1>Access denied</h1><p>User <b>${escapeHtml(user.login || "")}</b> is not authorized to access this dashboard.</p><p><a href='/dashboard'>Back</a></p>`, 403);
   }
 
   // Create session
@@ -308,8 +318,8 @@ function dashboardPage(username: string, avatar: string): string {
     <div class="header-right">
       <button class="refresh" onclick="loadData()">↻ Refresh</button>
       <div class="user-info">
-        ${avatar ? `<img src="${avatar}" alt="">` : ""}
-        <span>${username}</span>
+        ${avatar ? `<img src="${escapeHtml(avatar)}" alt="">` : ""}
+        <span>${escapeHtml(username)}</span>
         <a href="/dashboard/logout">Logout</a>
       </div>
     </div>

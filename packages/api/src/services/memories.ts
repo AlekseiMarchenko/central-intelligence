@@ -298,6 +298,10 @@ export async function store(params: StoreParams): Promise<Memory> {
 
   // Queue structured fact extraction (fire-and-forget, max N concurrent).
   // Replaces the old enrichMemoryAsync() with full structured fact decomposition.
+  // PRIVACY NOTE: Fact extraction sends plaintext content to OpenAI GPT-4o-mini.
+  // This is necessary for structured extraction but means memory content is
+  // processed by OpenAI's API. Content is encrypted at rest in our DB but
+  // is decrypted for LLM processing. Users should be aware of this tradeoff.
   queueFactExtraction({
     memoryId: result.id,
     apiKeyId,
