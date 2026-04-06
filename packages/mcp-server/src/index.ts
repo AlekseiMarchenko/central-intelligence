@@ -44,44 +44,38 @@ async function apiCall(
 
 const server = new McpServer({
   name: "central-intelligence",
-  version: "0.1.0",
+  version: "1.0.0",
 });
 
 // Tool 1: remember
 server.tool(
   "remember",
-  `Store information in persistent memory. Call this PROACTIVELY whenever you:
-- Make or learn about an important decision (architecture, library choice, convention)
-- Discover a user preference (code style, communication style, tools they use)
-- Find a bug's root cause or a non-obvious fix
-- Learn project-specific context (tech stack, deploy process, team structure)
-- Complete a significant task (store what you did and why)
-Do NOT wait for the user to say "remember this" — if it would be useful in a future session, store it now.`,
+  `Store a fact, decision, or preference in persistent memory so it survives across sessions. This is a write operation that creates a new memory record, encrypts the content at rest, and generates a vector embedding for semantic search. Use remember (not recall) when you learn something worth keeping: architecture decisions, user preferences, bug root causes, project conventions, or task outcomes. Do not use for ephemeral scratch data, secrets, or large files. Returns the memory ID and timestamp. Costs 1 operation against the API key's monthly quota (500 free, then paid). Use forget to delete outdated memories before storing corrections, to prevent contradictions.`,
   {
     content: z
       .string()
       .describe(
-        "The information to remember. Be specific and include context so it's useful when recalled later.",
+        "The information to store. Write as a complete, self-contained statement (not fragments). Include context: 'User prefers TypeScript for backend services' not just 'TypeScript'. Max 10,000 characters.",
       ),
     agent_id: z
       .string()
       .default("default")
-      .describe("Identifier for this agent instance"),
+      .describe("Unique identifier for this agent instance. Use a consistent value across sessions so memories are retrievable. Default: 'default'."),
     user_id: z
       .string()
       .optional()
-      .describe("User identifier for user-scoped memories"),
+      .describe("User identifier, required when scope is 'user'. Links the memory to a specific user across all their agents."),
     tags: z
       .array(z.string())
       .default([])
       .describe(
-        "Tags for categorizing the memory (e.g., 'preference', 'decision', 'fact')",
+        "Categorical labels for filtering during recall. Use lowercase, consistent terms: 'preference', 'decision', 'architecture', 'bug-fix'. Max 20 tags, each max 100 chars.",
       ),
     scope: z
       .enum(["agent", "user", "org"])
       .default("agent")
       .describe(
-        "Visibility scope: agent (only this agent), user (all agents for this user), org (all agents in the organization)",
+        "Visibility: 'agent' (only this agent sees it, default), 'user' (all agents for this user, requires user_id), 'org' (all agents in the organization, requires org membership).",
       ),
   },
   async ({ content, agent_id, user_id, tags, scope }) => {
@@ -109,43 +103,38 @@ Do NOT wait for the user to say "remember this" — if it would be useful in a f
 // Tool 2: recall
 server.tool(
   "recall",
-  `Search persistent memory for relevant past information. Call this BEFORE making assumptions about:
-- The project's tech stack, architecture, or conventions
-- User preferences or past decisions
-- How something was done previously
-- Why a particular approach was chosen
-If you're about to say "I don't know" or "I'll assume" — check memory first. The answer might already be there from a previous session.`,
+  `Search persistent memory by meaning, returning the most relevant past memories ranked by semantic similarity. This is a read-only operation that runs a 4-way hybrid search (vector similarity, BM25 full-text, entity graph traversal, temporal proximity) and reranks results with a cross-encoder model. Use recall (not context) when you need to answer a specific question: "what language does the user prefer?", "how was auth implemented?", "what was decided about the database?". Do not use for broad session bootstrapping (use context instead). Returns up to limit memories with relevance scores (0-1). Costs 1 operation per call. If no memories match, returns an empty list, not an error.`,
   {
     query: z
       .string()
       .describe(
-        "What to search for. Use natural language — the search is semantic, not keyword-based.",
+        "Natural language search query. Semantic, not keyword-based: 'what programming language does the user prefer?' works better than 'language preference'. More specific queries return more relevant results.",
       ),
     agent_id: z
       .string()
       .default("default")
-      .describe("Identifier for this agent instance"),
+      .describe("Agent instance identifier. Must match the agent_id used when storing memories. Default: 'default'."),
     user_id: z
       .string()
       .optional()
-      .describe("User identifier to include user-scoped memories"),
+      .describe("User identifier. When provided with scope 'user', also searches user-scoped memories shared by other agents."),
     scope: z
       .enum(["agent", "user", "org"])
       .optional()
       .describe(
-        "Search scope: agent (only this agent's memories), user (include user-scoped), org (include org-scoped)",
+        "Search scope. 'agent' (default): only this agent's memories. 'user': also includes memories shared to user scope. 'org': includes org-wide memories. Broader scope returns more results but may include less relevant memories.",
       ),
     tags: z
       .array(z.string())
       .optional()
-      .describe("Filter by tags"),
+      .describe("Filter results to only memories with at least one matching tag. Omit to search all memories regardless of tags."),
     limit: z
       .number()
       .int()
       .min(1)
       .max(20)
       .default(5)
-      .describe("Maximum number of memories to return"),
+      .describe("Maximum memories to return, 1-20. Default 5. Use higher values (10-20) for broad searches, lower (1-3) for targeted lookups."),
   },
   async ({ query, agent_id, user_id, scope, tags, limit }) => {
     const result = await apiCall("/memories/recall", "POST", {
@@ -202,9 +191,9 @@ If you're about to say "I don't know" or "I'll assume" — check memory first. T
 // Tool 3: forget
 server.tool(
   "forget",
-  "Delete a memory that is outdated, incorrect, or superseded. Call this when you store an updated version of a fact — delete the old one to prevent contradictions.",
+  `Permanently delete a memory by ID. This is a destructive, irreversible operation that soft-deletes the memory record (it will no longer appear in recall or context results). Use forget before storing a corrected version of a fact, to prevent contradictory memories from coexisting. Do not use for bulk cleanup (delete one at a time). Do not use if you are unsure whether the memory is outdated, as deletion cannot be undone. Requires the exact memory ID (UUID), which is returned by recall and context. Costs 1 operation. Returns confirmation on success, or an error if the ID does not exist.`,
   {
-    memory_id: z.string().describe("The ID of the memory to delete"),
+    memory_id: z.string().describe("UUID of the memory to delete. Get this from recall or context results (the 'id' field). Must be an exact match."),
   },
   async ({ memory_id }) => {
     await apiCall(`/memories/${memory_id}`, "DELETE");
@@ -222,28 +211,28 @@ server.tool(
 // Tool 4: context
 server.tool(
   "context",
-  `Load relevant context from past sessions. CALL THIS FIRST at the start of every conversation before doing any work. Pass a brief summary of the current project or task. This retrieves past decisions, preferences, and context so you don't start from zero. Also call when switching to a different topic or task mid-session.`,
+  `Load relevant memories for the current task, designed for session bootstrapping. This is a read-only operation identical to recall internally, but optimized for broad context loading rather than specific questions. Call context at the start of every conversation, passing a description of what you are working on, to retrieve past decisions, preferences, and project knowledge. Also call when switching topics mid-session. Use context (not recall) for "what do I need to know about X?" and recall for "what specifically was decided about Y?". Returns up to max_memories results ranked by relevance. Costs 1 operation. Returns empty list (not error) if no relevant memories exist.`,
   {
     current_context: z
       .string()
       .describe(
-        "A summary of what you're currently working on or discussing. The more specific, the better the recalled memories will be.",
+        "Description of what you are currently working on. Be specific: 'refactoring the authentication middleware in the Express API' retrieves better context than 'working on auth'. This is the search query for memory retrieval.",
       ),
     agent_id: z
       .string()
       .default("default")
-      .describe("Identifier for this agent instance"),
+      .describe("Agent instance identifier. Must match the agent_id used when storing memories. Default: 'default'."),
     user_id: z
       .string()
       .optional()
-      .describe("User identifier to include user-scoped memories"),
+      .describe("User identifier. When provided, also retrieves user-scoped memories shared by other agents."),
     max_memories: z
       .number()
       .int()
       .min(1)
       .max(20)
       .default(5)
-      .describe("Maximum number of memories to return"),
+      .describe("Maximum memories to return, 1-20. Default 5. Use 10-15 at session start for broad context loading, 3-5 for topic switches."),
   },
   async ({ current_context, agent_id, user_id, max_memories }) => {
     const result = await apiCall("/memories/context", "POST", {
@@ -296,18 +285,18 @@ server.tool(
 // Tool 5: share
 server.tool(
   "share",
-  "Share a memory with a broader scope so other agents can access it. Use when you learn something that would be valuable to other agents serving the same user or organization.",
+  `Widen a memory's visibility scope so other agents can access it. This is a write operation that changes the memory's scope from agent-only to user-level or org-level. Use share when a memory contains knowledge valuable beyond the current agent: user preferences (share to user scope so all agents know), team conventions (share to org scope). Do not use to restrict scope (sharing is one-directional: agent to user to org). Requires the memory ID (from recall or remember) and the target scope. Does not duplicate the memory, only changes its visibility. Costs 1 operation.`,
   {
-    memory_id: z.string().describe("The ID of the memory to share"),
+    memory_id: z.string().describe("UUID of the memory to share. Get this from recall, context, or remember results."),
     target_scope: z
       .enum(["user", "org"])
       .describe(
-        "Who to share with: user (all agents for this user) or org (all agents in the organization)",
+        "New visibility level. 'user': all agents serving this user can recall it. 'org': all agents in the organization can recall it. Cannot go back to 'agent' once shared.",
       ),
     user_id: z
       .string()
       .optional()
-      .describe("Required when sharing to user scope"),
+      .describe("Required when target_scope is 'user'. Identifies which user's agents should see this memory."),
   },
   async ({ memory_id, target_scope, user_id }) => {
     await apiCall(`/memories/${memory_id}/share`, "POST", {
