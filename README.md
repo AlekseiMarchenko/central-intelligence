@@ -82,7 +82,7 @@ npx agent-memory-benchmark --provider central-intelligence --api-key $CI_API_KEY
 
 > **Note:** AMB is maintained by the same author as Central Intelligence. Run it yourself and verify the results. PRs with new provider adapters are welcome.
 
-## Cross-Tool Memory (NEW in v0.5.0)
+## Cross-Tool Memory
 
 CI Local reads config files from **5 AI coding platforms** and makes them searchable alongside your stored memories:
 
@@ -108,9 +108,17 @@ Central Intelligence MCP Server (local, thin client)
 SQLite + vector embeddings + config file parsing
     ↓
 Hybrid search: vector + FTS5 + fuzzy + temporal decay
+    ↓
+Central Intelligence API (hosted)
+    ↓
+PostgreSQL + pgvector + fact decomposition + entity graph
+    ↓
+4-way retrieval: vector + BM25 + graph traversal + temporal
+    ↓
+Local ONNX cross-encoder reranker (zero API cost)
 ```
 
-Memories are stored as text with vector embeddings. Recall uses cosine similarity to find semantically relevant memories, not just keyword matches. Config files from all supported platforms are parsed, embedded, and cached locally.
+Every memory is decomposed into structured facts with entities, temporal info, and causal relations. Recall runs four search strategies in parallel (vector similarity, BM25 full-text, entity graph traversal, temporal proximity), fuses results with Reciprocal Rank Fusion, and reranks with a local cross-encoder model. Config files from all supported platforms are parsed, embedded, and cached locally.
 
 ## Memory Scopes
 
