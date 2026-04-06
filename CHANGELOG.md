@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.0.0] - 2026-04-06 — 4-Way Retrieval
+
+Recall is now 4x smarter. Every memory is decomposed into structured facts at store time, with entities extracted, resolved, and linked into a knowledge graph. Recall runs four search strategies in parallel (vector, BM25, graph traversal, temporal), fuses them with RRF, and reranks with a local cross-encoder model. Zero per-recall API cost.
+
+### Added
+
+- **Fact decomposition.** Each stored memory is broken into atomic facts with entities, temporal info, and causal relations via GPT-4o-mini. Facts are individually searchable with their own embeddings and tsvectors.
+- **Entity resolution.** Extracted entities are matched against existing ones using trigram similarity, co-occurrence scoring, and temporal proximity. "Alice" and "my coworker Alice" merge automatically.
+- **Knowledge graph.** Entities, facts, and co-occurrences form a queryable graph via junction tables. Graph traversal finds related facts through shared entities and causal links.
+- **4-way parallel retrieval.** Recall runs vector search, BM25, graph traversal (dual-seed: embedding + entity name), and temporal search simultaneously. Results are fused via Reciprocal Rank Fusion.
+- **Local ONNX cross-encoder reranker.** ms-marco-MiniLM-L-6-v2 runs locally via @xenova/transformers. Zero per-request cost. Falls back to Cohere API, then passthrough.
+- **Observation consolidation.** When an entity accumulates 5+ facts, a higher-level observation is auto-synthesized. These "pre-computed answers" match directly on recall.
+- **Fallback fact_units.** Every store() creates a searchable fact_unit synchronously, so memories are findable from millisecond one, even before extraction completes.
+- **Per-strategy observability.** Each retrieval strategy logs hit counts and latency on every recall.
+- **36 new tests** covering fact extraction validation, entity scoring, 4-way RRF fusion, reranker fallback, and observation contracts. 68 total.
+
+### Changed
+
+- Store pipeline: replaced simple entity+preference enrichment with full fact decomposition (3x retry, exponential backoff, concurrency-limited queue).
+- Recall pipeline: routes to fact-based 4-way retrieval when fact_units exist, falls back to legacy 2-way (vector + BM25) on memories table.
+- Reranker: 3-tier fallback chain (ONNX local, Cohere API, passthrough) replaces Cohere-only.
+- Dockerfile: pre-downloads ONNX model during build for fast cold starts.
+- Store cost: ~$0.0003/memory (up from ~$0.00007). Recall cost: $0 (down from ~$0.00002).
+
 ## [0.5.0] - 2026-04-03 — Cross-Tool Memory
 
 CI Local now reads config files from 5 AI coding platforms and merges them into the search pipeline. Memories stored via Claude Code are discoverable when using Cursor, and vice versa. This is the cross-tool memory layer: your AI memory works everywhere, not just in one tool.
