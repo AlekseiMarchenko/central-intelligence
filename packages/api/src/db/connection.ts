@@ -8,3 +8,13 @@ export const sql = postgres(databaseUrl, {
   idle_timeout: 20,
   connect_timeout: 10,
 });
+
+/**
+ * Fly Postgres repmgr periodically sets default_transaction_read_only=on.
+ * Call this after the server starts to override it, then keep it overridden.
+ */
+export function ensureWritable() {
+  const fix = () => sql`SET default_transaction_read_only = off`.catch(() => {});
+  fix();
+  setInterval(fix, 30_000);
+}

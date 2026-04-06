@@ -8,10 +8,22 @@ import { sql } from "./connection.js";
  * but in pgvector's native format for efficient ANN search via the <=> operator.
  */
 export async function migratePgvector() {
-  // Step 1: Enable pgvector extension
+  // Step 1: Check if pgvector is already loaded (fast path)
   try {
-    await sql`CREATE EXTENSION IF NOT EXISTS vector`;
-    console.log("[pgvector] Extension enabled");
+    const check = await sql`SELECT 1 FROM pg_extension WHERE extname = 'vector'`;
+    if (check.length > 0) {
+      console.log("[pgvector] Extension already enabled");
+    } else {
+      // Try to create it with a timeout — if the .so file is missing, this hangs
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("pgvector CREATE EXTENSION timed out")), 5000)
+      );
+      await Promise.race([
+        sql`CREATE EXTENSION IF NOT EXISTS vector`,
+        timeout,
+      ]);
+      console.log("[pgvector] Extension enabled");
+    }
   } catch (err: any) {
     console.warn("[pgvector] Extension not available, falling back to in-app vector search:", err.message);
     return;

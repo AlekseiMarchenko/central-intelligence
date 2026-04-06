@@ -20,6 +20,8 @@ const rememberSchema = z.object({
   content: z.string().min(1).max(10000),
   scope: z.enum(["agent", "user", "org"]).default("agent"),
   tags: z.array(z.string().max(100)).max(20).default([]),
+  event_date_from: z.string().optional(),
+  event_date_to: z.string().optional(),
 });
 
 app.post("/remember", async (c) => {
@@ -29,7 +31,7 @@ app.post("/remember", async (c) => {
     return c.json({ error: "Invalid request", details: parsed.error.issues }, 400);
   }
 
-  const { agent_id, user_id, content, scope, tags } = parsed.data;
+  const { agent_id, user_id, content, scope, tags, event_date_from, event_date_to } = parsed.data;
   const apiKeyId = c.get("apiKeyId");
   const orgId = c.get("orgId");
   const rawApiKey = c.get("rawApiKey");
@@ -44,6 +46,8 @@ app.post("/remember", async (c) => {
       scope,
       content,
       tags,
+      eventDateFrom: event_date_from,
+      eventDateTo: event_date_to,
     });
 
     return c.json({ memory }, 201);
