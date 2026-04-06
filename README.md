@@ -322,20 +322,31 @@ Then point the MCP server to your instance:
 ```
 central-intelligence/
 ├── packages/
-│   ├── api/            # Backend API (Hono + PostgreSQL)
-│   │   └── src/
-│   │       ├── db/           # Schema, migrations, connection
-│   │       ├── middleware/   # Auth, rate limiting
-│   │       ├── routes/       # API endpoints
-│   │       └── services/     # Business logic (memories, embeddings, auth)
+│   ├── api/            # Backend API (Hono + PostgreSQL + pgvector)
+│   │   ├── src/
+│   │   │   ├── db/           # Schema, migrations (facts, entities, pgvector, hybrid)
+│   │   │   ├── middleware/   # Auth, rate limiting, billing, x402 payments
+│   │   │   ├── routes/       # REST endpoints, dashboard, docs, demo
+│   │   │   └── services/     # Core logic:
+│   │   │       ├── memories.ts          # Store + 4-way recall pipeline
+│   │   │       ├── fact-extraction.ts   # GPT-4o-mini fact decomposition
+│   │   │       ├── entity-resolution.ts # Trigram + co-occurrence entity merging
+│   │   │       ├── observations.ts      # Auto-synthesized higher-level facts
+│   │   │       ├── rerank.ts            # ONNX local + Cohere + passthrough
+│   │   │       ├── embeddings.ts        # OpenAI text-embedding-3-small
+│   │   │       ├── encryption.ts        # AES-256-GCM at rest
+│   │   │       └── query-decompose.ts   # Query expansion via GPT-4o-mini
+│   │   └── tests/        # 68 tests (Vitest)
 │   ├── mcp-server/     # MCP server (npm: central-intelligence-mcp)
 │   ├── cli/            # CLI tool (npm: central-intelligence-cli)
+│   ├── local/          # Local memory with cross-tool config parsing
 │   ├── node-sdk/       # Node.js/TypeScript SDK (npm: central-intelligence-sdk)
 │   ├── python-sdk/     # Python SDK (PyPI: central-intelligence)
 │   └── openclaw-skill/ # OpenClaw skill file
+├── .github/workflows/  # CI (typecheck + test) + Deploy (Fly.io)
 ├── landing/            # Landing page
-├── Dockerfile          # API container
-├── fly.toml            # Fly.io config
+├── Dockerfile          # API container (non-root, ONNX model pre-cached)
+├── fly.toml            # Fly.io config (iad region, health checks)
 └── README.md
 ```
 
