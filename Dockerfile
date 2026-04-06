@@ -11,7 +11,9 @@ RUN npm run build --workspace=packages/api
 
 # Pre-download the ONNX cross-encoder model during build so it's cached in the image.
 # This avoids a ~30MB download on first recall in production.
-RUN node -e "import('@xenova/transformers').then(({pipeline})=>pipeline('text-classification','Xenova/ms-marco-MiniLM-L-6-v2',{quantized:true}).then(()=>console.log('Model cached'))).catch(e=>console.warn('Model pre-cache skipped:',e.message))"
+# Cache dir set explicitly so it works in non-root build contexts.
+ENV TRANSFORMERS_CACHE=/app/.model-cache
+RUN node -e "import('@xenova/transformers').then(({pipeline,env})=>{env.cacheDir='/app/.model-cache';return pipeline('text-classification','Xenova/ms-marco-MiniLM-L-6-v2',{quantized:true})}).then(()=>console.log('Model cached')).catch(e=>console.warn('Model pre-cache skipped:',e.message))"
 
 FROM node:22-slim
 WORKDIR /app
@@ -20,11 +22,12 @@ COPY --from=builder /app/packages/api/package.json .
 COPY --from=builder /app/node_modules ./node_modules
 COPY packages/api/src/db/schema.sql ./src/db/schema.sql
 
-# Copy cached ONNX model from builder stage
-COPY --from=builder /root/.cache/huggingface /root/.cache/huggingface
+# Copy cached ONNX model from builder stage (optional, skip if not cached)
+COPY --from=builder /app/.model-cache /app/.model-cache
 
 ENV NODE_ENV=production
 ENV PORT=3141
+ENV TRANSFORMERS_CACHE=/app/.model-cache
 EXPOSE 3141
 
 CMD ["node", "dist/index.js"]

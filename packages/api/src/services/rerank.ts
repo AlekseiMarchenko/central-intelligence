@@ -35,11 +35,9 @@ async function getOnnxPipeline(): Promise<any> {
     // Dynamic import — @xenova/transformers is ESM-compatible
     const { pipeline, env } = await import("@xenova/transformers");
 
-    // Disable remote model downloads in production if model is pre-cached
-    // In dev, allow downloads (first use caches the model)
-    if (process.env.ONNX_MODEL_CACHE_DIR) {
-      env.cacheDir = process.env.ONNX_MODEL_CACHE_DIR;
-    }
+    // Use the same cache dir as the Docker build pre-cache step
+    const cacheDir = process.env.ONNX_MODEL_CACHE_DIR || process.env.TRANSFORMERS_CACHE || "/app/.model-cache";
+    env.cacheDir = cacheDir;
 
     // Load the cross-encoder model
     // Uses "text-classification" pipeline which handles (query, document) pairs
