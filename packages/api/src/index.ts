@@ -417,10 +417,15 @@ app.post("/probe", async (c) => {
 import { migrateHybridSearch } from "./db/migrate-hybrid.js";
 import { migrateDashboard } from "./db/migrate-dashboard.js";
 import { migratePgvector } from "./db/migrate-pgvector.js";
+import { migrateDates } from "./db/migrate-dates.js";
+import { migrateEnrichment } from "./db/migrate-enrichment.js";
+import { migrateFacts } from "./db/migrate-facts.js";
+import { ensureWritable } from "./db/connection.js";
 
 const port = parseInt(process.env.PORT || "3141", 10);
 
-Promise.all([migrateHybridSearch(), migrateDashboard(), migratePgvector()]).then(() => {
+Promise.all([migrateHybridSearch(), migrateDashboard(), migratePgvector(), migrateDates(), migrateEnrichment(), migrateFacts()]).then(() => {
+  ensureWritable();
   console.log(`
   ╔═══════════════════════════════════════╗
   ║       CENTRAL INTELLIGENCE            ║
