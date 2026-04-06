@@ -19,6 +19,7 @@ import { paymentsRouter } from "./routes/payments.js";
 import { billingMiddleware } from "./middleware/billing.js";
 import { x402Middleware } from "./middleware/x402.js";
 import { demoRouter } from "./routes/demo.js";
+import { sql } from "./db/connection.js";
 
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",")
@@ -32,7 +33,8 @@ app.use(
   cors({
     origin: (origin) => {
       // Allow requests with no origin (curl, MCP servers, server-to-server)
-      if (!origin) return "*";
+      // Return null (no CORS header) instead of "*" to avoid wildcard + credentials conflict
+      if (!origin) return null as any;
       // Allow configured origins
       if (ALLOWED_ORIGINS.includes(origin)) return origin;
       // Allow localhost for development
@@ -335,6 +337,7 @@ app.use("/payments/history", authMiddleware);
 app.route("/payments", paymentsRouter);
 
 app.use("/usage/*", authMiddleware);
+app.use("/usage/*", rateLimitMiddleware);
 app.route("/usage", usageRouter);
 
 // x402 routes — pay-per-call with USDC, no API key needed
@@ -424,8 +427,19 @@ import { ensureWritable } from "./db/connection.js";
 
 const port = parseInt(process.env.PORT || "3141", 10);
 
-Promise.all([migrateHybridSearch(), migrateDashboard(), migratePgvector(), migrateDates(), migrateEnrichment(), migrateFacts()]).then(() => {
+Promise.all([migrateHybridSearch(), migrateDashboard(), migratePgvector(), migrateDates(), migrateEnrichment(), migrateFacts()]).then(async () => {
   ensureWritable();
+
+  // Security cleanup: scrub raw API keys from expired/consumed magic links
+  try {
+    const result = await sql`
+      UPDATE magic_links SET raw_key = NULL
+      WHERE raw_key IS NOT NULL AND (expires_at < now() OR used_at IS NOT NULL)
+    `;
+    if (result.count > 0) console.log(`[security] Scrubbed ${result.count} raw keys from expired magic links`);
+  } catch (err: any) {
+    console.warn("[security] Magic link cleanup skipped:", err.message);
+  }
   console.log(`
   ╔═══════════════════════════════════════╗
   ║       CENTRAL INTELLIGENCE            ║

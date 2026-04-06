@@ -41,9 +41,31 @@ Return just the additional queries, not the original.`;
  * Returns the original query plus 2-3 expanded queries.
  * Falls back to just the original query if the LLM call fails or is unavailable.
  */
+// Global OpenAI call budget: max N calls per minute to prevent cost amplification.
+// Covers query decomposition + fact extraction. Shared across all requests.
+const OPENAI_MAX_CALLS_PER_MIN = parseInt(process.env.OPENAI_MAX_CALLS_PER_MIN || "120");
+const _callTimestamps: number[] = [];
+
+export function checkOpenAiBudget(): boolean {
+  const now = Date.now();
+  // Evict entries older than 60s
+  while (_callTimestamps.length > 0 && _callTimestamps[0] < now - 60_000) {
+    _callTimestamps.shift();
+  }
+  if (_callTimestamps.length >= OPENAI_MAX_CALLS_PER_MIN) return false;
+  _callTimestamps.push(now);
+  return true;
+}
+
 export async function decomposeQuery(query: string): Promise<string[]> {
   const openai = getClient();
   if (!openai) return [query];
+
+  // Budget check: skip decomposition if too many OpenAI calls recently
+  if (!checkOpenAiBudget()) {
+    console.warn("[query-decompose] OpenAI budget exceeded, skipping decomposition");
+    return [query];
+  }
 
   try {
     const res = await openai.chat.completions.create({

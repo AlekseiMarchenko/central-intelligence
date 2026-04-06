@@ -112,11 +112,14 @@ const IP_RATE_LIMIT = 5;
 const IP_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 export async function ipRateLimitMiddleware(c: Context, next: Next) {
-  const ip =
-    c.req.header("fly-client-ip") ||
-    c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
-    c.req.header("x-real-ip") ||
-    "unknown";
+  // On Fly.io, only trust fly-client-ip (set by Fly's proxy, not spoofable).
+  // Fall back to x-forwarded-for only when NOT on Fly.io (local dev, other hosts).
+  const ip = process.env.FLY_APP_NAME
+    ? (c.req.header("fly-client-ip") || "unknown")
+    : (c.req.header("fly-client-ip") ||
+       c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
+       c.req.header("x-real-ip") ||
+       "unknown");
 
   const now = Date.now();
   const windowKey = `ip:${ip}`;

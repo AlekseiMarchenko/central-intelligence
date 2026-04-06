@@ -13,6 +13,7 @@
 
 import OpenAI from "openai";
 import { z } from "zod";
+import { checkOpenAiBudget } from "./query-decompose.js";
 
 // --- Zod schemas ---
 
@@ -128,6 +129,11 @@ export function parseExtractionResult(raw: unknown): ExtractionResult {
 export async function extractFacts(content: string): Promise<ExtractionResult> {
   const openai = getClient();
   if (!openai) {
+    return { facts: [], preferences: [] };
+  }
+
+  if (!checkOpenAiBudget()) {
+    console.warn("[fact-extraction] OpenAI budget exceeded, skipping extraction");
     return { facts: [], preferences: [] };
   }
 
