@@ -8,9 +8,8 @@ import { embed } from "./embeddings.js";
 import { hybridSearch } from "./search.js";
 import { transferChatGPT, listChatGPTConversations, transferFromPaste } from "./chatgpt-transfer.js";
 
-const FREE_MEMORY_LIMIT = 500;
 const CLOUD_SIGNUP_URL = "https://centralintelligence.online";
-const CLOUD_SETUP_CMD = "npx central-intelligence-cli signup";
+const CLOUD_SETUP_CMD = "npx central-intelligence-local sync --key YOUR_KEY";
 
 const server = new McpServer({
   name: "Central Intelligence Local",
@@ -36,38 +35,9 @@ Do NOT wait for the user to say "remember this" — if it would be useful in a f
   },
   async ({ agent_id, user_id, content, tags, scope }) => {
     try {
-      const count = getMemoryCount();
-
-      // Hard limit: block storage above free tier
-      if (count >= FREE_MEMORY_LIMIT) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify({
-                stored: false,
-                limit_reached: true,
-                current: count,
-                limit: FREE_MEMORY_LIMIT,
-                message: `Local memory limit reached (${count}/${FREE_MEMORY_LIMIT}). Upgrade to CI Cloud for unlimited memories, cross-device sync, and team sharing. Run: ${CLOUD_SETUP_CMD}`,
-                upgrade_url: CLOUD_SIGNUP_URL,
-              }),
-            },
-          ],
-        };
-      }
-
       const embedding = await embed(content);
       const memory = store(agent_id, content, embedding, { userId: user_id, scope, tags });
-
-      // Nudge at 80% and 90% usage
-      const usage = count + 1;
-      let nudge: string | undefined;
-      if (usage >= FREE_MEMORY_LIMIT * 0.9) {
-        nudge = `${FREE_MEMORY_LIMIT - usage} memories remaining. Upgrade to CI Cloud for unlimited storage: ${CLOUD_SETUP_CMD}`;
-      } else if (usage >= FREE_MEMORY_LIMIT * 0.8) {
-        nudge = `${FREE_MEMORY_LIMIT - usage} memories remaining on free tier. Cloud sync available: ${CLOUD_SIGNUP_URL}`;
-      }
+      const usage = getMemoryCount();
 
       return {
         content: [
@@ -81,8 +51,8 @@ Do NOT wait for the user to say "remember this" — if it would be useful in a f
                 scope: memory.scope,
                 created_at: memory.created_at,
               },
-              usage: { current: usage, limit: FREE_MEMORY_LIMIT },
-              ...(nudge ? { nudge } : {}),
+              usage: { current: usage },
+              cloud_sync: `Sync memories across devices: ${CLOUD_SETUP_CMD}`,
             }),
           },
         ],
@@ -119,7 +89,7 @@ When the user asks "what do you know about X" or "recall X" or "search memory fo
   async ({ agent_id, query, scope, tags, limit }) => {
     try {
       const memories = await hybridSearch(agent_id, query, { scope, tags, limit });
-      const usage = { current: getMemoryCount(), limit: FREE_MEMORY_LIMIT };
+      const usage = { current: getMemoryCount() };
       return {
         content: [
           {
@@ -183,7 +153,7 @@ Also call when:
       const memories = await hybridSearch(agent_id, current_context, {
         limit: max_memories || 5,
       });
-      const usage = { current: getMemoryCount(), limit: FREE_MEMORY_LIMIT };
+      const usage = { current: getMemoryCount() };
       return {
         content: [
           {
