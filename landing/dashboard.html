@@ -531,85 +531,7 @@
       </p>
     </div>
 
-    <!-- Platform picker -->
-    <div class="platforms" style="margin-bottom: 16px;">
-      <span class="chip chip-active" onclick="selectChip('claude',this)" id="chip-claude">Claude Code</span>
-      <span class="chip" onclick="selectChip('cursor',this)">Cursor</span>
-      <span class="chip" onclick="selectChip('windsurf',this)">Windsurf</span>
-      <span class="chip" onclick="selectChip('codex',this)">Codex</span>
-      <span class="chip" onclick="selectChip('copilot',this)">GitHub Copilot</span>
-      <span class="chip" onclick="selectChip('chatgpt',this)">ChatGPT</span>
-    </div>
-
-    <!-- MCP config for selected platform -->
-    <div id="mcp-config" style="max-width: 640px; margin: 0 auto 32px;">
-      <div class="install-box" style="position: relative;">
-        <div class="install-label" id="config-label">Claude Code — add to ~/.claude/settings.json</div>
-        <pre id="config-code" style="font-family: var(--mono); font-size: 13px; color: var(--green); white-space: pre; overflow-x: auto; margin: 0;">{
-  "mcpServers": {
-    "central-intelligence": {
-      "command": "npx",
-      "args": ["central-intelligence-mcp"],
-      "env": { "CI_API_KEY": "YOUR_KEY" }
-    }
-  }
-}</pre>
-        <button class="copy-btn" onclick="copyConfig()" id="config-copy" style="position: absolute; top: 12px; right: 12px;">Copy</button>
-      </div>
-    </div>
-
-    <style>
-      .chip { cursor: pointer; transition: all 0.15s; }
-      .chip:hover { border-color: var(--accent); color: var(--accent); }
-      .chip-active { border-color: var(--accent) !important; background: rgba(109,90,255,0.1) !important; color: var(--accent) !important; }
-    </style>
-
-    <script>
-    var platformConfigs = {
-      claude: {
-        label: 'Claude Code — add to ~/.claude/settings.json',
-        config: '{\n  "mcpServers": {\n    "central-intelligence": {\n      "command": "npx",\n      "args": ["central-intelligence-mcp"],\n      "env": { "CI_API_KEY": "YOUR_KEY" }\n    }\n  }\n}'
-      },
-      cursor: {
-        label: 'Cursor — add to ~/.cursor/mcp.json',
-        config: '{\n  "mcpServers": {\n    "central-intelligence": {\n      "command": "npx",\n      "args": ["central-intelligence-mcp"],\n      "env": { "CI_API_KEY": "YOUR_KEY" }\n    }\n  }\n}'
-      },
-      windsurf: {
-        label: 'Windsurf — add to ~/.codeium/windsurf/mcp_config.json',
-        config: '{\n  "mcpServers": {\n    "central-intelligence": {\n      "command": "npx",\n      "args": ["central-intelligence-mcp"],\n      "env": { "CI_API_KEY": "YOUR_KEY" }\n    }\n  }\n}'
-      },
-      codex: {
-        label: 'Codex CLI — run in terminal',
-        config: 'codex mcp add central-intelligence \\\n  --env CI_API_KEY="YOUR_KEY" \\\n  -- npx central-intelligence-mcp'
-      },
-      copilot: {
-        label: 'GitHub Copilot — add to .vscode/mcp.json',
-        config: '{\n  "servers": {\n    "central-intelligence": {\n      "command": "npx",\n      "args": ["central-intelligence-mcp"],\n      "env": { "CI_API_KEY": "YOUR_KEY" }\n    }\n  }\n}'
-      },
-      chatgpt: {
-        label: 'ChatGPT — Custom GPT Actions',
-        config: '1. GPT Editor → Configure → Actions → Import from URL:\n   https://central-intelligence-api.fly.dev/docs/openapi.json\n\n2. Set Auth: API Key (Bearer) with your ci_sk_... key'
-      }
-    };
-
-    function selectChip(platform, el) {
-      document.querySelectorAll('.chip').forEach(function(c) { c.classList.remove('chip-active'); });
-      el.classList.add('chip-active');
-      var cfg = platformConfigs[platform];
-      document.getElementById('config-label').textContent = cfg.label;
-      document.getElementById('config-code').textContent = cfg.config;
-    }
-
-    function copyConfig() {
-      var code = document.getElementById('config-code').textContent;
-      navigator.clipboard.writeText(code).then(function() {
-        var btn = document.getElementById('config-copy');
-        btn.textContent = 'Copied!';
-        btn.style.background = '#22c55e';
-        setTimeout(function() { btn.textContent = 'Copy'; btn.style.background = ''; }, 2000);
-      });
-    }
-    </script>
+    <!-- Platform picker moved to Manual Setup section at bottom -->
 
     <!-- Dashboard preview -->
     <div class="screenshot-wrap">
@@ -822,6 +744,94 @@ function copyTransferPrompt() {
       </div>
     </div>
     <p class="cta-free">Free for 500 memories. Local only. Nothing leaves your machine.</p>
+  </div>
+</section>
+
+<!-- Manual Setup -->
+<section id="manual-setup" style="padding: 60px 0; border-top: 1px solid var(--border);">
+  <div class="container" style="text-align: center;">
+    <h2 style="font-size: 22px; font-weight: 600; margin-bottom: 8px; color: var(--text-dim);">Manual Setup</h2>
+    <p style="color: var(--text-dim); font-size: 14px; max-width: 500px; margin: 0 auto 24px;">
+      Prefer to configure manually? Pick your platform and add the MCP server config to the appropriate file. Requires an API key from <code style="font-family: var(--mono); color: var(--accent);">ci signup</code>.
+    </p>
+
+    <div class="platforms" style="margin-bottom: 16px;">
+      <span class="chip chip-active" onclick="selectChip('claude',this)" id="chip-claude">Claude Code</span>
+      <span class="chip" onclick="selectChip('cursor',this)">Cursor</span>
+      <span class="chip" onclick="selectChip('windsurf',this)">Windsurf</span>
+      <span class="chip" onclick="selectChip('codex',this)">Codex</span>
+      <span class="chip" onclick="selectChip('copilot',this)">GitHub Copilot</span>
+      <span class="chip" onclick="selectChip('chatgpt',this)">ChatGPT</span>
+    </div>
+
+    <div id="mcp-config" style="max-width: 640px; margin: 0 auto;">
+      <div class="install-box" style="position: relative;">
+        <div class="install-label" id="config-label">Claude Code — add to ~/.claude/settings.json</div>
+        <pre id="config-code" style="font-family: var(--mono); font-size: 13px; color: var(--green); white-space: pre; overflow-x: auto; margin: 0;">{
+  "mcpServers": {
+    "central-intelligence": {
+      "command": "npx",
+      "args": ["central-intelligence-mcp"],
+      "env": { "CI_API_KEY": "YOUR_KEY" }
+    }
+  }
+}</pre>
+        <button class="copy-btn" onclick="copyConfig()" id="config-copy" style="position: absolute; top: 12px; right: 12px;">Copy</button>
+      </div>
+    </div>
+
+    <style>
+      .chip { cursor: pointer; transition: all 0.15s; }
+      .chip:hover { border-color: var(--accent); color: var(--accent); }
+      .chip-active { border-color: var(--accent) !important; background: rgba(109,90,255,0.1) !important; color: var(--accent) !important; }
+    </style>
+
+    <script>
+    var platformConfigs = {
+      claude: {
+        label: 'Claude Code — add to ~/.claude/settings.json',
+        config: '{\n  "mcpServers": {\n    "central-intelligence": {\n      "command": "npx",\n      "args": ["central-intelligence-mcp"],\n      "env": { "CI_API_KEY": "YOUR_KEY" }\n    }\n  }\n}'
+      },
+      cursor: {
+        label: 'Cursor — add to ~/.cursor/mcp.json',
+        config: '{\n  "mcpServers": {\n    "central-intelligence": {\n      "command": "npx",\n      "args": ["central-intelligence-mcp"],\n      "env": { "CI_API_KEY": "YOUR_KEY" }\n    }\n  }\n}'
+      },
+      windsurf: {
+        label: 'Windsurf — add to ~/.codeium/windsurf/mcp_config.json',
+        config: '{\n  "mcpServers": {\n    "central-intelligence": {\n      "command": "npx",\n      "args": ["central-intelligence-mcp"],\n      "env": { "CI_API_KEY": "YOUR_KEY" }\n    }\n  }\n}'
+      },
+      codex: {
+        label: 'Codex CLI — run in terminal',
+        config: 'codex mcp add central-intelligence \\\n  --env CI_API_KEY="YOUR_KEY" \\\n  -- npx central-intelligence-mcp'
+      },
+      copilot: {
+        label: 'GitHub Copilot — add to .vscode/mcp.json',
+        config: '{\n  "servers": {\n    "central-intelligence": {\n      "command": "npx",\n      "args": ["central-intelligence-mcp"],\n      "env": { "CI_API_KEY": "YOUR_KEY" }\n    }\n  }\n}'
+      },
+      chatgpt: {
+        label: 'ChatGPT — Custom GPT Actions',
+        config: '1. GPT Editor \u2192 Configure \u2192 Actions \u2192 Import from URL:\n   https://central-intelligence-api.fly.dev/docs/openapi.json\n\n2. Set Auth: API Key (Bearer) with your ci_sk_... key'
+      }
+    };
+
+    function selectChip(platform, el) {
+      document.querySelectorAll('.chip').forEach(function(c) { c.classList.remove('chip-active'); });
+      el.classList.add('chip-active');
+      var cfg = platformConfigs[platform];
+      document.getElementById('config-label').textContent = cfg.label;
+      document.getElementById('config-code').textContent = cfg.config;
+    }
+
+    function copyConfig() {
+      var code = document.getElementById('config-code').textContent;
+      navigator.clipboard.writeText(code).then(function() {
+        var btn = document.getElementById('config-copy');
+        btn.textContent = 'Copied!';
+        btn.style.background = '#22c55e';
+        setTimeout(function() { btn.textContent = 'Copy'; btn.style.background = ''; }, 2000);
+      });
+    }
+    </script>
   </div>
 </section>
 
