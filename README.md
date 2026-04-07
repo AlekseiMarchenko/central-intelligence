@@ -10,7 +10,7 @@ Persistent memory for AI agents. Store, recall, and share information across ses
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 
-[![Central Intelligence MCP server](https://glama.ai/mcp/servers/AlekseiMarchenko/central-intelligence/badges/card.svg)](https://glama.ai/mcp/servers/AlekseiMarchenko/central-intelligence)
+[![Central Intelligence MCP server](https://glama.ai/mcp/servers/AlekseiMarchenko/central-intelligence/badges/score.svg)](https://glama.ai/mcp/servers/AlekseiMarchenko/central-intelligence)
 
 [![LifeBench 45.9%](https://img.shields.io/badge/LifeBench_(2026)-45.9%25-6d5aff?style=for-the-badge)](https://arxiv.org/abs/2603.03781)
 [![AMB 90/100](https://img.shields.io/badge/AMB_Score-90%2F100_(A%2B)-22c55e?style=for-the-badge)](https://github.com/AlekseiMarchenko/agent-memory-benchmark)
