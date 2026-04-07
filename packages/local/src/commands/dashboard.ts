@@ -48,17 +48,22 @@ export async function dashboardCommand(options: DashboardOptions): Promise<void>
   });
 
   server.listen(port, "127.0.0.1", () => {
-    console.log(chalk.bold("\nCI Local Pro — Dashboard\n"));
-    console.log(`  ${chalk.green("→")} http://localhost:${port}`);
-    console.log(chalk.dim("  Press Ctrl+C to stop.\n"));
-
-    // Auto-open in default browser
     const url = `http://localhost:${port}`;
-    import("child_process").then(({ exec }) => {
-      const cmd = process.platform === "darwin" ? `open "${url}"`
-        : process.platform === "win32" ? `start "${url}"`
-        : `xdg-open "${url}"`;
-      exec(cmd);
+    console.log(chalk.bold("\nCI Local Pro — Dashboard\n"));
+    console.log(`  ${chalk.green("→")} ${url}`);
+    console.log(`  Press ${chalk.bold("Enter")} to open in browser, or ${chalk.dim("Ctrl+C")} to stop.\n`);
+
+    // Wait for Enter before opening browser
+    process.stdin.setRawMode?.(false);
+    process.stdin.resume();
+    process.stdin.once("data", () => {
+      import("child_process").then(({ exec }) => {
+        const cmd = process.platform === "darwin" ? `open "${url}"`
+          : process.platform === "win32" ? `start "${url}"`
+          : `xdg-open "${url}"`;
+        exec(cmd);
+      });
+      console.log(chalk.dim("  Opened in browser. Press Ctrl+C to stop.\n"));
     });
   });
 }
