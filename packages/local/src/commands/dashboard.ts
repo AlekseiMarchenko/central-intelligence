@@ -1,5 +1,4 @@
 import { createServer, IncomingMessage, ServerResponse } from "http";
-import chalk from "chalk";
 import { parseAllFiles } from "../file-sources.js";
 import { getAllMemories, getDb } from "../db.js";
 import { computeHealth } from "../health.js";
@@ -11,6 +10,7 @@ interface DashboardOptions {
 }
 
 export async function dashboardCommand(options: DashboardOptions): Promise<void> {
+  const chalk = (await import("chalk")).default;
   const port = parseInt(options.port || "3141", 10);
 
   const server = createServer(async (req, res) => {
@@ -51,6 +51,15 @@ export async function dashboardCommand(options: DashboardOptions): Promise<void>
     console.log(chalk.bold("\nCI Local Pro — Dashboard\n"));
     console.log(`  ${chalk.green("→")} http://localhost:${port}`);
     console.log(chalk.dim("  Press Ctrl+C to stop.\n"));
+
+    // Auto-open in default browser
+    const url = `http://localhost:${port}`;
+    import("child_process").then(({ exec }) => {
+      const cmd = process.platform === "darwin" ? `open "${url}"`
+        : process.platform === "win32" ? `start "${url}"`
+        : `xdg-open "${url}"`;
+      exec(cmd);
+    });
   });
 }
 
@@ -65,7 +74,7 @@ function extractProject(tags: string[]): string | null {
 }
 
 function buildMemoryList() {
-  let dbMemories;
+  let dbMemories: ReturnType<typeof getAllMemories> = [];
   try { dbMemories = getAllMemories(); } catch { dbMemories = []; }
   const { entries: fileEntries, files, warnings } = parseAllFiles();
 
@@ -317,7 +326,8 @@ function generateDashboardHtml(): string {
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #c9d1d9; padding: 24px; }
-    h1 { color: #58a6ff; margin-bottom: 8px; font-size: 24px; }
+    h1 { color: #fafafa; margin-bottom: 8px; font-size: 24px; }
+    h1 span { color: #6d5aff; }
     .subtitle { color: #8b949e; margin-bottom: 24px; }
     .toolbar { display: flex; gap: 12px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
     .search-box { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 8px 12px; color: #c9d1d9; font-size: 14px; width: 300px; outline: none; }
@@ -394,7 +404,7 @@ function generateDashboardHtml(): string {
 <body>
   <div class="top-bar">
     <div class="top-bar-left">
-      <h1>Central Intelligence</h1>
+      <h1>Central <span>Intelligence</span></h1>
       <p class="subtitle">Cross-tool memory dashboard</p>
     </div>
     <div style="display:flex;gap:10px;align-items:center;">

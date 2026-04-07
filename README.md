@@ -28,8 +28,8 @@ npx central-intelligence-local signup
 Or run locally with no cloud:
 
 ```bash
-npm install -g central-intelligence-local
-ci dashboard    # opens localhost:3141
+npm i -g central-intelligence-local && ci dashboard
+# Installs and opens the dashboard at localhost:3141
 ```
 
 ## When to Use Central Intelligence
