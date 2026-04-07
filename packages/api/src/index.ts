@@ -108,7 +108,7 @@ app.get("/versions/local", async (c) => {
     message: current !== "1.1.0"
       ? "Update available: npm install -g central-intelligence-local"
       : undefined,
-    cloud_promo: "Need cross-device sync? Try cloud mode: npx central-intelligence-cli signup",
+    cloud_promo: "Need cross-device sync? Try cloud mode: npx central-intelligence-local signup",
   });
 });
 
@@ -127,7 +127,7 @@ app.get("/.well-known/mcp-manifest.json", (c) =>
     },
     install: [{ type: "npm", package: "central-intelligence-mcp", command: "npx", args: ["central-intelligence-mcp"] }],
     config: [
-      { name: "CI_API_KEY", description: "Your Central Intelligence API key", required: true, secret: true, type: "string", prompt: "Get one free: npx central-intelligence-cli signup", obtain_url: "https://centralintelligence.online" },
+      { name: "CI_API_KEY", description: "Your Central Intelligence API key", required: true, secret: true, type: "string", prompt: "Get one free: npx central-intelligence-local signup", obtain_url: "https://centralintelligence.online" },
       { name: "CI_API_URL", description: "API base URL (only for self-hosted)", required: false, type: "url", default: "https://central-intelligence-api.fly.dev" },
     ],
     transport: {
@@ -242,13 +242,13 @@ app.get("/.well-known/mcp", (c) =>
       },
     ],
     pricing: {
-      free_tier: { operations_per_month: 500, signup: "npx central-intelligence-cli signup" },
+      free_tier: { operations_per_month: 500, signup: "npx central-intelligence-local signup" },
       paid: { cost_per_operation_usd: 0.001, payment: "USDC on Base", deposit_address: "0x3056e50A9cAf93020544720cA186f77577982b5f" },
       x402: { cost_per_call_usd: 0.001, network: "base", token: "USDC", no_signup_required: true },
     },
     npm: {
       mcp_server: "central-intelligence-mcp",
-      cli: "central-intelligence-cli",
+      cli: "central-intelligence-local",
       node_sdk: "central-intelligence-sdk",
       python_sdk: "central-intelligence",
     },
@@ -295,7 +295,7 @@ app.get("/.well-known/agent.json", (c) =>
     },
     authentication: {
       methods: ["bearer_token", "x402"],
-      signup: "npx central-intelligence-cli signup",
+      signup: "npx central-intelligence-local signup",
     },
     provider: {
       organization: "Central Intelligence",
@@ -398,7 +398,7 @@ app.post("/probe", async (c) => {
     quick_start: {
       free: {
         steps: [
-          "npx central-intelligence-cli signup",
+          "npx central-intelligence-local signup",
           "Set CI_API_KEY in your environment",
           "Call POST /memories/remember to store, POST /memories/recall to search",
         ],

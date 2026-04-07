@@ -378,7 +378,7 @@ app.get("/openapi.json", (c) => {
         bearerAuth: {
           type: "http",
           scheme: "bearer",
-          description: "API key from npx central-intelligence-cli signup",
+          description: "API key from npx central-intelligence-local signup",
         },
       },
     },
@@ -457,7 +457,7 @@ app.get("/", (c) => {
     <div class="auth-box">
       <p style="margin-bottom:8px;">All endpoints except <code>POST /keys</code> require a Bearer token:</p>
       <code>Authorization: Bearer ci_sk_your_key_here</code>
-      <p style="margin-top:12px;color:var(--text-dim);font-size:13px;">Create a key with <code>POST /keys</code> — no auth needed. Or run: <code>npx central-intelligence-cli signup</code></p>
+      <p style="margin-top:12px;color:var(--text-dim);font-size:13px;">Create a key with <code>POST /keys</code> — no auth needed. Or run: <code>npx central-intelligence-local signup</code></p>
     </div>
   </div>
 
