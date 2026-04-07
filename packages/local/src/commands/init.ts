@@ -1,4 +1,3 @@
-import chalk from "chalk";
 import { discoverFiles } from "../file-sources.js";
 import { getMemoryCount } from "../db.js";
 import { existsSync } from "fs";
@@ -41,6 +40,7 @@ const MCP_CONFIGS: Record<string, { configPath: string; snippet: string }> = {
 };
 
 export async function initCommand(): Promise<void> {
+  const chalk = (await import("chalk")).default;
   console.log(chalk.bold("\nCI Local Pro — Init\n"));
 
   // 1. Detect AI tools
@@ -78,7 +78,7 @@ export async function initCommand(): Promise<void> {
   let allConfigured = true;
 
   for (const [source, config] of Object.entries(MCP_CONFIGS)) {
-    if (!detectedTools.has(source)) continue;
+    if (!detectedTools.has(source as any)) continue;
 
     const configExists = existsSync(join(process.cwd(), config.configPath));
     if (configExists) {

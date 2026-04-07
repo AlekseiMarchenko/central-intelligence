@@ -1,8 +1,11 @@
-import chalk from "chalk";
 import { readFileSync, statSync } from "fs";
 import { createHash } from "crypto";
 import { createInterface } from "readline";
 import { getDb } from "../db.js";
+
+// chalk v5 is ESM-only, use dynamic import
+let chalk: any = { bold: (s: string) => s, green: (s: string) => s, yellow: (s: string) => s, red: (s: string) => s, dim: (s: string) => s, cyan: (s: string) => s, gray: (s: string) => s };
+import("chalk").then((m) => { chalk = m.default; }).catch(() => {});
 
 interface ChatGPTMemory {
   content: string;
@@ -31,6 +34,7 @@ export async function chatgptImportCommand(
   file: string,
   options: ImportOptions
 ): Promise<void> {
+  const chalk = (await import("chalk")).default;
   console.log(chalk.bold("\nCI Local Pro — ChatGPT Import\n"));
 
   const limit = parseInt(options.limit || "50", 10);

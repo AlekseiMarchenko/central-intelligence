@@ -1,12 +1,12 @@
 {
   "name": "central-intelligence-local",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Local-first persistent memory for AI agents. No cloud, no signup, no API keys. Your data never leaves your machine.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
     "central-intelligence-local": "dist/index.js",
-    "ci-local": "dist/index.js",
+    "ci-local": "dist/cli.js",
     "ci": "dist/cli.js"
   },
   "scripts": {
