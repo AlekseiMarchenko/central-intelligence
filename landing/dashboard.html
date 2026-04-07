@@ -88,6 +88,44 @@
       transition: color 0.2s;
     }
     nav .links a:hover { color: var(--text); }
+
+    .hamburger {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      z-index: 101;
+    }
+    .hamburger svg { display: block; }
+
+    .mobile-menu {
+      display: none;
+      position: fixed;
+      top: 64px;
+      left: 0;
+      right: 0;
+      background: rgba(9, 9, 11, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      z-index: 99;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .mobile-menu.open { display: flex; }
+    .mobile-menu a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 500;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      transition: color 0.2s;
+    }
+    .mobile-menu a:last-child { border-bottom: none; }
+    .mobile-menu a:hover { color: var(--text); }
+
     .nav-btn {
       display: inline-flex;
       align-items: center;
@@ -414,10 +452,15 @@
     footer a:hover { color: var(--text); }
 
     @media (max-width: 640px) {
+      html, body { overflow-x: hidden; }
       .hero { padding: 80px 0 60px; }
       .dash-header { flex-direction: column; }
       .steps { flex-direction: column; align-items: center; }
       .step-arrow { display: none; }
+      nav .links { display: none; }
+      .hamburger { display: block; }
+      .screenshot-body { overflow-x: auto; }
+      .dash-table { font-size: 11px; }
     }
   </style>
 </head>
@@ -434,8 +477,18 @@
       <a href="https://central-intelligence-api.fly.dev/docs">Docs</a>
       <a href="/app" class="nav-btn">Open Dashboard</a>
     </div>
+    <button class="hamburger" onclick="document.getElementById('mobileMenu').classList.toggle('open'); this.setAttribute('aria-expanded', this.getAttribute('aria-expanded') === 'true' ? 'false' : 'true')" aria-label="Menu" aria-expanded="false">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fafafa" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
   </div>
 </nav>
+<div id="mobileMenu" class="mobile-menu">
+  <a href="/#features" onclick="document.getElementById('mobileMenu').classList.remove('open')">Features</a>
+  <a href="/#pricing" onclick="document.getElementById('mobileMenu').classList.remove('open')">Pricing</a>
+  <a href="/#lifebench" onclick="document.getElementById('mobileMenu').classList.remove('open')">Benchmark</a>
+  <a href="https://central-intelligence-api.fly.dev/docs">Docs</a>
+  <a href="/app">Open Dashboard</a>
+</div>
 
 <!-- Hero -->
 <section class="hero">
@@ -452,29 +505,21 @@
       <a href="/app" style="display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; background: var(--accent); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; text-decoration: none; transition: background 0.15s;">Open Memory Dashboard</a>
       <a href="#install-local" style="display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; background: transparent; color: var(--green); border: 1px solid var(--green); border-radius: 10px; font-size: 16px; font-weight: 600; text-decoration: none;">Run Locally</a>
     </div>
-    <p style="color: var(--text-dim); font-size: 13px; margin-bottom: 24px;">Free and open source. Unlimited local memories. Apache 2.0.</p>
+    <p style="color: var(--text-dim); font-size: 13px; margin-bottom: 24px;">Free and open source, Apache 2.0. Unlimited local memories, returned exactly as you stored them. Zero rewrites, zero hallucinations, zero data loss.</p>
 
     <!-- Install (secondary, for local users) -->
     <div id="install-local" style="max-width: 640px; margin: 0 auto;">
 
-      <!-- Step 1: Install -->
+      <!-- Single command: install + open -->
       <div class="install-box" style="margin-bottom: 12px;">
-        <div class="install-label">Step 1: Install</div>
+        <div class="install-label">Install & open dashboard</div>
         <div class="install-row">
-          <code class="install-cmd" id="install-cmd">npm install -g central-intelligence-local</code>
+          <code class="install-cmd" id="install-cmd">npm i -g central-intelligence-local && ci dashboard</code>
           <button class="copy-btn" id="copy-btn" onclick="copyCmd()">Copy</button>
         </div>
       </div>
 
-      <!-- Step 2: Open dashboard -->
-      <div class="install-box" style="margin-bottom: 12px;">
-        <div class="install-label">Step 2: Open dashboard</div>
-        <div class="install-row">
-          <code class="install-cmd">ci dashboard</code>
-        </div>
-      </div>
-
-      <!-- Step 3: Get API key + configure (optional) -->
+      <!-- Optional: Get API key + configure -->
       <div class="install-box" style="margin-bottom: 12px; border-color: rgba(109,90,255,0.3);">
         <div class="install-label" style="color: var(--accent);">Optional: Get API key + sync to cloud</div>
         <div class="install-row">
@@ -689,20 +734,20 @@
     <div class="steps">
       <div class="step">
         <div class="step-num">1</div>
-        <h3>Install</h3>
-        <p>One command. Handles Node.js, dependencies, PATH. Mac, Linux, Windows.</p>
+        <h3>Install & open</h3>
+        <p>One command installs and opens the dashboard. Browser launches automatically.</p>
       </div>
       <span class="step-arrow">&rarr;</span>
       <div class="step">
         <div class="step-num">2</div>
-        <h3>Dashboard</h3>
-        <p>Run <code style="font-family:var(--mono);color:var(--green);">ci dashboard</code>. Auto-detects memories from every tool on your machine.</p>
+        <h3>See your memories</h3>
+        <p>Auto-detects memories from Claude Code, Cursor, Windsurf, Codex, and Copilot.</p>
       </div>
       <span class="step-arrow">&rarr;</span>
       <div class="step">
         <div class="step-num">3</div>
-        <h3>Connect</h3>
-        <p>Add CI Local as an MCP server. Your tools start sharing memories automatically.</p>
+        <h3>Sync to cloud</h3>
+        <p>Run <code style="font-family:var(--mono);color:var(--accent);">ci signup</code> to get an API key and sync memories across devices.</p>
       </div>
     </div>
   </div>
