@@ -90,13 +90,14 @@ app.get("/install.ps1", async (c) => {
 // Version check — used by CI Local for update notifications + install tracking
 app.get("/versions/local", async (c) => {
   const current = c.req.query("current") || "unknown";
+  const installId = c.req.query("iid") || "unknown";
 
-  // Log the check (anonymous — just version and timestamp)
+  // Log the check (anonymous install ID + version, no PII)
   try {
     const { sql } = await import("./db/connection.js");
     await sql`
       INSERT INTO usage_events (api_key_id, event_type, agent_id, tokens)
-      VALUES ('00000000-0000-0000-0000-000000000000', 'version_check', ${`local-${current}`}, 0)
+      VALUES ('00000000-0000-0000-0000-000000000000', 'version_check', ${`local-${current}-${installId.slice(0, 8)}`}, 0)
     `.catch(() => {});
   } catch {}
 

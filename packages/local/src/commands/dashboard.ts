@@ -394,13 +394,19 @@ function generateDashboardHtml(): string {
 <body>
   <div class="top-bar">
     <div class="top-bar-left">
-      <h1>CI Local Pro</h1>
+      <h1>Central Intelligence</h1>
       <p class="subtitle">Cross-tool memory dashboard</p>
     </div>
-    <button class="btn-transfer" onclick="openTransfer()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-      Transfer from ChatGPT
-    </button>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <button class="btn-transfer" onclick="openSync()" style="background:#58a6ff;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v1a3 3 0 003 3h10a3 3 0 003-3v-1M16 6l-4-4-4 4M12 2v13"/></svg>
+        Sync to Cloud
+      </button>
+      <button class="btn-transfer" onclick="openTransfer()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Transfer from ChatGPT
+      </button>
+    </div>
   </div>
 
   <!-- Main content -->
@@ -468,6 +474,45 @@ Project: [name of this conversation as shown in your sidebar]
     </div>
   </div>
 
+  <!-- Sync modal -->
+  <div class="modal-overlay" id="syncModal">
+    <div class="modal">
+      <button class="modal-close" onclick="closeSync()">&times;</button>
+      <div class="transfer-section">
+        <h2>Sync to Cloud Dashboard</h2>
+        <p>Upload your local memories to the cloud so you can view them on <a href="https://centralintelligence.online/app" target="_blank" style="color:#58a6ff">centralintelligence.online/app</a> from any device.</p>
+
+        <div class="transfer-steps">
+          <div class="transfer-step">
+            <div class="transfer-step-num">1</div>
+            <h3>Get your API key</h3>
+            <p>Sign up at <a href="https://centralintelligence.online/app" target="_blank" style="color:#58a6ff">centralintelligence.online/app</a></p>
+          </div>
+          <div class="transfer-step">
+            <div class="transfer-step-num">2</div>
+            <h3>Paste your key</h3>
+            <p>Enter the API key from your dashboard email.</p>
+          </div>
+          <div class="transfer-step">
+            <div class="transfer-step-num">3</div>
+            <h3>Sync</h3>
+            <p>Your memories appear on the cloud dashboard instantly.</p>
+          </div>
+        </div>
+
+        <div style="margin-bottom:16px;">
+          <label style="font-size:12px;color:#8b949e;display:block;margin-bottom:6px;">API Key</label>
+          <input type="text" id="syncKeyInput" placeholder="ci_sk_..." style="width:100%;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px 14px;font-family:monospace;font-size:13px;color:#c9d1d9;outline:none;" />
+        </div>
+
+        <div style="display:flex;gap:12px;align-items:center;">
+          <button onclick="runSync()" id="syncBtn" style="background:#58a6ff;color:#0d1117;border:none;border-radius:8px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600;">Sync Now</button>
+          <span id="syncStatus" style="color:#8b949e;font-size:13px;"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast"></div>
 
   <script>
@@ -485,13 +530,66 @@ Project: [name of this conversation as shown in your sidebar]
     function closeTransfer() {
       document.getElementById('transferModal').classList.remove('active');
     }
+    function openSync() {
+      document.getElementById('syncModal').classList.add('active');
+    }
+    function closeSync() {
+      document.getElementById('syncModal').classList.remove('active');
+    }
+
+    async function runSync() {
+      var key = document.getElementById('syncKeyInput').value.trim();
+      var status = document.getElementById('syncStatus');
+      var btn = document.getElementById('syncBtn');
+      if (!key) { status.textContent = 'Enter your API key first.'; status.style.color = '#f85149'; return; }
+
+      btn.disabled = true; btn.textContent = 'Syncing...';
+      status.textContent = '';
+
+      try {
+        // Get all memories from local
+        var res = await fetch('/api/memories');
+        var data = await res.json();
+        var memories = data.memories || [];
+        var synced = 0;
+
+        for (var m of memories) {
+          if (!m.deletable) continue; // skip file entries
+          var tags = [];
+          try { tags = JSON.parse(m.tags || '[]'); } catch {}
+
+          var r = await fetch('https://central-intelligence-api.fly.dev/memories/remember', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+            body: JSON.stringify({ agent_id: m.source || 'synced', content: m.content, tags: tags, scope: m.scope || 'agent' }),
+          });
+          if (r.ok) synced++;
+          else if (r.status === 401) { status.textContent = 'Invalid API key.'; status.style.color = '#f85149'; btn.disabled = false; btn.textContent = 'Sync Now'; return; }
+
+          if (synced % 10 === 0) status.textContent = synced + '/' + memories.length + ' synced...';
+        }
+
+        status.textContent = synced + ' memories synced to cloud!';
+        status.style.color = '#3fb950';
+        btn.textContent = 'Done!';
+      } catch (err) {
+        status.textContent = 'Sync failed: ' + err.message;
+        status.style.color = '#f85149';
+        btn.disabled = false;
+        btn.textContent = 'Sync Now';
+      }
+    }
+
     // Close on overlay click
     document.getElementById('transferModal').addEventListener('click', function(e) {
       if (e.target === this) closeTransfer();
     });
+    document.getElementById('syncModal').addEventListener('click', function(e) {
+      if (e.target === this) closeSync();
+    });
     // Close on Escape
     document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') closeTransfer();
+      if (e.key === 'Escape') { closeTransfer(); closeSync(); }
     });
 
     function copyPrompt() {

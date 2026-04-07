@@ -7,6 +7,9 @@ import { store, softDelete, updateScope, getMemoryCount } from "./db.js";
 import { embed } from "./embeddings.js";
 import { hybridSearch } from "./search.js";
 import { transferChatGPT, listChatGPTConversations, transferFromPaste } from "./chatgpt-transfer.js";
+import { join } from "path";
+import { homedir } from "os";
+import { mkdirSync, readFileSync, writeFileSync } from "fs";
 
 const CLOUD_SIGNUP_URL = "https://centralintelligence.online";
 const CLOUD_SETUP_CMD = "npx central-intelligence-local sync --key YOUR_KEY";
@@ -347,13 +350,36 @@ Then use action "list" to browse and "import" to transfer.`,
   }
 );
 
-// --- Update check (non-blocking, silent on failure) ---
-const CURRENT_VERSION = "1.1.0";
+// --- Anonymous install ID + update check ---
+import { randomUUID } from "crypto";
+const CURRENT_VERSION = "1.2.0";
+
+function getInstallId(): string {
+  const configPath = join(homedir(), ".central-intelligence", "config.json");
+  try {
+    const config = JSON.parse(readFileSync(configPath, "utf-8"));
+    if (config.install_id) return config.install_id;
+  } catch {
+    // No config yet
+  }
+  // Generate and persist
+  const id = randomUUID();
+  try {
+    const dir = join(homedir(), ".central-intelligence");
+    mkdirSync(dir, { recursive: true });
+    let config: Record<string, unknown> = {};
+    try { config = JSON.parse(readFileSync(configPath, "utf-8")); } catch {}
+    config.install_id = id;
+    writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
+  } catch {}
+  return id;
+}
 
 async function checkForUpdates() {
   try {
+    const installId = getInstallId();
     const res = await fetch(
-      `https://central-intelligence-api.fly.dev/versions/local?current=${CURRENT_VERSION}`,
+      `https://central-intelligence-api.fly.dev/versions/local?current=${CURRENT_VERSION}&iid=${installId}`,
       { signal: AbortSignal.timeout(5000) }
     );
     if (res.ok) {
