@@ -404,6 +404,12 @@ async function main() {
     process.exit(0);
   }
 
+  if (subcommand === "signup") {
+    const { signupCommand } = await import("./signup.js");
+    await signupCommand();
+    process.exit(0);
+  }
+
   // Default: start MCP server
   const transport = new StdioServerTransport();
   await server.connect(transport);

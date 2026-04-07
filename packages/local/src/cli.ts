@@ -9,6 +9,7 @@ import { dashboardCommand } from "./commands/dashboard.js";
 import { chatgptImportCommand } from "./commands/chatgpt-import.js";
 import { chatgptInitCommand } from "./commands/chatgpt-init.js";
 import { syncCommand } from "./sync.js";
+import { signupCommand } from "./signup.js";
 
 const program = new Command();
 
@@ -25,6 +26,11 @@ program
   .option("--verbose", "Show detailed output for each memory entry")
   .option("--json", "Output as JSON")
   .action(auditCommand);
+
+program
+  .command("signup")
+  .description("Get an API key and auto-configure your AI tools")
+  .action(signupCommand);
 
 program
   .command("init")
