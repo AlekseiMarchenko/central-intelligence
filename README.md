@@ -18,13 +18,18 @@ Persistent memory for AI agents. Store, recall, and share information across ses
 ## Quick Start (30 seconds)
 
 ```bash
-# 1. Get an API key
-npx central-intelligence-cli signup
-
-# 2. Add to Claude Code
-npx central-intelligence-cli init claude
+# One command — gets API key + auto-configures your AI tools
+npx central-intelligence-local signup
 
 # Done. Your agent now has persistent memory.
+# Restart Claude Code / Cursor / Windsurf to activate.
+```
+
+Or run locally with no cloud:
+
+```bash
+npm install -g central-intelligence-local
+ci dashboard    # opens localhost:3141
 ```
 
 ## When to Use Central Intelligence
@@ -171,33 +176,27 @@ The MCP server is published as [`central-intelligence-mcp`](https://www.npmjs.co
 ## CLI Usage
 
 ```bash
-# Sign up and get an API key
-npx central-intelligence-cli signup
+# Install globally
+npm install -g central-intelligence-local
 
-# Add to Claude Code / Cursor
-npx central-intelligence-cli init claude
-npx central-intelligence-cli init cursor
+# Get API key + auto-configure AI tools
+ci signup
 
-# Store a memory
-npx central-intelligence-cli remember "The user prefers dark mode and TypeScript"
+# Open local memory dashboard
+ci dashboard
 
-# Search memories
-npx central-intelligence-cli recall "what are the user's preferences?"
+# Sync local memories to cloud
+ci sync
 
-# Delete a memory
-npx central-intelligence-cli forget <memory-id>
+# Audit memory health (duplicates, staleness, health score)
+ci audit
 
-# Check connection
-npx central-intelligence-cli status
-```
+# Import from ChatGPT data export
+ci chatgpt-import conversations.json
 
-Or install globally for shorter commands:
-
-```bash
-npm install -g central-intelligence-cli
-ci-memory signup
-ci-memory remember "User prefers TypeScript"
-ci-memory recall "language preferences"
+# Export/import memory bundles
+ci export -o memories.json
+ci import memories.json
 ```
 
 ## REST API
@@ -338,7 +337,7 @@ central-intelligence/
 │   │   │       └── query-decompose.ts   # Query expansion via GPT-4o-mini
 │   │   └── tests/        # 68 tests (Vitest)
 │   ├── mcp-server/     # MCP server (npm: central-intelligence-mcp)
-│   ├── cli/            # CLI tool (npm: central-intelligence-cli)
+│   ├── cli/            # Cloud CLI (npm: central-intelligence-cli, legacy)
 │   ├── local/          # Local memory with cross-tool config parsing
 │   ├── node-sdk/       # Node.js/TypeScript SDK (npm: central-intelligence-sdk)
 │   ├── python-sdk/     # Python SDK (PyPI: central-intelligence)

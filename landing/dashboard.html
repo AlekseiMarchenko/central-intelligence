@@ -47,6 +47,60 @@
 
     .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
 
+    /* --- Nav --- */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: rgba(9, 9, 11, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    nav .nav-inner {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+    .logo {
+      font-weight: 800;
+      font-size: 18px;
+      letter-spacing: -0.5px;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .logo span { color: var(--accent); }
+    nav .links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+    nav .links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    nav .links a:hover { color: var(--text); }
+    .nav-btn {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 16px;
+      background: var(--accent);
+      color: white;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .nav-btn:hover { background: #5a47e6; }
+
     /* --- Hero --- */
     .hero {
       padding: 120px 0 80px;
@@ -369,6 +423,20 @@
 </head>
 <body>
 
+<!-- Nav -->
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="logo">Central<span>Intelligence</span></a>
+    <div class="links">
+      <a href="/#features">Features</a>
+      <a href="/#pricing">Pricing</a>
+      <a href="/#lifebench">Benchmark</a>
+      <a href="https://central-intelligence-api.fly.dev/docs">Docs</a>
+      <a href="/app" class="nav-btn">Open Dashboard</a>
+    </div>
+  </div>
+</nav>
+
 <!-- Hero -->
 <section class="hero">
   <div class="container">
@@ -384,31 +452,119 @@
       <a href="/app" style="display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; background: var(--accent); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; text-decoration: none; transition: background 0.15s;">Open Memory Dashboard</a>
       <a href="#install-local" style="display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; background: transparent; color: var(--green); border: 1px solid var(--green); border-radius: 10px; font-size: 16px; font-weight: 600; text-decoration: none;">Run Locally</a>
     </div>
-    <p style="color: var(--text-dim); font-size: 13px; margin-bottom: 24px;">Free up to 500 memories. No credit card required.</p>
+    <p style="color: var(--text-dim); font-size: 13px; margin-bottom: 24px;">Free and open source. Unlimited local memories. Apache 2.0.</p>
 
     <!-- Install (secondary, for local users) -->
-    <div class="install-box" id="install-local">
-      <div class="install-label" id="os-label">Mac / Linux</div>
-      <div class="install-row">
-        <code class="install-cmd" id="install-cmd">curl -fsSL https://centralintelligence.online/install.sh | sh</code>
-        <button class="copy-btn" id="copy-btn" onclick="copyCmd()">Copy</button>
-      </div>
-      <div class="win-alt" id="win-alt">
-        <div class="install-label">Windows (PowerShell)</div>
-        <code class="install-cmd" style="font-size:13px;">irm https://centralintelligence.online/install.ps1 | iex</code>
-      </div>
-    </div>
-    <p class="install-sub">Then run <code>ci dashboard</code> &rarr; opens <code>localhost:3141</code></p>
+    <div id="install-local" style="max-width: 640px; margin: 0 auto;">
 
-    <!-- Platforms -->
-    <div class="platforms">
-      <span class="chip">Claude Code</span>
-      <span class="chip">Cursor</span>
-      <span class="chip">Windsurf</span>
-      <span class="chip">Codex</span>
-      <span class="chip">GitHub Copilot</span>
-      <span class="chip">ChatGPT</span>
+      <!-- Step 1: Install -->
+      <div class="install-box" style="margin-bottom: 12px;">
+        <div class="install-label">Step 1: Install</div>
+        <div class="install-row">
+          <code class="install-cmd" id="install-cmd">npm install -g central-intelligence-local</code>
+          <button class="copy-btn" id="copy-btn" onclick="copyCmd()">Copy</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Open dashboard -->
+      <div class="install-box" style="margin-bottom: 12px;">
+        <div class="install-label">Step 2: Open dashboard</div>
+        <div class="install-row">
+          <code class="install-cmd">ci dashboard</code>
+        </div>
+      </div>
+
+      <!-- Step 3: Get API key + configure (optional) -->
+      <div class="install-box" style="margin-bottom: 12px; border-color: rgba(109,90,255,0.3);">
+        <div class="install-label" style="color: var(--accent);">Optional: Get API key + sync to cloud</div>
+        <div class="install-row">
+          <code class="install-cmd" style="color: var(--accent);">ci signup</code>
+        </div>
+      </div>
+      <p style="color: var(--text-dim); font-size: 12px; text-align: center; margin-bottom: 8px;">
+        Gets your API key, auto-configures Claude Code, Cursor, and Windsurf. Then run <code style="font-family: var(--mono); color: var(--accent);">ci sync</code> to upload memories to <a href="/app" style="color: var(--accent); text-decoration: none;">centralintelligence.online/app</a>.
+      </p>
     </div>
+
+    <!-- Platform picker -->
+    <div class="platforms" style="margin-bottom: 16px;">
+      <span class="chip chip-active" onclick="selectChip('claude',this)" id="chip-claude">Claude Code</span>
+      <span class="chip" onclick="selectChip('cursor',this)">Cursor</span>
+      <span class="chip" onclick="selectChip('windsurf',this)">Windsurf</span>
+      <span class="chip" onclick="selectChip('codex',this)">Codex</span>
+      <span class="chip" onclick="selectChip('copilot',this)">GitHub Copilot</span>
+      <span class="chip" onclick="selectChip('chatgpt',this)">ChatGPT</span>
+    </div>
+
+    <!-- MCP config for selected platform -->
+    <div id="mcp-config" style="max-width: 640px; margin: 0 auto 32px;">
+      <div class="install-box" style="position: relative;">
+        <div class="install-label" id="config-label">Claude Code — add to ~/.claude/settings.json</div>
+        <pre id="config-code" style="font-family: var(--mono); font-size: 13px; color: var(--green); white-space: pre; overflow-x: auto; margin: 0;">{
+  "mcpServers": {
+    "central-intelligence": {
+      "command": "npx",
+      "args": ["central-intelligence-mcp"],
+      "env": { "CI_API_KEY": "YOUR_KEY" }
+    }
+  }
+}</pre>
+        <button class="copy-btn" onclick="copyConfig()" id="config-copy" style="position: absolute; top: 12px; right: 12px;">Copy</button>
+      </div>
+    </div>
+
+    <style>
+      .chip { cursor: pointer; transition: all 0.15s; }
+      .chip:hover { border-color: var(--accent); color: var(--accent); }
+      .chip-active { border-color: var(--accent) !important; background: rgba(109,90,255,0.1) !important; color: var(--accent) !important; }
+    </style>
+
+    <script>
+    var platformConfigs = {
+      claude: {
+        label: 'Claude Code — add to ~/.claude/settings.json',
+        config: '{\n  "mcpServers": {\n    "central-intelligence": {\n      "command": "npx",\n      "args": ["central-intelligence-mcp"],\n      "env": { "CI_API_KEY": "YOUR_KEY" }\n    }\n  }\n}'
+      },
+      cursor: {
+        label: 'Cursor — add to ~/.cursor/mcp.json',
+        config: '{\n  "mcpServers": {\n    "central-intelligence": {\n      "command": "npx",\n      "args": ["central-intelligence-mcp"],\n      "env": { "CI_API_KEY": "YOUR_KEY" }\n    }\n  }\n}'
+      },
+      windsurf: {
+        label: 'Windsurf — add to ~/.codeium/windsurf/mcp_config.json',
+        config: '{\n  "mcpServers": {\n    "central-intelligence": {\n      "command": "npx",\n      "args": ["central-intelligence-mcp"],\n      "env": { "CI_API_KEY": "YOUR_KEY" }\n    }\n  }\n}'
+      },
+      codex: {
+        label: 'Codex CLI — run in terminal',
+        config: 'codex mcp add central-intelligence \\\n  --env CI_API_KEY="YOUR_KEY" \\\n  -- npx central-intelligence-mcp'
+      },
+      copilot: {
+        label: 'GitHub Copilot — add to .vscode/mcp.json',
+        config: '{\n  "servers": {\n    "central-intelligence": {\n      "command": "npx",\n      "args": ["central-intelligence-mcp"],\n      "env": { "CI_API_KEY": "YOUR_KEY" }\n    }\n  }\n}'
+      },
+      chatgpt: {
+        label: 'ChatGPT — Custom GPT Actions',
+        config: '1. GPT Editor → Configure → Actions → Import from URL:\n   https://central-intelligence-api.fly.dev/docs/openapi.json\n\n2. Set Auth: API Key (Bearer) with your ci_sk_... key'
+      }
+    };
+
+    function selectChip(platform, el) {
+      document.querySelectorAll('.chip').forEach(function(c) { c.classList.remove('chip-active'); });
+      el.classList.add('chip-active');
+      var cfg = platformConfigs[platform];
+      document.getElementById('config-label').textContent = cfg.label;
+      document.getElementById('config-code').textContent = cfg.config;
+    }
+
+    function copyConfig() {
+      var code = document.getElementById('config-code').textContent;
+      navigator.clipboard.writeText(code).then(function() {
+        var btn = document.getElementById('config-copy');
+        btn.textContent = 'Copied!';
+        btn.style.background = '#22c55e';
+        setTimeout(function() { btn.textContent = 'Copy'; btn.style.background = ''; }, 2000);
+      });
+    }
+    </script>
 
     <!-- Dashboard preview -->
     <div class="screenshot-wrap">
