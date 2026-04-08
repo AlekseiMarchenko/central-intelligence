@@ -123,7 +123,7 @@ PostgreSQL + pgvector + fact decomposition + entity graph
 Local ONNX cross-encoder reranker (zero API cost)
 ```
 
-Every memory is decomposed into structured facts with entities, temporal info, and causal relations. Recall runs four search strategies in parallel (vector similarity, BM25 full-text, entity graph traversal, temporal proximity), fuses results with Reciprocal Rank Fusion, and reranks with a local cross-encoder model. Config files from all supported platforms are parsed, embedded, and cached locally.
+Every memory is decomposed into structured facts with entities, temporal info, and causal relations. Recall runs a dual-path architecture: both fact-based 4-way search (vector, BM25, graph traversal, temporal) and memory-based 2-way search run in parallel. A query type classifier routes each question to the best retrieval path, and results are fused with Reciprocal Rank Fusion and reranked with a local cross-encoder model. Config files from all supported platforms are parsed, embedded, and cached locally.
 
 ## Memory Scopes
 

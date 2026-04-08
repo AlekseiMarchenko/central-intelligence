@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.1.0] - 2026-04-08 — Retrieval Reliability
+
+All four retrieval strategies now work correctly. Temporal search, BM25 on short facts, and vector indexing were broken since v1.0.0. Recall also runs a dual-path architecture: both the new fact-based 4-way search and the proven memory-based 2-way search run in parallel, with results merged using a query type classifier. Nondeclarative questions improved +12.8 points while maintaining overall benchmark parity.
+
+### Fixed
+
+- **Temporal search actually works now.** Postgres doesn't support `ABS()` on intervals. Changed to `ABS(EXTRACT(EPOCH FROM ...))`. Temporal strategy went from 0 results to 50 per recall.
+- **BM25 matches short facts.** Switched from AND-joined `plainto_tsquery` to OR-joined `to_tsquery`. Short fact_units (20-30 words) now match when any significant query term appears, not all of them. BM25 went from 0 results to 100 per recall.
+- **Vector search uses HNSW index.** Queries without a `fact_type` filter couldn't use the partial HNSW indexes. Added a global (non-partial) HNSW index. Search dropped from 30-73 seconds to <50ms.
+- **Temporal month extraction broadened.** Now matches month names mid-sentence ("working in January?"), day-month without year ("January 25th"), and cultural dates (Spring Festival).
+
+### Added
+
+- **Dual-path recall.** Both fact-based (4-way) and memory-based (2-way) search run in parallel. Results are merged using query type weights, so each question type gets the best retrieval path.
+- **Query type classifier.** Categorizes each recall query as factual (favors full-text memories), temporal (favors fact graph), or pattern (favors knowledge graph) using keyword patterns. No LLM call needed.
+- **Topic tagging in fact extraction.** Each extracted fact now gets 2-5 topic labels ("restaurant dining", "career advice") appended to its search vector, improving BM25 discoverability.
+- **Enriched search vectors.** Fact_unit tsvectors now include entity names, topic labels, and who-names alongside the fact text itself.
+
+### Infrastructure
+
+- Fly Postgres: global HNSW index on fact_units, `maintenance_work_mem` increased to 512MB.
+- Fly machine: upgraded from 256MB to 1GB RAM to handle concurrent fact extraction.
+
 ## [1.0.0] - 2026-04-06 — 4-Way Retrieval
 
 Recall is now 4x smarter. Every memory is decomposed into structured facts at store time, with entities extracted, resolved, and linked into a knowledge graph. Recall runs four search strategies in parallel (vector, BM25, graph traversal, temporal), fuses them with RRF, and reranks with a local cross-encoder model. Zero per-recall API cost.
