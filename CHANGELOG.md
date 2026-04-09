@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.2.0] - 2026-04-09 — Benchmark Infrastructure + pgvector Fix
+
+Benchmark runs no longer touch production. A dedicated Fly VM runs LifeBench with its own ephemeral Postgres, so benchmarks can ingest 15K memories without affecting the live API. pgvector now survives Fly Postgres restarts. Infra costs dropped 58%.
+
+### Fixed
+
+- **pgvector survives restarts.** Custom Docker image (`db/Dockerfile`) bakes `postgresql-17-pgvector` into the Fly Postgres base image. The `.so` binary no longer disappears on machine restart.
+- **Parallel migration deadlocks.** Benchmark entrypoint pre-applies all ALTER TABLE columns before starting the API, working around the `Promise.all()` deadlock in `index.ts` migrations.
+
+### Added
+
+- **Benchmark VM.** Self-contained Fly machine (`ci-benchmark`) with ephemeral Postgres, the CI API, and the LifeBench harness in one container. Runs detached via `nohup`, SSH-safe with stall monitoring.
+- **Custom Postgres image.** `db/Dockerfile` extends `flyio/postgres-flex:17.2` with pgvector 0.8.2 baked in. Deployed as `registry.fly.io/central-intelligence-db:pgvector`.
+
+### Infrastructure
+
+- Fly costs: **$52/mo → $22/mo** (58% reduction). API 2GB→1GB, DB 2GB→1GB, Landing 2×1GB→1×256MB.
+- Production DB cleaned: **3.6GB → 582MB** (87% reduction). Removed old benchmark data, preserved 134 real user memories.
+- Benchmark VM: `shared-cpu-2x:2048MB` with 3GB volume, runs LifeBench in ~3 hours.
+
+### New Files
+
+- `db/Dockerfile` — Custom Postgres image with pgvector
+- `benchmark/Dockerfile` — Benchmark VM image
+- `benchmark/benchmark-entrypoint.sh` — Orchestration script
+- `benchmark/fly.toml` — Fly config for ci-benchmark app
+
 ## [1.1.0] - 2026-04-08 — Retrieval Reliability
 
 All four retrieval strategies now work correctly. Temporal search, BM25 on short facts, and vector indexing were broken since v1.0.0. Recall also runs a dual-path architecture: both the new fact-based 4-way search and the proven memory-based 2-way search run in parallel, with results merged using a query type classifier. Nondeclarative questions improved +12.8 points while maintaining overall benchmark parity.

@@ -343,6 +343,8 @@ central-intelligence/
 │   ├── python-sdk/     # Python SDK (PyPI: central-intelligence)
 │   └── openclaw-skill/ # OpenClaw skill file
 ├── .github/workflows/  # CI (typecheck + test) + Deploy (Fly.io)
+├── benchmark/          # LifeBench VM (self-contained Fly machine)
+├── db/                 # Custom Postgres image with pgvector baked in
 ├── landing/            # Landing page
 ├── Dockerfile          # API container (non-root, ONNX model pre-cached)
 ├── fly.toml            # Fly.io config (iad region, health checks)
