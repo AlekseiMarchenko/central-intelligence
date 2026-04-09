@@ -16,8 +16,8 @@ Benchmark runs no longer touch production. A dedicated Fly VM runs LifeBench wit
 
 ### Infrastructure
 
-- Fly costs: **$52/mo → $22/mo** (58% reduction). API 2GB→1GB, DB 2GB→1GB, Landing 2×1GB→1×256MB.
-- Production DB cleaned: **3.6GB → 582MB** (87% reduction). Removed old benchmark data, preserved 134 real user memories.
+- Fly costs reduced. API 2GB→1GB, DB 2GB→1GB, Landing 2×1GB→1×256MB.
+- Production DB cleaned. Removed old benchmark data, preserved real user memories.
 - Benchmark VM: `shared-cpu-2x:2048MB` with 3GB volume, runs LifeBench in ~3 hours.
 
 ### New Files
