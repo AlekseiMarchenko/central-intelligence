@@ -15,35 +15,88 @@ import OpenAI from "openai";
 import { z } from "zod";
 import { checkOpenAiBudget } from "./query-decompose.js";
 
-// --- Zod schemas ---
+// --- Zod schemas (lenient: coerce malformed fields instead of rejecting) ---
 
 const WhoSchema = z.object({
   name: z.string().min(1),
   relation: z.string().optional(),
 });
 
-const WhenSchema = z.object({
-  start: z.string().nullable().optional(),
-  end: z.string().nullable().optional(),
-});
+/** Coerce who field: string → [{name: string}], object → [object] */
+function coerceWho(val: unknown): z.infer<typeof WhoSchema>[] {
+  if (!val) return [];
+  if (typeof val === "string") return [{ name: val }];
+  if (Array.isArray(val)) {
+    return val.flatMap((item) => {
+      if (typeof item === "string") return [{ name: item }];
+      if (item && typeof item === "object" && "name" in item) {
+        const parsed = WhoSchema.safeParse(item);
+        return parsed.success ? [parsed.data] : [];
+      }
+      return [];
+    });
+  }
+  if (typeof val === "object" && val !== null && "name" in val) {
+    const parsed = WhoSchema.safeParse(val);
+    return parsed.success ? [parsed.data] : [];
+  }
+  return [];
+}
+
+/** Coerce when field: string → {start: string}, null/missing → undefined */
+function coerceWhen(val: unknown): { start?: string | null; end?: string | null } | undefined {
+  if (!val) return undefined;
+  if (typeof val === "string") return { start: val, end: null };
+  if (typeof val === "object" && val !== null) {
+    const obj = val as Record<string, unknown>;
+    return {
+      start: typeof obj.start === "string" ? obj.start : null,
+      end: typeof obj.end === "string" ? obj.end : null,
+    };
+  }
+  return undefined;
+}
+
+/** Coerce string arrays: single string → [string], mixed arrays → filter strings */
+function coerceStringArray(val: unknown): string[] {
+  if (!val) return [];
+  if (typeof val === "string") return [val];
+  if (Array.isArray(val)) return val.filter((v): v is string => typeof v === "string" && v.length > 0);
+  return [];
+}
 
 const FactSchema = z.object({
   what: z.string().min(1),
-  when: WhenSchema.optional(),
+  when: z.any().optional(),
   where: z.string().nullable().optional(),
-  who: z.array(WhoSchema).default([]),
-  entities: z.array(z.string()).default([]),
+  who: z.any().default([]),
+  entities: z.any().default([]),
+  topics: z.any().default([]),
   fact_type: z.enum(["world", "experience"]).default("world"),
-  causal_relations: z.array(z.string()).default([]),
+  causal_relations: z.any().default([]),
 });
 
 export const ExtractionResultSchema = z.object({
-  facts: z.array(FactSchema).default([]),
-  preferences: z.array(z.string()).default([]),
+  facts: z.array(z.any()).default([]),
+  preferences: z.any().default([]),
 });
 
-export type ExtractionResult = z.infer<typeof ExtractionResultSchema>;
-export type ExtractedFact = z.infer<typeof FactSchema>;
+/** Cleaned fact after coercion */
+export interface ExtractedFact {
+  what: string;
+  when?: { start?: string | null; end?: string | null };
+  where?: string | null;
+  who: Array<{ name: string; relation?: string }>;
+  entities: string[];
+  topics: string[];
+  fact_type: "world" | "experience";
+  causal_relations: string[];
+}
+
+export interface ExtractionResult {
+  facts: ExtractedFact[];
+  preferences: string[];
+}
 
 // --- OpenAI client (lazy singleton, same pattern as enrichment.ts) ---
 
@@ -68,6 +121,7 @@ For each fact, extract:
 - where: Location if mentioned. null if none.
 - who: Array of {name, relation} for people involved. relation is optional (e.g. "colleague", "manager").
 - entities: Array of named entities (people, places, orgs, products, technologies) mentioned in this fact.
+- topics: Array of 2-5 topic labels describing what this fact is about. Use short descriptive phrases like "career advice", "restaurant dining", "photography workshop", "work frustration", "coffee tasting", "investment strategy", "running training", "family health". These help with keyword search.
 - fact_type: "experience" if it describes something the user did/felt/saw. "world" for general knowledge or third-party facts.
 - causal_relations: Array of effect descriptions if this fact causes or enables something else. Empty if none.
 
@@ -86,38 +140,53 @@ Rules:
 // --- Core functions ---
 
 /**
- * Parse and validate extraction output. Exported for testing.
- * Recovers partial results: if facts parse but preferences don't, keep facts.
+ * Parse and coerce extraction output. Exported for testing.
+ *
+ * Aggressively coerces malformed fields instead of dropping facts:
+ * - who: "Alice" → [{name: "Alice"}]
+ * - entities: "Paris" → ["Paris"]
+ * - when: "2025-01-18" → {start: "2025-01-18"}
+ * - fact_type: "unknown" → "world" (default)
+ *
+ * The only required field is `what` (the fact text). Everything else
+ * is best-effort. A fact with just `what` is still useful for search.
  */
 export function parseExtractionResult(raw: unknown): ExtractionResult {
   if (!raw || typeof raw !== "object") {
     return { facts: [], preferences: [] };
   }
 
-  const result = ExtractionResultSchema.safeParse(raw);
-  if (result.success) {
-    return result.data;
-  }
-
-  // Partial recovery: try each field independently
   const obj = raw as Record<string, unknown>;
-  let facts: ExtractedFact[] = [];
-  let preferences: string[] = [];
+  const facts: ExtractedFact[] = [];
 
-  if (Array.isArray(obj.facts)) {
-    for (const f of obj.facts) {
-      const parsed = FactSchema.safeParse(f);
-      if (parsed.success) {
-        facts.push(parsed.data);
-      }
-    }
+  // Coerce facts array
+  const rawFacts = Array.isArray(obj.facts) ? obj.facts : [];
+  for (const f of rawFacts) {
+    if (!f || typeof f !== "object") continue;
+    const fact = f as Record<string, unknown>;
+
+    // `what` is the only required field
+    const what = typeof fact.what === "string" ? fact.what.trim() : "";
+    if (!what) continue;
+
+    // Coerce fact_type
+    let factType: "world" | "experience" = "world";
+    if (fact.fact_type === "experience") factType = "experience";
+
+    facts.push({
+      what,
+      when: coerceWhen(fact.when),
+      where: typeof fact.where === "string" ? fact.where : null,
+      who: coerceWho(fact.who),
+      entities: coerceStringArray(fact.entities),
+      topics: coerceStringArray(fact.topics),
+      fact_type: factType,
+      causal_relations: coerceStringArray(fact.causal_relations),
+    });
   }
 
-  if (Array.isArray(obj.preferences)) {
-    preferences = obj.preferences.filter(
-      (p): p is string => typeof p === "string" && p.length > 0
-    );
-  }
+  // Coerce preferences
+  const preferences = coerceStringArray(obj.preferences);
 
   return { facts, preferences };
 }
@@ -143,9 +212,60 @@ export async function extractFacts(content: string): Promise<ExtractionResult> {
       { role: "system", content: EXTRACT_PROMPT },
       { role: "user", content: content.substring(0, 4000) },
     ],
-    response_format: { type: "json_object" },
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "fact_extraction",
+        strict: true,
+        schema: {
+          type: "object",
+          properties: {
+            facts: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  what: { type: "string" },
+                  when: {
+                    type: "object",
+                    properties: {
+                      start: { type: ["string", "null"] },
+                      end: { type: ["string", "null"] },
+                    },
+                    required: ["start", "end"],
+                    additionalProperties: false,
+                  },
+                  where: { type: ["string", "null"] },
+                  who: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        name: { type: "string" },
+                        relation: { type: ["string", "null"] },
+                      },
+                      required: ["name", "relation"],
+                      additionalProperties: false,
+                    },
+                  },
+                  entities: { type: "array", items: { type: "string" } },
+                  topics: { type: "array", items: { type: "string" } },
+                  fact_type: { type: "string", enum: ["world", "experience"] },
+                  causal_relations: { type: "array", items: { type: "string" } },
+                },
+                required: ["what", "when", "where", "who", "entities", "topics", "fact_type", "causal_relations"],
+                additionalProperties: false,
+              },
+            },
+            preferences: { type: "array", items: { type: "string" } },
+          },
+          required: ["facts", "preferences"],
+          additionalProperties: false,
+        },
+      },
+    },
     temperature: 0,
-    max_tokens: 1024,
+    max_tokens: 2048,
   });
 
   const text = res.choices[0]?.message?.content?.trim();

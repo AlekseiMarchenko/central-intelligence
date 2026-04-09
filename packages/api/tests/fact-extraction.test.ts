@@ -142,6 +142,87 @@ describe("parseExtractionResult", () => {
     expect(result.facts[0].causal_relations).toEqual([]);
     expect(result.preferences).toEqual([]);
   });
+
+  // --- Coercion tests (the 80% fallback fix) ---
+
+  it("coerces who from string to array", () => {
+    const raw = {
+      facts: [{ what: "Met Alice", who: "Alice" }],
+      preferences: [],
+    };
+    const result = parseExtractionResult(raw);
+    expect(result.facts[0].who).toEqual([{ name: "Alice" }]);
+  });
+
+  it("coerces who from object to array", () => {
+    const raw = {
+      facts: [{ what: "Met Bob", who: { name: "Bob", relation: "colleague" } }],
+      preferences: [],
+    };
+    const result = parseExtractionResult(raw);
+    expect(result.facts[0].who).toEqual([{ name: "Bob", relation: "colleague" }]);
+  });
+
+  it("coerces who from mixed array", () => {
+    const raw = {
+      facts: [{ what: "Team meeting", who: ["Alice", { name: "Bob" }, 42] }],
+      preferences: [],
+    };
+    const result = parseExtractionResult(raw);
+    expect(result.facts[0].who).toHaveLength(2);
+    expect(result.facts[0].who[0].name).toBe("Alice");
+    expect(result.facts[0].who[1].name).toBe("Bob");
+  });
+
+  it("coerces entities from single string to array", () => {
+    const raw = {
+      facts: [{ what: "Used VS Code", entities: "VS Code" }],
+      preferences: [],
+    };
+    const result = parseExtractionResult(raw);
+    expect(result.facts[0].entities).toEqual(["VS Code"]);
+  });
+
+  it("coerces when from string to object", () => {
+    const raw = {
+      facts: [{ what: "Event on date", when: "2025-01-18" }],
+      preferences: [],
+    };
+    const result = parseExtractionResult(raw);
+    expect(result.facts[0].when).toEqual({ start: "2025-01-18", end: null });
+  });
+
+  it("coerces preferences from single string", () => {
+    const raw = {
+      facts: [],
+      preferences: "likes coffee",
+    };
+    const result = parseExtractionResult(raw);
+    expect(result.preferences).toEqual(["likes coffee"]);
+  });
+
+  it("keeps facts with only 'what' field (everything else optional)", () => {
+    const raw = {
+      facts: [
+        { what: "Fact with broken fields", who: 42, entities: true, when: false },
+      ],
+      preferences: [],
+    };
+    const result = parseExtractionResult(raw);
+    expect(result.facts).toHaveLength(1);
+    expect(result.facts[0].what).toBe("Fact with broken fields");
+    expect(result.facts[0].who).toEqual([]);
+    expect(result.facts[0].entities).toEqual([]);
+  });
+
+  it("coerces invalid fact_type to default 'world'", () => {
+    const raw = {
+      facts: [{ what: "Test", fact_type: "invalid_type" }],
+      preferences: [],
+    };
+    const result = parseExtractionResult(raw);
+    expect(result.facts[0].fact_type).toBe("world");
+  });
 });
 
 describe("ExtractionResultSchema", () => {
@@ -159,12 +240,13 @@ describe("ExtractionResultSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("rejects invalid fact_type", () => {
+  it("accepts any fact_type (coercion handles invalid values)", () => {
     const result = ExtractionResultSchema.safeParse({
       facts: [{ what: "Test", fact_type: "invalid_type", entities: [] }],
       preferences: [],
     });
-    expect(result.success).toBe(false);
+    // Schema is lenient now — coercion in parseExtractionResult defaults invalid to "world"
+    expect(result.success).toBe(true);
   });
 
   it("provides defaults for empty input", () => {
