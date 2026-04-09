@@ -428,7 +428,16 @@ import { ensureWritable } from "./db/connection.js";
 
 const port = parseInt(process.env.PORT || "3141", 10);
 
-Promise.all([migrateHybridSearch(), migrateDashboard(), migratePgvector(), migrateDates(), migrateEnrichment(), migrateFacts()]).then(async () => {
+// Run migrations sequentially to avoid deadlocks when multiple migrations
+// ALTER the same table (memories) concurrently. Total time ~2s on startup.
+(async () => {
+  await migrateHybridSearch();
+  await migrateDashboard();
+  await migratePgvector();
+  await migrateDates();
+  await migrateEnrichment();
+  await migrateFacts();
+})().then(async () => {
   ensureWritable();
 
   // Security cleanup: scrub raw API keys from expired/consumed magic links
