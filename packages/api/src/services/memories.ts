@@ -10,6 +10,7 @@ import {
   resolveEntities,
   updateCooccurrences,
   linkEntitiesToFacts,
+  clearEntityCache,
 } from "./entity-resolution.js";
 import { consolidateObservations } from "./observations.js";
 
@@ -613,6 +614,9 @@ export async function processPendingMemories(
   apiKeyId: string,
   rawApiKey: string,
 ): Promise<{ queued: number; total: number }> {
+  // Clear entity cache to prevent stale FK references after cleanup
+  clearEntityCache();
+
   // Find pending memories for this API key
   const pending = await sql`
     SELECT id, agent_id, content, event_date_from::text, event_date_to::text,

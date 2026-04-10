@@ -35,6 +35,11 @@ function cacheKey(apiKeyId: string, agentId: string, canonical: string): string 
   return `${apiKeyId}:${agentId}:${canonical}`;
 }
 
+/** Clear the entity cache. Call after bulk entity cleanup to prevent stale FK references. */
+export function clearEntityCache(): void {
+  _entityCache.clear();
+}
+
 // --- Types ---
 
 export interface EntityCandidate {
