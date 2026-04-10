@@ -339,8 +339,22 @@ interface ExtractionParams {
   eventTo: string | null;
 }
 
+const EXTRACTION_TIMEOUT_MS = parseInt(process.env.EXTRACTION_TIMEOUT_MS || "60000"); // 60s default
+
 function queueFactExtraction(params: ExtractionParams): void {
-  const task = () => processExtraction(params);
+  const task = () => {
+    // Wrap extraction in a timeout so a stuck extraction releases the queue slot
+    return Promise.race([
+      processExtraction(params),
+      new Promise<void>((_, reject) =>
+        setTimeout(() => reject(new Error(`Extraction timeout after ${EXTRACTION_TIMEOUT_MS}ms for memory ${params.memoryId}`)), EXTRACTION_TIMEOUT_MS)
+      ),
+    ]).catch((err) => {
+      console.warn(`[extraction] ${err.message}`);
+      // Mark as failed so it can be retried later
+      sql`UPDATE memories SET extraction_status = 'failed' WHERE id = ${params.memoryId}`.catch(() => {});
+    });
+  };
   if (_activeExtractions < MAX_EXTRACTION_CONCURRENCY) {
     _activeExtractions++;
     task().finally(() => { _activeExtractions--; drainExtractionQueue(); });

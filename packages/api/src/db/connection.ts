@@ -3,8 +3,10 @@ import postgres from "postgres";
 const databaseUrl =
   process.env.DATABASE_URL || "postgres://localhost:5432/central_intelligence";
 
+const poolSize = parseInt(process.env.DB_POOL_SIZE || "50");
+
 export const sql = postgres(databaseUrl, {
-  max: 20,
+  max: poolSize,
   idle_timeout: 20,
   connect_timeout: 10,
 });
