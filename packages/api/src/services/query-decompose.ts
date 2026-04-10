@@ -68,16 +68,23 @@ export async function decomposeQuery(query: string): Promise<string[]> {
   }
 
   try {
-    const res = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: DECOMPOSE_PROMPT },
-        { role: "user", content: query },
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0,
-      max_tokens: 128,
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15_000);
+    let res;
+    try {
+      res = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: DECOMPOSE_PROMPT },
+          { role: "user", content: query },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0,
+        max_tokens: 128,
+      }, { signal: controller.signal });
+    } finally {
+      clearTimeout(timeout);
+    }
 
     const text = res.choices[0]?.message?.content?.trim();
     if (!text) return [query];

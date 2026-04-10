@@ -206,18 +206,25 @@ export async function extractFacts(content: string): Promise<ExtractionResult> {
     return { facts: [], preferences: [] };
   }
 
-  const res = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: EXTRACT_PROMPT },
-      { role: "user", content: content.substring(0, 4000) },
-    ],
-    response_format: {
-      type: "json_schema",
-      json_schema: {
-        name: "fact_extraction",
-        strict: true,
-        schema: {
+  // 30s timeout on the OpenAI call itself — if the server accepts the connection
+  // but never responds, the SDK hangs forever without this.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+
+  let res;
+  try {
+    res = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: EXTRACT_PROMPT },
+        { role: "user", content: content.substring(0, 4000) },
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "fact_extraction",
+          strict: true,
+          schema: {
           type: "object",
           properties: {
             facts: {
@@ -266,7 +273,10 @@ export async function extractFacts(content: string): Promise<ExtractionResult> {
     },
     temperature: 0,
     max_tokens: 2048,
-  });
+  }, { signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
 
   const text = res.choices[0]?.message?.content?.trim();
   if (!text) {
