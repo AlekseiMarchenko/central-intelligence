@@ -1,5 +1,5 @@
 import { sql } from "../db/connection.js";
-import { embed, embeddingTokenEstimate } from "./embeddings.js";
+import { embed, embedBatch, embeddingTokenEstimate } from "./embeddings.js";
 import { encrypt, decrypt, isEncrypted } from "./encryption.js";
 import { rerank } from "./rerank.js";
 import { isPgvectorAvailable } from "../db/migrate-pgvector.js";
@@ -421,8 +421,13 @@ async function processExtraction(params: ExtractionParams): Promise<void> {
       const allEntityNames: Array<{ name: string; type?: string }> = [];
       const factEntityMap: Array<{ factId: string; entityNames: string[] }> = [];
 
-      for (const fact of extraction.facts) {
-        const factEmbedding = await embed(fact.what);
+      // Batch embed all facts in one API call (~200ms instead of ~200ms × N)
+      const factTexts = extraction.facts.map((f) => f.what);
+      const factEmbeddings = factTexts.length > 0 ? await embedBatch(factTexts) : [];
+
+      for (let i = 0; i < extraction.facts.length; i++) {
+        const fact = extraction.facts[i];
+        const factEmbedding = factEmbeddings[i];
         const encryptedFact = encrypt(fact.what, rawApiKey);
         const factVecStr = `[${factEmbedding.join(",")}]`;
         const factEventFrom = fact.when?.start || eventFrom;
