@@ -140,16 +140,30 @@ async function resolveOneEntity(
   entityType: string,
   contextEntityIds: string[],
 ): Promise<string> {
-  // Fast path: exact-match cache hit — skip DB entirely
+  // Fast path 1: in-memory cache hit — skip DB entirely
   const ck = cacheKey(apiKeyId, agentId, canonical);
   const cached = _entityCache.get(ck);
   if (cached) {
-    // Still increment mention_count in DB (fire-and-forget, don't block)
+    // Increment mention_count in DB (fire-and-forget, don't block)
     sql`UPDATE entities SET mention_count = mention_count + 1, last_seen = now() WHERE id = ${cached}`.catch(() => {});
     return cached;
   }
 
-  // Step 1: Find candidates via pg_trgm fuzzy matching
+  // Fast path 2: exact canonical match via btree index (O(log n), instant)
+  // Catches second+ occurrences of the same entity name without trigram scan.
+  const exactMatch = await sql`
+    SELECT id FROM entities
+    WHERE api_key_id = ${apiKeyId} AND agent_id = ${agentId} AND canonical = ${canonical}
+    LIMIT 1
+  `;
+  if (exactMatch.length > 0) {
+    const id = (exactMatch[0] as any).id;
+    await sql`UPDATE entities SET mention_count = mention_count + 1, last_seen = now() WHERE id = ${id}`;
+    _entityCache.set(ck, id);
+    return id;
+  }
+
+  // Step 1: No exact match — run pg_trgm fuzzy matching for similar names
   const candidates = await sql`
     SELECT id, canonical, entity_type, mention_count,
            last_seen::text as last_seen,
