@@ -202,4 +202,26 @@ app.post("/extract", async (c) => {
   }
 });
 
+// POST /memories/build-graph — build entity graph in bulk after extraction
+const buildGraphSchema = z.object({
+  agent_id: z.string().min(1).max(200),
+});
+
+app.post("/build-graph", async (c) => {
+  const apiKeyId = c.get("apiKeyId");
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = buildGraphSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "agent_id required" }, 400);
+  }
+
+  try {
+    const result = await memoriesService.buildEntityGraph(apiKeyId, parsed.data.agent_id);
+    return c.json(result);
+  } catch (err: any) {
+    console.error("Build graph error:", err?.message || err);
+    return c.json({ error: "Failed to build entity graph" }, 500);
+  }
+});
+
 export { app as memoriesRouter };

@@ -501,60 +501,14 @@ async function processExtraction(params: ExtractionParams): Promise<void> {
         }
       }
 
-      // Steps 3-5: Entity resolution, linking, co-occurrences
-      // Skip during batch extraction (SKIP_ENTITY_RESOLUTION=1) — entity resolution
-      // degrades O(n) as the entity table grows, causing extraction to stall at scale.
-      // Entity graph can be built in a separate bulk pass after all facts are extracted.
-      if (!process.env.SKIP_ENTITY_RESOLUTION) {
-        // Step 3: Resolve entities (create or merge with existing)
-        const entityNameToId = await resolveEntities(apiKeyId, agentId, allEntityNames);
-
-        // Step 4: Link entities to facts
-        const linkPairs: Array<{ entityId: string; factId: string }> = [];
-        for (const { factId, entityNames: names } of factEntityMap) {
-          for (const name of names) {
-            const entityId = entityNameToId.get(name);
-            if (entityId) {
-              linkPairs.push({ entityId, factId });
-            }
-          }
-        }
-        await linkEntitiesToFacts(linkPairs);
-
-        // Step 5: Update co-occurrences (fire-and-forget, never block extraction)
-        const allEntityIds = [...new Set([...entityNameToId.values()])];
-        updateCooccurrences(allEntityIds).catch((err) =>
-          console.warn("[extraction] Co-occurrence update failed:", err.message)
-        );
-      }
-
-      // Step 6: Build causal links from extraction
-      for (const fact of extraction.facts) {
-        if (fact.causal_relations.length === 0) continue;
-        const factIdx = extraction.facts.indexOf(fact);
-        if (factIdx < 0 || !factIds[factIdx]) continue;
-        const sourceFactId = factIds[factIdx];
-
-        // Causal relations reference effects — find matching facts
-        for (const effect of fact.causal_relations) {
-          for (let j = 0; j < extraction.facts.length; j++) {
-            if (j === factIdx) continue;
-            // Simple heuristic: if effect text overlaps with another fact's what
-            if (extraction.facts[j].what.toLowerCase().includes(effect.toLowerCase().substring(0, 20))) {
-              try {
-                await sql`
-                  INSERT INTO fact_links (from_fact_id, to_fact_id, link_type, weight)
-                  VALUES (${sourceFactId}, ${factIds[j]}, 'causal', 1.0)
-                  ON CONFLICT DO NOTHING
-                `;
-              } catch {}
-            }
-          }
-        }
-      }
-
-      // Step 7: Build temporal links (facts with dates within 24 hours)
-      await buildTemporalLinks(factIds);
+      // Entity resolution, linking, co-occurrences, causal links, and temporal
+      // links are DEFERRED to a separate bulk pass (buildEntityGraph). This
+      // decoupling eliminates the concurrency bugs that stalled extraction at
+      // ~489 completions: FK violations, connection pool exhaustion, stale cache,
+      // false merges, and co-occurrence write contention.
+      //
+      // Entity names are already stored in fact_units.entities JSONB, so the
+      // data is preserved for the bulk graph-building step.
 
       // Step 8: Delete the fallback fact_unit
       await sql`DELETE FROM fact_units WHERE id = ${fallbackFactId}`;
@@ -577,14 +531,9 @@ async function processExtraction(params: ExtractionParams): Promise<void> {
       // Step 10: Mark complete
       await sql`UPDATE memories SET extraction_status = 'complete' WHERE id = ${memoryId}`;
 
-      // Step 11: Trigger observation consolidation (fire-and-forget)
-      // Checks if any entity now has enough facts for an auto-generated observation.
-      // Skip during batch extraction (SKIP_OBSERVATIONS=1) to avoid 3 extra GPT calls per memory.
-      if (!process.env.SKIP_OBSERVATIONS) {
-        consolidateObservations(apiKeyId, agentId, rawApiKey, memoryId).catch((err) => {
-          console.warn(`[observations] Consolidation failed for memory ${memoryId}:`, err.message);
-        });
-      }
+      // Entity resolution, co-occurrences, temporal links, and observations
+      // are built in a separate bulk pass via POST /memories/build-graph.
+      // This decoupling eliminates concurrency bugs during extraction.
 
       return;
 
@@ -680,6 +629,96 @@ export async function processPendingMemories(
 
   console.log(`[extract] Queued ${queued}/${total} pending memories for extraction`);
   return { queued, total };
+}
+
+/**
+ * Build the entity graph in bulk after all extractions are complete.
+ * Reads entity names from fact_units.entities JSONB, resolves them,
+ * links them to facts, builds co-occurrences, and creates temporal links.
+ *
+ * This runs as a separate pass, not inline with extraction. Eliminates
+ * concurrency bugs (FK violations, stale cache, connection exhaustion)
+ * that plagued the inline approach.
+ *
+ * Call via POST /memories/build-graph after extraction is done.
+ */
+export async function buildEntityGraph(
+  apiKeyId: string,
+  agentId: string,
+): Promise<{ entities: number; links: number; temporal: number }> {
+  clearEntityCache();
+
+  // Step 1: Get all non-fallback fact_units with entity data
+  const facts = await sql`
+    SELECT id, entities, memory_id
+    FROM fact_units
+    WHERE api_key_id = ${apiKeyId}
+      AND agent_id = ${agentId}
+      AND is_fallback = false
+      AND entities IS NOT NULL
+      AND entities != 'null'::jsonb
+    ORDER BY created_at ASC
+  `;
+
+  if (facts.length === 0) {
+    return { entities: 0, links: 0, temporal: 0 };
+  }
+
+  console.log(`[build-graph] Processing ${facts.length} facts for entity graph...`);
+
+  let totalEntities = 0;
+  let totalLinks = 0;
+  const BATCH_SIZE = 100;
+
+  for (let batch = 0; batch < facts.length; batch += BATCH_SIZE) {
+    const chunk = (facts as any[]).slice(batch, batch + BATCH_SIZE);
+
+    for (const fact of chunk) {
+      // Parse entity names from JSONB
+      let entityNames: string[] = [];
+      try {
+        entityNames = Array.isArray(fact.entities) ? fact.entities : JSON.parse(fact.entities);
+        if (!Array.isArray(entityNames)) entityNames = [];
+      } catch {
+        continue;
+      }
+
+      if (entityNames.length === 0) continue;
+
+      // Resolve entities (sequential within each fact, uses cache across facts)
+      const nameObjects = entityNames.map((n: string) => ({ name: n }));
+      const entityNameToId = await resolveEntities(apiKeyId, agentId, nameObjects);
+
+      // Link entities to this fact
+      const linkPairs: Array<{ entityId: string; factId: string }> = [];
+      for (const name of entityNames) {
+        const entityId = entityNameToId.get(name);
+        if (entityId) {
+          linkPairs.push({ entityId, factId: fact.id });
+        }
+      }
+      await linkEntitiesToFacts(linkPairs);
+      totalLinks += linkPairs.length;
+      totalEntities = Math.max(totalEntities, entityNameToId.size);
+
+      // Co-occurrences (fire-and-forget per fact, not blocking)
+      const entityIds = [...new Set([...entityNameToId.values()])];
+      if (entityIds.length >= 2) {
+        updateCooccurrences(entityIds).catch(() => {});
+      }
+    }
+
+    console.log(`[build-graph] Processed ${Math.min(batch + BATCH_SIZE, facts.length)}/${facts.length} facts`);
+  }
+
+  // Step 2: Build temporal links across ALL facts with dates
+  const allFactIds = (facts as any[]).map((f: any) => f.id);
+  await buildTemporalLinks(allFactIds);
+  const temporalCount = await sql`SELECT COUNT(*) as c FROM fact_links WHERE link_type = 'temporal'`;
+  const temporal = parseInt((temporalCount[0] as any).c) || 0;
+
+  console.log(`[build-graph] Done. ${totalEntities} entities, ${totalLinks} entity-fact links, ${temporal} temporal links`);
+  return { entities: totalEntities, links: totalLinks, temporal };
 }
 
 /**
