@@ -13,6 +13,18 @@ import {
 } from "./entity-resolution.js";
 import { consolidateObservations } from "./observations.js";
 
+/** Validate a date string — returns null if it can't be parsed as a valid date. */
+function safeDate(val: string | null | undefined): string | null {
+  if (!val) return null;
+  try {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return null;
+    return d.toISOString();
+  } catch {
+    return null;
+  }
+}
+
 // Cache pgvector availability check (set on first recall)
 let _pgvectorAvailable: boolean | null = null;
 
@@ -444,8 +456,9 @@ async function processExtraction(params: ExtractionParams): Promise<void> {
         const factEmbedding = factEmbeddings[i];
         const encryptedFact = encrypt(fact.what, rawApiKey);
         const factVecStr = `[${factEmbedding.join(",")}]`;
-        const factEventFrom = fact.when?.start || eventFrom;
-        const factEventTo = fact.when?.end || eventTo;
+        // Validate dates from LLM output — GPT might return "mid-January", "last week", etc.
+        const factEventFrom = safeDate(fact.when?.start) || eventFrom;
+        const factEventTo = safeDate(fact.when?.end) || eventTo;
         const entityNames = fact.entities.length > 0 ? JSON.stringify(fact.entities) : null;
 
         // Build enriched search text: fact + entities + topics for BM25 discoverability
@@ -681,10 +694,14 @@ async function buildTemporalLinks(factIds: string[]): Promise<void> {
 
   if (rows.length < 2) return;
 
-  const factsWithDates = rows.map((r: any) => ({
-    id: r.id,
-    date: new Date(r.event_date_from).getTime(),
-  }));
+  const factsWithDates = rows
+    .map((r: any) => {
+      const d = new Date(r.event_date_from);
+      const ts = d.getTime();
+      if (isNaN(ts)) return null;
+      return { id: r.id, date: ts };
+    })
+    .filter((f): f is { id: string; date: number } => f !== null);
 
   // Find all pairs within 24 hours
   const links: Array<{ from: string; to: string; weight: number }> = [];
