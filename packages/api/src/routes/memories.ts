@@ -188,4 +188,18 @@ app.post("/:id/share", async (c) => {
   return c.json({ shared: true });
 });
 
+// POST /memories/extract — trigger fact extraction for all pending memories
+app.post("/extract", async (c) => {
+  const apiKeyId = c.get("apiKeyId");
+  const rawApiKey = c.get("rawApiKey");
+
+  try {
+    const result = await memoriesService.processPendingMemories(apiKeyId, rawApiKey);
+    return c.json(result);
+  } catch (err: any) {
+    console.error("Extract error:", err?.message || err);
+    return c.json({ error: "Failed to process pending memories" }, 500);
+  }
+});
+
 export { app as memoriesRouter };

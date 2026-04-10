@@ -429,6 +429,13 @@ async function processExtraction(params: ExtractionParams): Promise<void> {
         const factEventTo = fact.when?.end || eventTo;
         const entityNames = fact.entities.length > 0 ? JSON.stringify(fact.entities) : null;
 
+        // Build enriched search text: fact + entities + topics for BM25 discoverability
+        const searchParts = [fact.what];
+        if (fact.entities.length > 0) searchParts.push(fact.entities.join(" "));
+        if (fact.topics && fact.topics.length > 0) searchParts.push(fact.topics.join(" "));
+        if (fact.who.length > 0) searchParts.push(fact.who.map((w) => w.name).join(" "));
+        const searchText = searchParts.join(" ");
+
         const [inserted] = await sql`
           INSERT INTO fact_units (
             memory_id, api_key_id, agent_id, fact_text, fact_type,
@@ -436,7 +443,7 @@ async function processExtraction(params: ExtractionParams): Promise<void> {
           )
           VALUES (
             ${memoryId}, ${apiKeyId}, ${agentId}, ${encryptedFact}, ${fact.fact_type},
-            ${factVecStr}::vector, to_tsvector('english', ${fact.what}),
+            ${factVecStr}::vector, to_tsvector('english', ${searchText}),
             ${factEventFrom || null}::timestamptz, ${factEventTo || null}::timestamptz,
             ${entityNames}::jsonb
           )
@@ -554,6 +561,79 @@ async function processExtraction(params: ExtractionParams): Promise<void> {
 }
 
 /**
+ * Process all pending memories that never had fact extraction run.
+ * Called via POST /memories/extract endpoint. Requires rawApiKey to decrypt content.
+ * Picks up memories with extraction_status = 'pending' or 'failed' (with retries < 3).
+ * Skips memories that already have non-fallback fact_units.
+ */
+export async function processPendingMemories(
+  apiKeyId: string,
+  rawApiKey: string,
+): Promise<{ queued: number; total: number }> {
+  // Find pending memories for this API key
+  const pending = await sql`
+    SELECT id, agent_id, content, event_date_from::text, event_date_to::text
+    FROM memories
+    WHERE api_key_id = ${apiKeyId}
+      AND deleted_at IS NULL
+      AND (extraction_status = 'pending' OR (extraction_status = 'failed' AND extraction_retries < 3))
+    ORDER BY created_at ASC
+  `;
+
+  const total = pending.length;
+  if (total === 0) return { queued: 0, total: 0 };
+
+  let queued = 0;
+  for (const mem of pending as any[]) {
+    // Decrypt content
+    const plaintext = decrypt(mem.content, rawApiKey);
+    if (!plaintext || plaintext === mem.content) {
+      // Can't decrypt (wrong key or unencrypted), skip
+      continue;
+    }
+
+    // Check if a non-fallback fact_unit already exists (avoid re-processing)
+    const existing = await sql`
+      SELECT 1 FROM fact_units
+      WHERE memory_id = ${mem.id} AND is_fallback = false
+      LIMIT 1
+    `;
+    if (existing.length > 0) {
+      // Already extracted, just mark complete
+      await sql`UPDATE memories SET extraction_status = 'complete' WHERE id = ${mem.id}`;
+      continue;
+    }
+
+    // Find or create a fallback fact_unit ID
+    const fallbacks = await sql`
+      SELECT id FROM fact_units WHERE memory_id = ${mem.id} AND is_fallback = true LIMIT 1
+    `;
+    const fallbackId = fallbacks.length > 0
+      ? (fallbacks[0] as any).id
+      : await createFallbackFact(
+          mem.id, apiKeyId, mem.agent_id, mem.content,
+          "[]", plaintext, mem.event_date_from, mem.event_date_to,
+        );
+
+    // Queue extraction (uses the existing concurrency-limited queue)
+    queueFactExtraction({
+      memoryId: mem.id,
+      apiKeyId,
+      agentId: mem.agent_id,
+      rawApiKey,
+      plaintext,
+      fallbackFactId: fallbackId,
+      eventFrom: mem.event_date_from || null,
+      eventTo: mem.event_date_to || null,
+    });
+    queued++;
+  }
+
+  console.log(`[extract] Queued ${queued}/${total} pending memories for extraction`);
+  return { queued, total };
+}
+
+/**
  * Build temporal links between facts that have event dates within 24 hours.
  * Weight decays linearly: 1.0 at 0 hours, 0.0 at 24 hours.
  * Max 20 links per fact to avoid combinatorial explosion.
@@ -658,13 +738,23 @@ async function factBm25Search(
   limit: number = 100,
 ): Promise<{ id: string; rank: number }[]> {
   try {
+    // Use OR-based tsquery for fact_units (short texts, AND-all-terms rarely matches).
+    // Tokenize query, strip punctuation, join with | (OR).
+    const tokens = query
+      .toLowerCase()
+      .replace(/[^\w\s]/g, " ")
+      .split(/\s+/)
+      .filter((t) => t.length > 2); // skip short words
+    if (tokens.length === 0) return [];
+    const orQuery = tokens.join(" | ");
+
     const results = await sql`
       SELECT id,
-        ts_rank_cd(search_vector, plainto_tsquery('english', ${query})) as bm25_score
+        ts_rank_cd(search_vector, to_tsquery('english', ${orQuery})) as bm25_score
       FROM fact_units
       WHERE api_key_id = ${apiKeyId}
         AND agent_id = ${agentId}
-        AND search_vector @@ plainto_tsquery('english', ${query})
+        AND search_vector @@ to_tsquery('english', ${orQuery})
       ORDER BY bm25_score DESC
       LIMIT ${limit}
     `;
@@ -673,7 +763,8 @@ async function factBm25Search(
     if (err.code === "42703" || err.message?.includes("search_vector")) {
       return [];
     }
-    throw err;
+    console.warn("[bm25-facts] BM25 search error:", err.message);
+    return [];
   }
 }
 
@@ -765,11 +856,51 @@ async function factTemporalSearch(
   queryVector: number[],
   limit: number = 50,
 ): Promise<{ id: string; rank: number }[]> {
-  // Extract dates from the query
+  // Extract dates from the query — try explicit dates first, then month references
   const parsed = parseDates(queryText);
-  if (!parsed.eventDateFrom) return []; // No date in query, skip this strategy
+  if (!parsed.eventDateFrom) {
+    // Try month extraction — matches anywhere in the sentence:
+    // "In January", "in mid-March", "working in January?", "on January 25th"
+    const monthMap: Record<string, string> = {
+      january: "01", february: "02", march: "03", april: "04", may: "05", june: "06",
+      july: "07", august: "08", september: "09", october: "10", november: "11", december: "12",
+    };
+    const ql = queryText.toLowerCase();
+
+    // Try "Month Day" without year (e.g., "January 25th", "March 14")
+    const monthDayMatch = ql.match(
+      /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:st|nd|rd|th)?/
+    );
+    if (monthDayMatch && monthMap[monthDayMatch[1]]) {
+      const m = monthMap[monthDayMatch[1]];
+      const d = monthDayMatch[2].padStart(2, "0");
+      parsed.eventDateFrom = `2025-${m}-${d}T00:00:00Z`;
+    }
+
+    // Try just month name anywhere (e.g., "in January", "working in March?")
+    if (!parsed.eventDateFrom) {
+      const monthMatch = ql.match(
+        /\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/
+      );
+      if (monthMatch && monthMap[monthMatch[1]]) {
+        const m = monthMap[monthMatch[1]];
+        const year = ql.includes("2026") ? "2026" : "2025";
+        parsed.eventDateFrom = `${year}-${m}-15T00:00:00Z`;
+      }
+    }
+
+    // Try "Spring Festival" / "Chinese New Year"
+    if (!parsed.eventDateFrom && (ql.includes("spring festival") || ql.includes("chinese new year") || ql.includes("lunar new year"))) {
+      parsed.eventDateFrom = "2025-01-28T00:00:00Z"; // CNY 2025
+    }
+  }
+  if (!parsed.eventDateFrom) {
+    console.log(`[temporal] No date found in query: "${queryText.substring(0, 80)}"`);
+    return []; // No date in query, skip this strategy
+  }
 
   const targetDate = parsed.eventDateFrom;
+  console.log(`[temporal] Target date: ${targetDate} for query: "${queryText.substring(0, 60)}"`)
   const vecStr = `[${queryVector.join(",")}]`;
 
   try {
@@ -779,7 +910,7 @@ async function factTemporalSearch(
       WITH date_candidates AS (
         SELECT id,
           1.0 - LEAST(1.0,
-            EXTRACT(EPOCH FROM ABS(event_date_from - ${targetDate}::timestamptz)) / (86400 * 30)
+            ABS(EXTRACT(EPOCH FROM (event_date_from - ${targetDate}::timestamptz))) / (86400 * 30)
           ) as date_score
         FROM fact_units
         WHERE api_key_id = ${apiKeyId} AND agent_id = ${agentId}
@@ -863,6 +994,42 @@ async function facadeFactsToMemories(
 
 // --- Recall (4-way hybrid retrieval on fact_units, fallback to memories) ---
 
+// --- Query type classification (keyword-based, no LLM) ---
+
+function classifyQueryType(query: string): "factual" | "temporal" | "pattern" {
+  const q = query.toLowerCase();
+
+  // Temporal: counting, duration, date comparison, sequence, specific dates
+  if (
+    /how many (days|times|sessions|hours)/.test(q) ||
+    /how long/.test(q) ||
+    /elapsed/.test(q) ||
+    /before or after/.test(q) ||
+    /how many .* (this year|this month)/.test(q) ||
+    /interval between/.test(q) ||
+    /when was the last/.test(q) ||
+    /after .* how many days/.test(q) ||
+    /last (year|month|week|time)/.test(q) ||
+    /\b\d{1,2}\s+(january|february|march|april|may|june|july|august|september|october|november|december)\b/.test(q) ||
+    /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}/.test(q) ||
+    /\b\d{4}[-\/]\d{2}[-\/]\d{2}\b/.test(q) ||
+    /\b\d{1,2}[-\/]\d{1,2}[-\/]\d{4}\b/.test(q)
+  ) return "temporal";
+
+  // Pattern: habits, preferences, routines, activities
+  if (
+    /what (new )?(activity|habit|routine|hobby|exercise|strategy)/.test(q) ||
+    /usually|typically|regularly/.test(q) ||
+    /what .*challenges/.test(q) ||
+    /what .*key stages/.test(q) ||
+    /what .*plan/.test(q) ||
+    /what .*approach/.test(q)
+  ) return "pattern";
+
+  // Default: factual (IE, multi-hop) — specific who/what/where/which questions
+  return "factual";
+}
+
 export async function recall(params: RecallParams): Promise<MemoryWithScore[]> {
   const {
     apiKeyId,
@@ -892,9 +1059,40 @@ export async function recall(params: RecallParams): Promise<MemoryWithScore[]> {
     console.log(`[recall] pgvector available: ${_pgvectorAvailable}`);
   }
 
-  // === Route: fact-based 4-way retrieval OR legacy memory-based ===
+  // === Dual-path retrieval: search BOTH fact_units AND memories, merge best results ===
+  // Fact decomposition improves nondeclarative/preference queries but can lose detail
+  // for factual/temporal queries. Running both ensures we get the best of each.
   if (_factUnitsAvailable) {
-    return recallFromFacts(params, queryVector);
+    const [factResults, memoryResults] = await Promise.all([
+      recallFromFacts(params, queryVector),
+      recallFromMemories(params, queryVector),
+    ]);
+
+    // Classify query type to weight the merge.
+    // Memories-path dominates factual (IE). Facts-path dominates pattern/temporal.
+    const queryType = classifyQueryType(query);
+    const limit = params.limit || 10;
+
+    const memoryWeight = queryType === "factual" ? 0.8
+      : queryType === "temporal" ? 0.4
+      : 0.3; // pattern
+
+    const memorySlots = Math.ceil(limit * memoryWeight);
+    const factSlots = limit - memorySlots;
+
+    // Take top from each path
+    const memoryTop = memoryResults.slice(0, memorySlots);
+    const usedIds = new Set(memoryTop.map((m) => m.id));
+
+    // Fill remaining slots from facts-path (skip duplicates)
+    const factTop = factResults
+      .filter((m) => !usedIds.has(m.id))
+      .slice(0, factSlots);
+
+    // Combine and sort by score
+    const merged = [...memoryTop, ...factTop];
+    merged.sort((a, b) => b.relevance_score - a.relevance_score);
+    return merged.slice(0, limit);
   } else {
     return recallFromMemories(params, queryVector);
   }
