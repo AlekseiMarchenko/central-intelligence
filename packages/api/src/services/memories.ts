@@ -355,18 +355,23 @@ interface ExtractionParams {
 const EXTRACTION_TIMEOUT_MS = parseInt(process.env.EXTRACTION_TIMEOUT_MS || "60000"); // 60s default
 
 function queueFactExtraction(params: ExtractionParams): void {
-  const task = () => {
-    // Wrap extraction in a timeout so a stuck extraction releases the queue slot
-    return Promise.race([
-      processExtraction(params),
-      new Promise<void>((_, reject) =>
-        setTimeout(() => reject(new Error(`Extraction timeout after ${EXTRACTION_TIMEOUT_MS}ms for memory ${params.memoryId}`)), EXTRACTION_TIMEOUT_MS)
-      ),
-    ]).catch((err) => {
-      console.warn(`[extraction] ${err.message}`);
-      // Mark as failed so it can be retried later
+  const task = async () => {
+    // Hard timeout: if extraction doesn't complete in time, mark failed and move on.
+    // Unlike Promise.race, this prevents zombie processExtraction calls from continuing
+    // to retry in the background and saturating the OpenAI connection pool.
+    const timeoutId = setTimeout(() => {
+      console.warn(`[extraction] Timeout after ${EXTRACTION_TIMEOUT_MS}ms for memory ${params.memoryId}`);
       sql`UPDATE memories SET extraction_status = 'failed' WHERE id = ${params.memoryId}`.catch(() => {});
-    });
+    }, EXTRACTION_TIMEOUT_MS);
+
+    try {
+      await processExtraction(params);
+    } catch (err: any) {
+      console.warn(`[extraction] Failed for memory ${params.memoryId}: ${err.message}`);
+      await sql`UPDATE memories SET extraction_status = 'failed' WHERE id = ${params.memoryId}`.catch(() => {});
+    } finally {
+      clearTimeout(timeoutId);
+    }
   };
   if (_activeExtractions < MAX_EXTRACTION_CONCURRENCY) {
     _activeExtractions++;
@@ -426,14 +431,15 @@ async function createFallbackFact(
  * 7. Populate legacy entities/preferences JSONB (backward compat)
  * 8. Mark extraction_status = 'complete'
  *
- * Retries up to 3 times with exponential backoff on failure.
+ * Single attempt, no retries. Failed memories can be re-queued via
+ * POST /memories/extract. Retries were causing zombie processExtraction
+ * calls that saturated the OpenAI connection pool after Promise.race timeout.
  */
 async function processExtraction(params: ExtractionParams): Promise<void> {
   const { memoryId, apiKeyId, agentId, rawApiKey, plaintext, fallbackFactId, eventFrom, eventTo } = params;
 
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      await sql`UPDATE memories SET extraction_status = 'processing' WHERE id = ${memoryId}`;
+  try {
+    await sql`UPDATE memories SET extraction_status = 'processing' WHERE id = ${memoryId}`;
 
       // Step 1: Extract structured facts
       const extraction = await extractFacts(plaintext);
@@ -535,21 +541,9 @@ async function processExtraction(params: ExtractionParams): Promise<void> {
       // are built in a separate bulk pass via POST /memories/build-graph.
       // This decoupling eliminates concurrency bugs during extraction.
 
-      return;
-
-    } catch (err: any) {
-      const retries = attempt + 1;
-      console.warn(`[fact-extraction] Attempt ${retries}/3 failed for memory ${memoryId}:`, err.message);
-      await sql`UPDATE memories SET extraction_retries = ${retries} WHERE id = ${memoryId}`;
-
-      if (retries < 3) {
-        // Exponential backoff: 1s, 2s, 4s
-        await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
-      } else {
-        await sql`UPDATE memories SET extraction_status = 'failed' WHERE id = ${memoryId}`;
-        console.warn(`[fact-extraction] Giving up on memory ${memoryId} after 3 attempts`);
-      }
-    }
+  } catch (err: any) {
+    console.warn(`[fact-extraction] Failed for memory ${memoryId}:`, err.message);
+    await sql`UPDATE memories SET extraction_status = 'failed', extraction_retries = extraction_retries + 1 WHERE id = ${memoryId}`.catch(() => {});
   }
 }
 
