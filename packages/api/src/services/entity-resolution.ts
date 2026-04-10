@@ -164,6 +164,8 @@ async function resolveOneEntity(
   }
 
   // Step 1: No exact match — run pg_trgm fuzzy matching for similar names
+  // Floor at 0.5 to prevent false merges ("grilled eel" ≠ "Charcoal-Grilled Yakitori")
+  const TRIGRAM_FLOOR = parseFloat(process.env.ENTITY_TRIGRAM_FLOOR || "0.5");
   const candidates = await sql`
     SELECT id, canonical, entity_type, mention_count,
            last_seen::text as last_seen,
@@ -171,53 +173,32 @@ async function resolveOneEntity(
     FROM entities
     WHERE api_key_id = ${apiKeyId}
       AND agent_id = ${agentId}
-      AND similarity(canonical, ${canonical}) > 0.15
+      AND similarity(canonical, ${canonical}) > ${TRIGRAM_FLOOR}
     ORDER BY similarity(canonical, ${canonical}) DESC
     LIMIT 10
   ` as unknown as EntityCandidate[];
 
   if (candidates.length === 0) {
-    return createEntity(apiKeyId, agentId, name, canonical, entityType);
+    const newId = await createEntity(apiKeyId, agentId, name, canonical, entityType);
+    _entityCache.set(ck, newId);
+    return newId;
   }
 
-  // Step 2: Load co-occurrence data for scoring
-  let cooccurrenceCounts = new Map<string, number>();
-  let maxCooccurrence = 0;
-
-  if (contextEntityIds.length > 0) {
-    const candidateIds = candidates.map((c) => c.id);
-    const cooccRows = await sql`
-      SELECT
-        CASE WHEN entity_a = ANY(${candidateIds}) THEN entity_a ELSE entity_b END as candidate_id,
-        SUM(count) as total_count
-      FROM entity_cooccurrences
-      WHERE (entity_a = ANY(${candidateIds}) AND entity_b = ANY(${contextEntityIds}))
-         OR (entity_b = ANY(${candidateIds}) AND entity_a = ANY(${contextEntityIds}))
-      GROUP BY candidate_id
-    `;
-    for (const row of cooccRows) {
-      const count = Number(row.total_count);
-      cooccurrenceCounts.set(row.candidate_id, count);
-      if (count > maxCooccurrence) maxCooccurrence = count;
-    }
-  }
-
-  // Step 3: Score candidates
-  const weights: EntityWeights = {
-    trigram: TRIGRAM_WEIGHT,
-    cooccurrence: COOCCUR_WEIGHT,
-    temporal: TEMPORAL_WEIGHT,
-  };
-
+  // Step 2: Score by trigram + temporal only (skip co-occurrence query — it's the write bottleneck)
   let bestCandidate: EntityCandidate | null = null;
   let bestScore = 0;
+  const weights: EntityWeights = {
+    trigram: TRIGRAM_WEIGHT,
+    cooccurrence: 0, // disabled: co-occurrence reads are expensive and cause false merges
+    temporal: TEMPORAL_WEIGHT,
+  };
 
   for (const candidate of candidates) {
     const score = scoreCandidate(
       candidate,
-      contextEntityIds,
-      cooccurrenceCounts,
-      maxCooccurrence,
+      [],
+      new Map(),
+      0,
       new Date(),
       weights,
     );
@@ -227,12 +208,11 @@ async function resolveOneEntity(
     }
   }
 
-  // Step 4: Merge or create
+  // Step 3: Merge or create
   if (bestCandidate && bestScore >= MERGE_THRESHOLD) {
     console.log(
       `[entity-resolution] Merge "${name}" → "${bestCandidate.canonical}" ` +
-        `(score=${bestScore.toFixed(3)}, trigram=${bestCandidate.trigram_similarity.toFixed(3)}, ` +
-        `cooccur=${(cooccurrenceCounts.get(bestCandidate.id) || 0)}, threshold=${MERGE_THRESHOLD})`,
+        `(score=${bestScore.toFixed(3)}, trigram=${bestCandidate.trigram_similarity.toFixed(3)}, threshold=${MERGE_THRESHOLD})`,
     );
     await sql`
       UPDATE entities

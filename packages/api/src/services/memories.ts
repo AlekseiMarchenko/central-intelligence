@@ -473,24 +473,32 @@ async function processExtraction(params: ExtractionParams): Promise<void> {
         }
       }
 
-      // Step 3: Resolve entities (create or merge with existing)
-      const entityNameToId = await resolveEntities(apiKeyId, agentId, allEntityNames);
+      // Steps 3-5: Entity resolution, linking, co-occurrences
+      // Skip during batch extraction (SKIP_ENTITY_RESOLUTION=1) — entity resolution
+      // degrades O(n) as the entity table grows, causing extraction to stall at scale.
+      // Entity graph can be built in a separate bulk pass after all facts are extracted.
+      if (!process.env.SKIP_ENTITY_RESOLUTION) {
+        // Step 3: Resolve entities (create or merge with existing)
+        const entityNameToId = await resolveEntities(apiKeyId, agentId, allEntityNames);
 
-      // Step 4: Link entities to facts
-      const linkPairs: Array<{ entityId: string; factId: string }> = [];
-      for (const { factId, entityNames: names } of factEntityMap) {
-        for (const name of names) {
-          const entityId = entityNameToId.get(name);
-          if (entityId) {
-            linkPairs.push({ entityId, factId });
+        // Step 4: Link entities to facts
+        const linkPairs: Array<{ entityId: string; factId: string }> = [];
+        for (const { factId, entityNames: names } of factEntityMap) {
+          for (const name of names) {
+            const entityId = entityNameToId.get(name);
+            if (entityId) {
+              linkPairs.push({ entityId, factId });
+            }
           }
         }
-      }
-      await linkEntitiesToFacts(linkPairs);
+        await linkEntitiesToFacts(linkPairs);
 
-      // Step 5: Update co-occurrences
-      const allEntityIds = [...new Set([...entityNameToId.values()])];
-      await updateCooccurrences(allEntityIds);
+        // Step 5: Update co-occurrences (fire-and-forget, never block extraction)
+        const allEntityIds = [...new Set([...entityNameToId.values()])];
+        updateCooccurrences(allEntityIds).catch((err) =>
+          console.warn("[extraction] Co-occurrence update failed:", err.message)
+        );
+      }
 
       // Step 6: Build causal links from extraction
       for (const fact of extraction.facts) {
@@ -524,7 +532,7 @@ async function processExtraction(params: ExtractionParams): Promise<void> {
       await sql`DELETE FROM fact_units WHERE id = ${fallbackFactId}`;
 
       // Step 9: Populate legacy JSONB columns for backward compat
-      const allEntities = [...entityNameToId.keys()];
+      const allEntities = allEntityNames.map((e) => e.name);
       const preferences = extraction.preferences;
       if (allEntities.length > 0 || preferences.length > 0) {
         const enrichedText = [...allEntities, ...preferences].join(" ");
@@ -543,9 +551,12 @@ async function processExtraction(params: ExtractionParams): Promise<void> {
 
       // Step 11: Trigger observation consolidation (fire-and-forget)
       // Checks if any entity now has enough facts for an auto-generated observation.
-      consolidateObservations(apiKeyId, agentId, rawApiKey, memoryId).catch((err) => {
-        console.warn(`[observations] Consolidation failed for memory ${memoryId}:`, err.message);
-      });
+      // Skip during batch extraction (SKIP_OBSERVATIONS=1) to avoid 3 extra GPT calls per memory.
+      if (!process.env.SKIP_OBSERVATIONS) {
+        consolidateObservations(apiKeyId, agentId, rawApiKey, memoryId).catch((err) => {
+          console.warn(`[observations] Consolidation failed for memory ${memoryId}:`, err.message);
+        });
+      }
 
       return;
 
@@ -577,12 +588,14 @@ export async function processPendingMemories(
 ): Promise<{ queued: number; total: number }> {
   // Find pending memories for this API key
   const pending = await sql`
-    SELECT id, agent_id, content, event_date_from::text, event_date_to::text
+    SELECT id, agent_id, content, event_date_from::text, event_date_to::text,
+           embedding_vec::text
     FROM memories
     WHERE api_key_id = ${apiKeyId}
       AND deleted_at IS NULL
       AND (extraction_status = 'pending' OR (extraction_status = 'failed' AND extraction_retries < 3))
     ORDER BY created_at ASC
+    LIMIT 500
   `;
 
   const total = pending.length;
@@ -617,7 +630,7 @@ export async function processPendingMemories(
       ? (fallbacks[0] as any).id
       : await createFallbackFact(
           mem.id, apiKeyId, mem.agent_id, mem.content,
-          "[]", plaintext, mem.event_date_from, mem.event_date_to,
+          mem.embedding_vec || "[]", plaintext, mem.event_date_from, mem.event_date_to,
         );
 
     // Queue extraction (uses the existing concurrency-limited queue)
