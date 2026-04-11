@@ -70,9 +70,12 @@ async function onnxRerank(
 
   try {
     // Score each (query, document) pair through the cross-encoder
+    // BERT limit is 512 tokens (~2000 chars), not 512 chars.
+    // Previous 512-char truncation only showed the reranker ~25% of each memory,
+    // causing it to miss relevant content in the second half.
     const pairs = documents.map((d) => ({
       text: query,
-      text_pair: d.content.substring(0, 512), // BERT models max 512 tokens
+      text_pair: d.content.substring(0, 2000),
     }));
 
     const scores: Array<{ id: string; score: number }> = [];
