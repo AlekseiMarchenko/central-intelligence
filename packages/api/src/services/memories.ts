@@ -1197,8 +1197,26 @@ async function facadeFactsToMemories(
 
 // --- Query type classification (keyword-based, no LLM) ---
 
-function classifyQueryType(query: string): "factual" | "temporal" | "pattern" {
+function classifyQueryType(query: string): "factual" | "temporal" | "pattern" | "multi-hop" {
   const q = query.toLowerCase();
+
+  // Multi-hop: questions requiring connecting information across multiple events/memories.
+  // These need full memory context (not atomic facts) to reason across events.
+  if (
+    /what .* led to/.test(q) ||
+    /as a result of/.test(q) ||
+    /connection between/.test(q) ||
+    /relationship between/.test(q) ||
+    /how did .* affect/.test(q) ||
+    /how did .* influence/.test(q) ||
+    /what happened after/.test(q) ||
+    /what changed after/.test(q) ||
+    /based on .* what/.test(q) ||
+    /considering .* (and|with) .* what/.test(q) ||
+    /both .* and/.test(q) ||
+    /combine/.test(q) ||
+    /taking into account/.test(q)
+  ) return "multi-hop";
 
   // Temporal: counting, duration, date comparison, sequence, specific dates
   if (
@@ -1227,7 +1245,7 @@ function classifyQueryType(query: string): "factual" | "temporal" | "pattern" {
     /what .*approach/.test(q)
   ) return "pattern";
 
-  // Default: factual (IE, multi-hop) — specific who/what/where/which questions
+  // Default: factual (IE) — specific who/what/where/which questions
   return "factual";
 }
 
@@ -1264,17 +1282,25 @@ export async function recall(params: RecallParams): Promise<MemoryWithScore[]> {
   // Fact decomposition improves nondeclarative/preference queries but can lose detail
   // for factual/temporal queries. Running both ensures we get the best of each.
   if (_factUnitsAvailable) {
+    // Classify query type BEFORE retrieval so we can adjust depth for counting queries.
+    const queryType = classifyQueryType(query);
+
+    // Temporal counting queries ("how many times?") need more results to get accurate counts.
+    // The LLM overcounts when it sees partial results and extrapolates.
+    const effectiveLimit = queryType === "temporal" ? Math.max(params.limit || 10, 20) : (params.limit || 10);
+    const boostedParams = { ...params, limit: effectiveLimit };
+
     const [factResults, memoryResults] = await Promise.all([
-      recallFromFacts(params, queryVector),
-      recallFromMemories(params, queryVector),
+      recallFromFacts(boostedParams, queryVector),
+      recallFromMemories(boostedParams, queryVector),
     ]);
 
-    // Classify query type to weight the merge.
-    // Memories-path dominates factual (IE). Facts-path dominates pattern/temporal.
-    const queryType = classifyQueryType(query);
+    // Weight the merge by query type.
+    // Memories-path dominates factual (IE) and multi-hop. Facts-path dominates pattern.
     const limit = params.limit || 10;
 
     const memoryWeight = queryType === "factual" ? 0.8
+      : queryType === "multi-hop" ? 0.9  // multi-hop needs full memory context, not atomic facts
       : queryType === "temporal" ? 0.4
       : 0.3; // pattern
 
