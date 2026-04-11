@@ -171,6 +171,11 @@ CREATE INDEX IF NOT EXISTS idx_fact_units_api_agent ON fact_units (api_key_id, a
 CREATE INDEX IF NOT EXISTS idx_fact_units_tsv ON fact_units USING gin (search_vector);
 CREATE INDEX IF NOT EXISTS idx_fact_links_from ON fact_links (from_fact_id, link_type);
 CREATE INDEX IF NOT EXISTS idx_fact_links_to ON fact_links (to_fact_id, link_type);
+
+-- HNSW ef_search: default 40 silently caps vector results to ~40 even with LIMIT 200.
+-- Set to 400 so all 4 retrieval strategies get full candidate pools.
+ALTER SYSTEM SET hnsw.ef_search = 400;
+SELECT pg_reload_conf();
 MIGRATE
 echo "  Schema + migrations applied."
 

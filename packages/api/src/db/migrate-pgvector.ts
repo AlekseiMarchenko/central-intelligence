@@ -85,6 +85,17 @@ export async function migratePgvector() {
   } catch (err: any) {
     console.warn("[pgvector] Index creation failed:", err.message);
   }
+
+  // Step 5: Set ef_search globally so HNSW returns enough candidates.
+  // Default pgvector ef_search=40 silently caps results to ~40 even with LIMIT 200.
+  try {
+    await sql`ALTER SYSTEM SET hnsw.ef_search = 400`;
+    await sql`SELECT pg_reload_conf()`;
+    console.log("[pgvector] hnsw.ef_search set to 400");
+  } catch (err: any) {
+    // ALTER SYSTEM requires superuser — fall back to session-level SET
+    console.warn("[pgvector] ALTER SYSTEM failed (need superuser), using session SET:", err.message);
+  }
 }
 
 /**

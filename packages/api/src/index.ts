@@ -424,7 +424,7 @@ import { migratePgvector } from "./db/migrate-pgvector.js";
 import { migrateDates } from "./db/migrate-dates.js";
 import { migrateEnrichment } from "./db/migrate-enrichment.js";
 import { migrateFacts } from "./db/migrate-facts.js";
-import { ensureWritable } from "./db/connection.js";
+import { ensureWritable, configureHnswSearch } from "./db/connection.js";
 
 const port = parseInt(process.env.PORT || "3141", 10);
 
@@ -439,6 +439,7 @@ const port = parseInt(process.env.PORT || "3141", 10);
   await migrateFacts();
 })().then(async () => {
   ensureWritable();
+  configureHnswSearch();
 
   // Security cleanup: scrub raw API keys from expired/consumed magic links
   try {

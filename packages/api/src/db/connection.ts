@@ -20,3 +20,12 @@ export function ensureWritable() {
   fix();
   setInterval(fix, 30_000);
 }
+
+/**
+ * Set HNSW ef_search globally so vector queries explore enough candidates.
+ * Default pgvector ef_search=40 silently caps results to ~40 even with LIMIT 200.
+ * 400 ensures we can return the full 200 candidates for RRF fusion.
+ */
+export function configureHnswSearch() {
+  sql`SET hnsw.ef_search = 400`.catch(() => {});
+}
