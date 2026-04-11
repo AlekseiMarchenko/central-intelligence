@@ -1,9 +1,9 @@
-import chalk from "chalk";
 import { writeFileSync, mkdirSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { createInterface } from "readline";
 
 export async function chatgptInitCommand(): Promise<void> {
+  const chalk = (await import("chalk")).default;
   console.log(chalk.bold("\nCI Local Pro — ChatGPT Instructions Setup\n"));
   console.log("This saves your ChatGPT custom instructions as a local file");
   console.log("so CI Local can serve them to all your AI tools.\n");

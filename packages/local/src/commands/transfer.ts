@@ -1,4 +1,3 @@
-import chalk from "chalk";
 import { readFileSync, writeFileSync } from "fs";
 import { parseAllFiles } from "../file-sources.js";
 import { getAllMemories } from "../db.js";
@@ -34,8 +33,9 @@ interface ExportOptions {
 }
 
 export async function exportCommand(options: ExportOptions): Promise<void> {
+  const chalk = (await import("chalk")).default;
   // Load all sources
-  let dbMemories;
+  let dbMemories: ReturnType<typeof getAllMemories> = [];
   try {
     dbMemories = getAllMemories();
   } catch {
@@ -87,6 +87,7 @@ export async function exportCommand(options: ExportOptions): Promise<void> {
 }
 
 export async function importCommand(file: string): Promise<void> {
+  const chalk = (await import("chalk")).default;
   // Validate file
   let raw: string;
   try {

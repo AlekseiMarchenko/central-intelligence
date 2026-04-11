@@ -264,7 +264,7 @@ app.get("/auth/me", async (c) => {
     WHERE api_key_id = ${user.apiKeyId} AND deleted_at IS NULL
   `;
 
-  const memoryLimit = user.tier === "free" ? 500 : user.tier === "pro" ? 10000 : 100000;
+  const memoryLimit = user.tier === "free" ? 500 : user.tier === "pro" ? 50000 : 500000;
 
   return c.json({
     email: user.email,
@@ -505,7 +505,7 @@ app.get("/api/memories/stats", async (c) => {
   if (total > 500) health -= 1; // bloat penalty
   health = Math.max(0, Math.min(10, health));
 
-  const memoryLimit = user.tier === "free" ? 500 : user.tier === "pro" ? 10000 : 100000;
+  const memoryLimit = user.tier === "free" ? 500 : user.tier === "pro" ? 50000 : 500000;
 
   return c.json({
     total,

@@ -178,7 +178,7 @@ const API_SPEC = {
     },
   ],
   rate_limits: {
-    free: { requests_per_minute: 30, max_memories: 500 },
+    free: { requests_per_minute: 120, max_memories: 500 },
     pro: { requests_per_minute: 120, max_memories: 50000 },
     team: { requests_per_minute: 600, max_memories: 500000 },
     enterprise: { requests_per_minute: 3000, max_memories: "unlimited" },
@@ -196,18 +196,46 @@ app.get("/json", (c) => c.json(API_SPEC));
 
 // OpenAPI 3.1 spec (for ChatGPT Custom GPTs, Swagger, etc.)
 app.get("/openapi.json", (c) => {
-  const baseUrl = "https://api.centralintelligence.online";
+  const baseUrl = "https://central-intelligence-api.fly.dev";
   return c.json({
     openapi: "3.1.0",
     info: {
       title: "Central Intelligence API",
       description: "Persistent memory for AI agents. Store, recall, and share knowledge across sessions with semantic search.",
-      version: "0.2.0",
+      version: "0.2.1",
       contact: { url: "https://centralintelligence.online" },
       "x-logo": { url: "https://centralintelligence.online/logo.png" },
     },
     servers: [{ url: baseUrl, description: "Production" }],
     paths: {
+      "/keys": {
+        post: {
+          operationId: "createKey",
+          summary: "Create a new API key",
+          description: "Create a new API key. No authentication required.",
+          security: [],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    name: { type: "string", default: "default", description: "Key name" },
+                    org_id: { type: "string", description: "Organization ID for org-scoped memories" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "201": {
+              description: "API key created",
+              content: { "application/json": { schema: { type: "object", properties: { id: { type: "string" }, key: { type: "string", description: "Save this key — it won't be shown again." }, message: { type: "string" } } } } },
+            },
+          },
+        },
+      },
       "/memories/remember": {
         post: {
           operationId: "remember",
@@ -234,7 +262,7 @@ app.get("/openapi.json", (c) => {
           responses: {
             "201": {
               description: "Memory stored",
-              content: { "application/json": { schema: { type: "object", properties: { memory: { type: "object", properties: { id: { type: "string" }, content: { type: "string" }, scope: { type: "string" }, tags: { type: "array", items: { type: "string" } }, created_at: { type: "string" } } } } } } },
+              content: { "application/json": { schema: { type: "object", properties: { memory: { type: "object", properties: { id: { type: "string" }, agent_id: { type: "string" }, content: { type: "string" }, scope: { type: "string" }, tags: { type: "array", items: { type: "string" } }, created_at: { type: "string" } } } } } } },
             },
           },
         },
@@ -266,7 +294,7 @@ app.get("/openapi.json", (c) => {
           responses: {
             "200": {
               description: "Search results",
-              content: { "application/json": { schema: { type: "object", properties: { memories: { type: "array", items: { type: "object", properties: { id: { type: "string" }, content: { type: "string" }, similarity: { type: "number" }, scope: { type: "string" }, tags: { type: "array", items: { type: "string" } }, created_at: { type: "string" } } } } } } } },
+              content: { "application/json": { schema: { type: "object", properties: { memories: { type: "array", items: { type: "object", properties: { id: { type: "string" }, content: { type: "string" }, relevance_score: { type: "number" }, scope: { type: "string" }, tags: { type: "array", items: { type: "string" } }, created_at: { type: "string" } } } } } } } },
             },
           },
         },
@@ -282,11 +310,12 @@ app.get("/openapi.json", (c) => {
               "application/json": {
                 schema: {
                   type: "object",
-                  required: ["agent_id", "query"],
+                  required: ["agent_id", "current_context"],
                   properties: {
                     agent_id: { type: "string", description: "Agent identifier" },
-                    query: { type: "string", description: "Current task description" },
+                    current_context: { type: "string", description: "Description of current task" },
                     user_id: { type: "string", description: "Include user-scoped memories" },
+                    max_memories: { type: "integer", default: 5, minimum: 1, maximum: 20, description: "Maximum memories to return" },
                   },
                 },
               },
@@ -295,52 +324,42 @@ app.get("/openapi.json", (c) => {
           responses: {
             "200": {
               description: "Relevant memories",
-              content: { "application/json": { schema: { type: "object", properties: { memories: { type: "array", items: { type: "object", properties: { id: { type: "string" }, content: { type: "string" }, similarity: { type: "number" }, scope: { type: "string" } } } } } } } },
+              content: { "application/json": { schema: { type: "object", properties: { memories: { type: "array", items: { type: "object", properties: { id: { type: "string" }, content: { type: "string" }, relevance_score: { type: "number" }, scope: { type: "string" } } } } } } } },
             },
           },
         },
       },
-      "/memories/forget": {
-        post: {
-          operationId: "forget",
+      "/memories/{id}": {
+        delete: {
+          operationId: "deleteMemory",
           summary: "Delete a memory",
-          description: "Delete a memory by ID. Removes outdated or incorrect information.",
-          requestBody: {
-            required: true,
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  required: ["agent_id", "memory_id"],
-                  properties: {
-                    agent_id: { type: "string", description: "Agent identifier" },
-                    memory_id: { type: "string", description: "ID of the memory to delete" },
-                  },
-                },
-              },
-            },
-          },
+          description: "Soft-delete a memory by ID.",
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" }, description: "Memory ID" },
+          ],
           responses: {
             "200": { description: "Memory deleted", content: { "application/json": { schema: { type: "object", properties: { deleted: { type: "boolean" } } } } } },
           },
         },
       },
-      "/memories/share": {
+      "/memories/{id}/share": {
         post: {
           operationId: "shareMemory",
           summary: "Share a memory",
-          description: "Change a memory's visibility scope. Share knowledge between agents, users, or across an organization.",
+          description: "Share a memory with a broader scope so other agents can access it.",
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" }, description: "Memory ID" },
+          ],
           requestBody: {
             required: true,
             content: {
               "application/json": {
                 schema: {
                   type: "object",
-                  required: ["agent_id", "memory_id", "scope"],
+                  required: ["target_scope"],
                   properties: {
-                    agent_id: { type: "string", description: "Agent identifier" },
-                    memory_id: { type: "string", description: "ID of the memory to share" },
-                    scope: { type: "string", enum: ["agent", "user", "org"], description: "Target visibility scope" },
+                    target_scope: { type: "string", enum: ["user", "org"], description: "Target visibility scope" },
+                    user_id: { type: "string", description: "Required when sharing to user scope" },
                   },
                 },
               },
@@ -348,6 +367,19 @@ app.get("/openapi.json", (c) => {
           },
           responses: {
             "200": { description: "Memory shared", content: { "application/json": { schema: { type: "object", properties: { shared: { type: "boolean" } } } } } },
+          },
+        },
+      },
+      "/usage": {
+        get: {
+          operationId: "getUsage",
+          summary: "Get usage statistics",
+          description: "Get memory counts, usage events, and active agents for the authenticated API key.",
+          responses: {
+            "200": {
+              description: "Usage statistics",
+              content: { "application/json": { schema: { type: "object", properties: { memories: { type: "object", properties: { total: { type: "integer" }, by_scope: { type: "object", properties: { agent: { type: "integer" }, user: { type: "integer" }, org: { type: "integer" } } } } }, events_30d: { type: "object" }, active_agents: { type: "array", items: { type: "string" } } } } } },
+            },
           },
         },
       },

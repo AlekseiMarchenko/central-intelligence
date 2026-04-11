@@ -1,7 +1,7 @@
-import chalk from "chalk";
 import { execSync } from "child_process";
 
 export async function testCommand(): Promise<void> {
+  const chalk = (await import("chalk")).default;
   console.log(chalk.bold("\nCI Local Pro — Memory Quality Test (AMB)\n"));
 
   // Check if AMB is available

@@ -12,7 +12,8 @@ import {
   linkEntitiesToFacts,
   clearEntityCache,
 } from "./entity-resolution.js";
-import { consolidateObservations } from "./observations.js";
+// consolidateObservations import removed — observations are skipped by default (SKIP_OBSERVATIONS=1)
+// and not wired into the current pipeline. Re-add when observation synthesis is needed.
 
 /** Validate a date string — returns null if it can't be parsed as a valid date. */
 function safeDate(val: string | null | undefined): string | null {
@@ -356,17 +357,21 @@ interface ExtractionParams {
   eventTo: string | null;
 }
 
-/** Fire-and-forget single extraction for the inline store() path. */
+/**
+ * Fire-and-forget single extraction for the inline store() path.
+ * Uses AbortController to cancel the extraction when the timeout fires,
+ * preventing zombie processExtraction calls that could race with batch re-runs.
+ */
 function fireAndForgetExtraction(params: ExtractionParams): void {
-  Promise.race([
-    processExtraction(params),
-    new Promise<void>((resolve) =>
-      setTimeout(() => {
-        sql`UPDATE memories SET extraction_status = 'failed' WHERE id = ${params.memoryId}`.catch(() => {});
-        resolve();
-      }, EXTRACTION_TIMEOUT_MS)
-    ),
-  ]).catch(() => {});
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    controller.abort();
+    sql`UPDATE memories SET extraction_status = 'failed' WHERE id = ${params.memoryId}`.catch(() => {});
+  }, EXTRACTION_TIMEOUT_MS);
+
+  processExtraction(params, controller.signal)
+    .finally(() => clearTimeout(timer))
+    .catch(() => {});
 }
 
 /**
@@ -415,13 +420,15 @@ async function createFallbackFact(
  * POST /memories/extract. Retries were causing zombie processExtraction
  * calls that saturated the OpenAI connection pool after Promise.race timeout.
  */
-async function processExtraction(params: ExtractionParams): Promise<void> {
+async function processExtraction(params: ExtractionParams, signal?: AbortSignal): Promise<void> {
   const { memoryId, apiKeyId, agentId, rawApiKey, plaintext, fallbackFactId, eventFrom, eventTo } = params;
 
   try {
+    if (signal?.aborted) return;
     await sql`UPDATE memories SET extraction_status = 'processing' WHERE id = ${memoryId}`;
 
       // Step 1: Extract structured facts
+      if (signal?.aborted) return;
       const extraction = await extractFacts(plaintext);
       if (extraction.facts.length === 0 && extraction.preferences.length === 0) {
         // Nothing to extract — keep the fallback, mark complete
@@ -432,9 +439,9 @@ async function processExtraction(params: ExtractionParams): Promise<void> {
       // Step 2: Insert fact_units with individual embeddings
       const factIds: string[] = [];
       const allEntityNames: Array<{ name: string; type?: string }> = [];
-      const factEntityMap: Array<{ factId: string; entityNames: string[] }> = [];
 
       // Batch embed all facts in one API call (~200ms instead of ~200ms × N)
+      if (signal?.aborted) return;
       const factTexts = extraction.facts.map((f) => f.what);
       const factEmbeddings = factTexts.length > 0 ? await embedBatch(factTexts) : [];
 
@@ -477,8 +484,6 @@ async function processExtraction(params: ExtractionParams): Promise<void> {
           }
         }
         // Track which entities belong to which fact
-        factEntityMap.push({ factId: inserted.id, entityNames: fact.entities });
-
         // Extract entity types from who[] field
         for (const person of fact.who) {
           if (!allEntityNames.some((e) => e.name.toLowerCase() === person.name.toLowerCase())) {
@@ -487,17 +492,44 @@ async function processExtraction(params: ExtractionParams): Promise<void> {
         }
       }
 
-      // Entity resolution, linking, co-occurrences, causal links, and temporal
-      // links are DEFERRED to a separate bulk pass (buildEntityGraph). This
-      // decoupling eliminates the concurrency bugs that stalled extraction at
-      // ~489 completions: FK violations, connection pool exhaustion, stale cache,
-      // false merges, and co-occurrence write contention.
+      // Entity resolution, linking, co-occurrences, and temporal links are
+      // DEFERRED to buildEntityGraph(). Entity names are in fact_units.entities JSONB.
       //
-      // Entity names are already stored in fact_units.entities JSONB, so the
-      // data is preserved for the bulk graph-building step.
+      // Causal relations are persisted NOW because they're fact-to-fact links
+      // (no entity resolution needed) and graphSearch() uses them for expansion.
+      if (factIds.length > 0) {
+        for (let i = 0; i < extraction.facts.length; i++) {
+          const fact = extraction.facts[i];
+          const fromFactId = factIds[i];
+          if (fact.causal_relations && fact.causal_relations.length > 0) {
+            // Link this fact to subsequent facts that it causes/enables.
+            // Causal relations are directional: this fact → related facts in same memory.
+            for (let j = i + 1; j < factIds.length; j++) {
+              // Check if any causal relation text matches the target fact
+              const targetFact = extraction.facts[j];
+              for (const relation of fact.causal_relations) {
+                if (targetFact.what.toLowerCase().includes(relation.toLowerCase().substring(0, 20))) {
+                  try {
+                    await sql`
+                      INSERT INTO fact_links (from_fact_id, to_fact_id, link_type, weight)
+                      VALUES (${fromFactId}, ${factIds[j]}, 'causal', 0.8)
+                      ON CONFLICT DO NOTHING
+                    `;
+                  } catch {}
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
 
-      // Step 8: Delete the fallback fact_unit
-      await sql`DELETE FROM fact_units WHERE id = ${fallbackFactId}`;
+      // Step 8: Delete the fallback fact_unit ONLY if real facts were created.
+      // If extraction returned preferences but zero facts, keep the fallback
+      // so the memory remains discoverable in the fact_units search path.
+      if (extraction.facts.length > 0) {
+        await sql`DELETE FROM fact_units WHERE id = ${fallbackFactId}`;
+      }
 
       // Step 9: Populate legacy JSONB columns for backward compat
       const allEntities = allEntityNames.map((e) => e.name);
@@ -528,22 +560,14 @@ async function processExtraction(params: ExtractionParams): Promise<void> {
 }
 
 /**
- * Process pending memories in batches using DB-driven async loop.
- * No in-memory queue. The DB IS the queue (extraction_status column).
- *
- * Flow:
- *   1. Recover stale 'processing' jobs (>60s old) → mark 'pending'
- *   2. Fetch batch of N 'pending' memories
- *   3. Mark them 'processing' (claim the work)
- *   4. Process batch with Promise.allSettled + per-extraction timeout
- *   5. Mark results complete/failed
- *   6. Return count for this batch (caller can loop)
+ * Process a single batch of pending memories. Internal helper for processPendingMemories.
+ * Returns batch counts. The outer function loops until no work remains.
  */
-export async function processPendingMemories(
+async function processOneBatch(
   apiKeyId: string,
   rawApiKey: string,
-): Promise<{ processed: number; failed: number; remaining: number }> {
-  // Step 1: Recover stale jobs (crashed mid-extraction, stuck in 'processing')
+): Promise<{ processed: number; failed: number; batchSize: number }> {
+  // Recover stale jobs (crashed mid-extraction, stuck in 'processing')
   const recovered = await sql`
     UPDATE memories SET extraction_status = 'pending'
     WHERE api_key_id = ${apiKeyId}
@@ -555,7 +579,7 @@ export async function processPendingMemories(
     console.log(`[extract] Recovered ${recovered.length} stale processing jobs`);
   }
 
-  // Step 2: Fetch a batch of pending memories
+  // Fetch a batch of pending memories
   const batch = await sql`
     SELECT id, agent_id, content, event_date_from::text, event_date_to::text
     FROM memories
@@ -567,22 +591,17 @@ export async function processPendingMemories(
   `;
 
   if (batch.length === 0) {
-    const remaining = await sql`
-      SELECT COUNT(*) as c FROM memories
-      WHERE api_key_id = ${apiKeyId} AND deleted_at IS NULL
-        AND extraction_status IN ('pending', 'processing')
-    `;
-    return { processed: 0, failed: 0, remaining: parseInt((remaining[0] as any).c) || 0 };
+    return { processed: 0, failed: 0, batchSize: 0 };
   }
 
-  // Step 3: Mark batch as 'processing' (claim the work)
+  // Mark batch as 'processing' (claim the work)
   const batchIds = (batch as any[]).map((m: any) => m.id);
   await sql`
     UPDATE memories SET extraction_status = 'processing', updated_at = now()
     WHERE id = ANY(${batchIds})
   `;
 
-  // Step 4: Process batch concurrently with per-extraction timeout
+  // Process batch concurrently with per-extraction timeout
   const results = await Promise.allSettled(
     (batch as any[]).map(async (mem: any) => {
       const plaintext = decrypt(mem.content, rawApiKey);
@@ -591,16 +610,36 @@ export async function processPendingMemories(
         return;
       }
 
-      // Find or create fallback
+      // Find or create fallback — use real embedding from parent memory (Fix #2)
       const fallbacks = await sql`
         SELECT id FROM fact_units WHERE memory_id = ${mem.id} AND is_fallback = true LIMIT 1
       `;
-      const fallbackId = fallbacks.length > 0
-        ? (fallbacks[0] as any).id
-        : await createFallbackFact(
+      let fallbackId: string;
+      if (fallbacks.length > 0) {
+        fallbackId = (fallbacks[0] as any).id;
+      } else {
+        // Get parent memory's embedding vector for the fallback fact
+        const parentVec = await sql`
+          SELECT embedding_vec::text as vec FROM memories WHERE id = ${mem.id}
+        `;
+        const vecStr = parentVec.length > 0 && (parentVec[0] as any).vec
+          ? (parentVec[0] as any).vec
+          : null;
+        if (!vecStr) {
+          // No embedding on parent — generate one from plaintext
+          const embedding = await embed(plaintext);
+          const generatedVec = `[${embedding.join(",")}]`;
+          fallbackId = await createFallbackFact(
             mem.id, apiKeyId, mem.agent_id, mem.content,
-            "[]", plaintext, mem.event_date_from, mem.event_date_to,
+            generatedVec, plaintext, mem.event_date_from, mem.event_date_to,
           );
+        } else {
+          fallbackId = await createFallbackFact(
+            mem.id, apiKeyId, mem.agent_id, mem.content,
+            vecStr, plaintext, mem.event_date_from, mem.event_date_to,
+          );
+        }
+      }
 
       // Run extraction with timeout
       await Promise.race([
@@ -621,7 +660,7 @@ export async function processPendingMemories(
     })
   );
 
-  // Step 5: Count results
+  // Count results
   let processed = 0;
   let failed = 0;
   for (let i = 0; i < results.length; i++) {
@@ -634,15 +673,71 @@ export async function processPendingMemories(
     }
   }
 
-  // Count remaining
+  return { processed, failed, batchSize: batch.length };
+}
+
+/**
+ * Process ALL pending memories by looping through batches.
+ * DB-driven async loop — no in-memory queue.
+ *
+ * Flow per batch:
+ *   1. Recover stale 'processing' jobs (>90s old) → mark 'pending'
+ *   2. Fetch batch of N 'pending' memories
+ *   3. Mark them 'processing' (claim the work)
+ *   4. Process batch with Promise.allSettled + per-extraction timeout
+ *   5. Mark results complete/failed
+ *   6. Loop until no pending work remains
+ */
+export async function processPendingMemories(
+  apiKeyId: string,
+  rawApiKey: string,
+): Promise<{ processed: number; failed: number; remaining: number }> {
+  let totalProcessed = 0;
+  let totalFailed = 0;
+  let batchNum = 0;
+
+  while (true) {
+    batchNum++;
+    const batch = await processOneBatch(apiKeyId, rawApiKey);
+
+    totalProcessed += batch.processed;
+    totalFailed += batch.failed;
+
+    console.log(`[extract] Batch ${batchNum}: ${batch.processed} complete, ${batch.failed} failed`);
+
+    // No more pending work — exit loop
+    if (batch.batchSize === 0) break;
+  }
+
+  // Final remaining count (should be 0 if no retries exhausted)
   const remaining = await sql`
     SELECT COUNT(*) as c FROM memories
     WHERE api_key_id = ${apiKeyId} AND deleted_at IS NULL
       AND (extraction_status = 'pending' OR (extraction_status = 'failed' AND extraction_retries < 3))
   `;
+  const rem = parseInt((remaining[0] as any).c) || 0;
 
-  console.log(`[extract] Batch: ${processed} complete, ${failed} failed, ${parseInt((remaining[0] as any).c) || 0} remaining`);
-  return { processed, failed, remaining: parseInt((remaining[0] as any).c) || 0 };
+  console.log(`[extract] Done. Total: ${totalProcessed} complete, ${totalFailed} failed, ${rem} remaining`);
+
+  // Auto-trigger entity graph building after extraction completes.
+  // Without this, graph retrieval (entity_facts, fact_links) is dead.
+  // Runs for each distinct agent_id that had memories processed.
+  if (totalProcessed > 0 && process.env.SKIP_ENTITY_RESOLUTION !== "1") {
+    try {
+      const agents = await sql`
+        SELECT DISTINCT agent_id FROM memories
+        WHERE api_key_id = ${apiKeyId} AND extraction_status = 'complete'
+      `;
+      for (const row of agents as any[]) {
+        console.log(`[extract] Auto-building entity graph for agent ${row.agent_id}...`);
+        await buildEntityGraph(apiKeyId, row.agent_id);
+      }
+    } catch (err: any) {
+      console.warn(`[extract] Auto graph build failed (non-fatal):`, err.message);
+    }
+  }
+
+  return { processed: totalProcessed, failed: totalFailed, remaining: rem };
 }
 
 /**
@@ -1253,10 +1348,23 @@ async function recallFromFacts(
   const factToMemory = await facadeFactsToMemories(allFactIds, rawApiKey);
 
   // Build scored memory list (deduplicate by memory ID, keep best fact score)
+  // Apply caller filters (scope, tags, dateFrom, dateTo) at the memory level.
+  const { scope, tags, dateFrom, dateTo } = params;
   const memoryScores = new Map<string, { memory: any; score: number }>();
   for (const [factId, rrfScore] of fusedScores.entries()) {
     const mem = factToMemory.get(factId);
     if (!mem) continue;
+
+    // Apply scope filter
+    if (scope && mem.scope !== scope) continue;
+    // Apply tags filter (memory must have ALL requested tags)
+    if (tags && tags.length > 0) {
+      const memTags: string[] = Array.isArray(mem.tags) ? mem.tags : [];
+      if (!tags.every((t: string) => memTags.includes(t))) continue;
+    }
+    // Apply date filters
+    if (dateFrom && mem.created_at < dateFrom) continue;
+    if (dateTo && mem.created_at > dateTo) continue;
 
     const decay = temporalDecay(mem.created_at);
     const finalScore = rrfScore * 0.85 + decay * rrfScore * 0.15;

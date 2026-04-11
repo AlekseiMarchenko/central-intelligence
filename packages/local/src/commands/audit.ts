@@ -1,4 +1,3 @@
-import chalk from "chalk";
 import { parseAllFiles } from "../file-sources.js";
 import { getAllMemories } from "../db.js";
 import { computeHealth } from "../health.js";
@@ -10,13 +9,14 @@ interface AuditOptions {
 }
 
 export async function auditCommand(options: AuditOptions): Promise<void> {
+  const chalk = (await import("chalk")).default;
   console.log(chalk.bold("\nCI Local Pro — Memory Audit\n"));
 
   // 1. Parse all file sources
   const { entries: fileEntries, files, warnings } = parseAllFiles();
 
   // 2. Load DB memories
-  let dbMemories;
+  let dbMemories: ReturnType<typeof getAllMemories> = [];
   try {
     dbMemories = getAllMemories();
   } catch {
