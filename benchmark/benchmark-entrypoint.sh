@@ -70,12 +70,14 @@ fi
 # ─── Helper: start/stop API ───
 start_api() {
   local extraction_concurrency="${1:-0}"
+  local skip_obs="${2:-}"
   cd /app/ci
   DATABASE_URL="postgres://ci_bench:ci_bench@localhost:5432/ci_bench" \
     OPENAI_API_KEY="$OPENAI_API_KEY" \
     PORT=3141 \
     NODE_ENV=production \
     MAX_EXTRACTION_CONCURRENCY="$extraction_concurrency" \
+    SKIP_OBSERVATIONS="$skip_obs" \
     node dist/index.js >> /data/api.log 2>&1 &
   CI_PID=$!
   echo "$CI_PID" > /data/api.pid
@@ -275,7 +277,7 @@ su postgres -c "psql -d ci_bench -c \"UPDATE memories SET extraction_status = 'p
 TOTAL_PENDING=$(su postgres -c "psql -d ci_bench -tAc \"SELECT COUNT(*) FROM memories WHERE extraction_status = 'pending'\"" | tr -d ' ')
 echo "  Cleaned. Memories to enrich: $TOTAL_PENDING"
 
-start_api 3
+start_api 3 1  # concurrency=3, skip_observations=1
 
 # Trigger batch extraction via the dedicated endpoint
 EXTRACT_RESPONSE=$(curl -sf -X POST http://localhost:3141/memories/extract \
