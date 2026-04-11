@@ -1,0 +1,17 @@
+app = "ci-benchmark"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[mounts]
+  source = "bench_data"
+  destination = "/data"
+
+# Performance CPU: no throttling, no burst credits, consistent speed.
+# Shared CPU throttles to 12.5% after ~8 min of sustained load,
+# causing extraction to "stall" (event loop too slow for timeouts).
+[[vm]]
+  memory = "2gb"
+  cpu_kind = "performance"
+  cpus = 1
