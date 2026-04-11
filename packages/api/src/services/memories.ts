@@ -1,4 +1,4 @@
-import { sql } from "../db/connection.js";
+import { sql, withHnswSearch } from "../db/connection.js";
 import { embed, embedBatch, embeddingTokenEstimate } from "./embeddings.js";
 import { encrypt, decrypt, isEncrypted } from "./encryption.js";
 import { rerank } from "./rerank.js";
@@ -169,6 +169,7 @@ async function bm25Search(
 
 // --- pgvector ANN search ---
 
+/** pgvector ANN search on memories table. Uses withHnswSearch to guarantee ef_search=400. */
 async function pgvectorSearch(
   apiKeyId: string,
   agentId: string,
@@ -180,52 +181,18 @@ async function pgvectorSearch(
 ): Promise<{ id: string; rank: number; score: number }[]> {
   const vecStr = `[${queryVector.join(",")}]`;
 
-  // Date filtering: use event_date columns (content-parsed dates) when available,
-  // with NULL event_dates always passing through (dateless memories like preferences).
-  // When no date filter is provided, all memories are searched.
   const hasDateFilter = dateFrom || dateTo;
   const effectiveDateFrom = dateFrom || "1970-01-01T00:00:00Z";
   const effectiveDateTo = dateTo || "2099-12-31T23:59:59Z";
 
-  // Agent's own memories
-  const agentResults = hasDateFilter
-    ? await sql`
-        SELECT id, 1 - (embedding_vec <=> ${vecStr}::vector) as similarity
-        FROM memories
-        WHERE api_key_id = ${apiKeyId}
-          AND agent_id = ${agentId}
-          AND deleted_at IS NULL
-          AND embedding_vec IS NOT NULL
-          AND (
-            event_date_from IS NULL
-            OR (event_date_to >= ${effectiveDateFrom}::timestamptz
-                AND event_date_from <= ${effectiveDateTo}::timestamptz)
-          )
-        ORDER BY embedding_vec <=> ${vecStr}::vector
-        LIMIT ${limit}
-      `
-    : await sql`
-        SELECT id, 1 - (embedding_vec <=> ${vecStr}::vector) as similarity
-        FROM memories
-        WHERE api_key_id = ${apiKeyId}
-          AND agent_id = ${agentId}
-          AND deleted_at IS NULL
-          AND embedding_vec IS NOT NULL
-        ORDER BY embedding_vec <=> ${vecStr}::vector
-        LIMIT ${limit}
-      `;
-
-  let allResults = [...(agentResults as any[])];
-
-  // Shared memories (user/org scope)
-  if (includeShared) {
-    const sharedResults = hasDateFilter
-      ? await sql`
+  return withHnswSearch(async (tx) => {
+    // Agent's own memories
+    const agentResults = hasDateFilter
+      ? await tx`
           SELECT id, 1 - (embedding_vec <=> ${vecStr}::vector) as similarity
           FROM memories
           WHERE api_key_id = ${apiKeyId}
-            AND scope IN ('user', 'org')
-            AND agent_id != ${agentId}
+            AND agent_id = ${agentId}
             AND deleted_at IS NULL
             AND embedding_vec IS NOT NULL
             AND (
@@ -234,27 +201,59 @@ async function pgvectorSearch(
                   AND event_date_from <= ${effectiveDateTo}::timestamptz)
             )
           ORDER BY embedding_vec <=> ${vecStr}::vector
-          LIMIT ${Math.floor(limit / 2)}
+          LIMIT ${limit}
         `
-      : await sql`
+      : await tx`
           SELECT id, 1 - (embedding_vec <=> ${vecStr}::vector) as similarity
           FROM memories
           WHERE api_key_id = ${apiKeyId}
-            AND scope IN ('user', 'org')
-            AND agent_id != ${agentId}
+            AND agent_id = ${agentId}
             AND deleted_at IS NULL
             AND embedding_vec IS NOT NULL
           ORDER BY embedding_vec <=> ${vecStr}::vector
-          LIMIT ${Math.floor(limit / 2)}
+          LIMIT ${limit}
         `;
-    allResults = [...allResults, ...(sharedResults as any[])];
-  }
 
-  return allResults.map((r: any, i: number) => ({
-    id: r.id,
-    rank: i + 1,
-    score: parseFloat(r.similarity),
-  }));
+    let allResults = [...(agentResults as any[])];
+
+    if (includeShared) {
+      const sharedResults = hasDateFilter
+        ? await tx`
+            SELECT id, 1 - (embedding_vec <=> ${vecStr}::vector) as similarity
+            FROM memories
+            WHERE api_key_id = ${apiKeyId}
+              AND scope IN ('user', 'org')
+              AND agent_id != ${agentId}
+              AND deleted_at IS NULL
+              AND embedding_vec IS NOT NULL
+              AND (
+                event_date_from IS NULL
+                OR (event_date_to >= ${effectiveDateFrom}::timestamptz
+                    AND event_date_from <= ${effectiveDateTo}::timestamptz)
+              )
+            ORDER BY embedding_vec <=> ${vecStr}::vector
+            LIMIT ${Math.floor(limit / 2)}
+          `
+        : await tx`
+            SELECT id, 1 - (embedding_vec <=> ${vecStr}::vector) as similarity
+            FROM memories
+            WHERE api_key_id = ${apiKeyId}
+              AND scope IN ('user', 'org')
+              AND agent_id != ${agentId}
+              AND deleted_at IS NULL
+              AND embedding_vec IS NOT NULL
+            ORDER BY embedding_vec <=> ${vecStr}::vector
+            LIMIT ${Math.floor(limit / 2)}
+          `;
+      allResults = [...allResults, ...(sharedResults as any[])];
+    }
+
+    return allResults.map((r: any, i: number) => ({
+      id: r.id,
+      rank: i + 1,
+      score: parseFloat(r.similarity),
+    }));
+  });
 }
 
 // --- Store ---
@@ -907,7 +906,7 @@ async function checkFactUnitsAvailable(): Promise<boolean> {
   }
 }
 
-/** Vector search against fact_units table */
+/** Vector search against fact_units table. Uses withHnswSearch to guarantee ef_search=400. */
 async function factVectorSearch(
   apiKeyId: string,
   agentId: string,
@@ -915,7 +914,7 @@ async function factVectorSearch(
   limit: number = 200,
 ): Promise<{ id: string; rank: number; score: number }[]> {
   const vecStr = `[${queryVector.join(",")}]`;
-  const results = await sql`
+  const results = await withHnswSearch((tx) => tx`
     SELECT id, 1 - (embedding_vec <=> ${vecStr}::vector) as similarity
     FROM fact_units
     WHERE api_key_id = ${apiKeyId}
@@ -923,7 +922,7 @@ async function factVectorSearch(
       AND embedding_vec IS NOT NULL
     ORDER BY embedding_vec <=> ${vecStr}::vector
     LIMIT ${limit}
-  `;
+  `);
   return (results as any[]).map((r: any, i: number) => ({
     id: r.id,
     rank: i + 1,
@@ -985,7 +984,8 @@ async function graphSearch(
 
   try {
     // Single CTE: dual-seed → entity expansion → causal expansion → merge
-    const results = await sql`
+    // Wrapped in withHnswSearch so the vector_seeds CTE gets ef_search=400
+    const results = await withHnswSearch((tx) => tx`
       WITH vector_seeds AS (
         SELECT id, 1 - (embedding_vec <=> ${vecStr}::vector) as score
         FROM fact_units
@@ -1034,7 +1034,7 @@ async function graphSearch(
       GROUP BY id
       ORDER BY total_score DESC
       LIMIT ${limit}
-    `;
+    `);
 
     return (results as any[]).map((r: any, i: number) => ({
       id: r.id,
