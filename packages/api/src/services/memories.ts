@@ -309,13 +309,9 @@ export async function store(params: StoreParams): Promise<Memory> {
     result.id, apiKeyId, agentId, encryptedContent, vecStr, content, eventFrom, eventTo,
   );
 
-  // Queue structured fact extraction (fire-and-forget, max N concurrent).
-  // Replaces the old enrichMemoryAsync() with full structured fact decomposition.
-  // PRIVACY NOTE: Fact extraction sends plaintext content to OpenAI GPT-4o-mini.
-  // This is necessary for structured extraction but means memory content is
-  // processed by OpenAI's API. Content is encrypted at rest in our DB but
-  // is decrypted for LLM processing. Users should be aware of this tradeoff.
-  queueFactExtraction({
+  // Fire-and-forget single extraction for this memory.
+  // PRIVACY NOTE: Sends plaintext to OpenAI GPT-4o-mini for structured extraction.
+  fireAndForgetExtraction({
     memoryId: result.id,
     apiKeyId,
     agentId,
@@ -335,11 +331,19 @@ export async function store(params: StoreParams): Promise<Memory> {
   return result;
 }
 
-// --- Fact extraction queue (max N concurrent, fire-and-forget) ---
+// --- Fact extraction (DB-driven, no in-memory queue) ---
+//
+// The extraction pipeline uses the DB as the job queue:
+//   - extraction_status = 'pending'    → ready to process
+//   - extraction_status = 'processing' → currently being worked on
+//   - extraction_status = 'complete'   → done
+//   - extraction_status = 'failed'     → failed, can be retried
+//
+// No in-memory queue, no slot counters, no drain functions.
+// If the process dies, 'processing' rows are recovered on the next run.
 
 const MAX_EXTRACTION_CONCURRENCY = parseInt(process.env.MAX_EXTRACTION_CONCURRENCY || "3");
-let _activeExtractions = 0;
-const _extractionQueue: Array<() => Promise<void>> = [];
+const EXTRACTION_TIMEOUT_MS = parseInt(process.env.EXTRACTION_TIMEOUT_MS || "60000");
 
 interface ExtractionParams {
   memoryId: string;
@@ -352,41 +356,17 @@ interface ExtractionParams {
   eventTo: string | null;
 }
 
-const EXTRACTION_TIMEOUT_MS = parseInt(process.env.EXTRACTION_TIMEOUT_MS || "60000"); // 60s default
-
-function queueFactExtraction(params: ExtractionParams): void {
-  const task = async () => {
-    // Hard timeout: if extraction doesn't complete in time, mark failed and move on.
-    // Unlike Promise.race, this prevents zombie processExtraction calls from continuing
-    // to retry in the background and saturating the OpenAI connection pool.
-    const timeoutId = setTimeout(() => {
-      console.warn(`[extraction] Timeout after ${EXTRACTION_TIMEOUT_MS}ms for memory ${params.memoryId}`);
-      sql`UPDATE memories SET extraction_status = 'failed' WHERE id = ${params.memoryId}`.catch(() => {});
-    }, EXTRACTION_TIMEOUT_MS);
-
-    try {
-      await processExtraction(params);
-    } catch (err: any) {
-      console.warn(`[extraction] Failed for memory ${params.memoryId}: ${err.message}`);
-      await sql`UPDATE memories SET extraction_status = 'failed' WHERE id = ${params.memoryId}`.catch(() => {});
-    } finally {
-      clearTimeout(timeoutId);
-    }
-  };
-  if (_activeExtractions < MAX_EXTRACTION_CONCURRENCY) {
-    _activeExtractions++;
-    task().finally(() => { _activeExtractions--; drainExtractionQueue(); });
-  } else {
-    _extractionQueue.push(task);
-  }
-}
-
-function drainExtractionQueue(): void {
-  while (_extractionQueue.length > 0 && _activeExtractions < MAX_EXTRACTION_CONCURRENCY) {
-    _activeExtractions++;
-    const next = _extractionQueue.shift()!;
-    next().finally(() => { _activeExtractions--; drainExtractionQueue(); });
-  }
+/** Fire-and-forget single extraction for the inline store() path. */
+function fireAndForgetExtraction(params: ExtractionParams): void {
+  Promise.race([
+    processExtraction(params),
+    new Promise<void>((resolve) =>
+      setTimeout(() => {
+        sql`UPDATE memories SET extraction_status = 'failed' WHERE id = ${params.memoryId}`.catch(() => {});
+        resolve();
+      }, EXTRACTION_TIMEOUT_MS)
+    ),
+  ]).catch(() => {});
 }
 
 /**
@@ -548,81 +528,121 @@ async function processExtraction(params: ExtractionParams): Promise<void> {
 }
 
 /**
- * Process all pending memories that never had fact extraction run.
- * Called via POST /memories/extract endpoint. Requires rawApiKey to decrypt content.
- * Picks up memories with extraction_status = 'pending' or 'failed' (with retries < 3).
- * Skips memories that already have non-fallback fact_units.
+ * Process pending memories in batches using DB-driven async loop.
+ * No in-memory queue. The DB IS the queue (extraction_status column).
+ *
+ * Flow:
+ *   1. Recover stale 'processing' jobs (>60s old) → mark 'pending'
+ *   2. Fetch batch of N 'pending' memories
+ *   3. Mark them 'processing' (claim the work)
+ *   4. Process batch with Promise.allSettled + per-extraction timeout
+ *   5. Mark results complete/failed
+ *   6. Return count for this batch (caller can loop)
  */
 export async function processPendingMemories(
   apiKeyId: string,
   rawApiKey: string,
-): Promise<{ queued: number; total: number }> {
-  // Clear entity cache to prevent stale FK references after cleanup
-  clearEntityCache();
+): Promise<{ processed: number; failed: number; remaining: number }> {
+  // Step 1: Recover stale jobs (crashed mid-extraction, stuck in 'processing')
+  const recovered = await sql`
+    UPDATE memories SET extraction_status = 'pending'
+    WHERE api_key_id = ${apiKeyId}
+      AND extraction_status = 'processing'
+      AND updated_at < now() - interval '90 seconds'
+    RETURNING id
+  `;
+  if (recovered.length > 0) {
+    console.log(`[extract] Recovered ${recovered.length} stale processing jobs`);
+  }
 
-  // Find pending memories for this API key
-  const pending = await sql`
-    SELECT id, agent_id, content, event_date_from::text, event_date_to::text,
-           embedding_vec::text
+  // Step 2: Fetch a batch of pending memories
+  const batch = await sql`
+    SELECT id, agent_id, content, event_date_from::text, event_date_to::text
     FROM memories
     WHERE api_key_id = ${apiKeyId}
       AND deleted_at IS NULL
       AND (extraction_status = 'pending' OR (extraction_status = 'failed' AND extraction_retries < 3))
     ORDER BY created_at ASC
-    LIMIT 500
+    LIMIT ${MAX_EXTRACTION_CONCURRENCY}
   `;
 
-  const total = pending.length;
-  if (total === 0) return { queued: 0, total: 0 };
-
-  let queued = 0;
-  for (const mem of pending as any[]) {
-    // Decrypt content
-    const plaintext = decrypt(mem.content, rawApiKey);
-    if (!plaintext || plaintext === mem.content) {
-      // Can't decrypt (wrong key or unencrypted), skip
-      continue;
-    }
-
-    // Check if a non-fallback fact_unit already exists (avoid re-processing)
-    const existing = await sql`
-      SELECT 1 FROM fact_units
-      WHERE memory_id = ${mem.id} AND is_fallback = false
-      LIMIT 1
+  if (batch.length === 0) {
+    const remaining = await sql`
+      SELECT COUNT(*) as c FROM memories
+      WHERE api_key_id = ${apiKeyId} AND deleted_at IS NULL
+        AND extraction_status IN ('pending', 'processing')
     `;
-    if (existing.length > 0) {
-      // Already extracted, just mark complete
-      await sql`UPDATE memories SET extraction_status = 'complete' WHERE id = ${mem.id}`;
-      continue;
-    }
-
-    // Find or create a fallback fact_unit ID
-    const fallbacks = await sql`
-      SELECT id FROM fact_units WHERE memory_id = ${mem.id} AND is_fallback = true LIMIT 1
-    `;
-    const fallbackId = fallbacks.length > 0
-      ? (fallbacks[0] as any).id
-      : await createFallbackFact(
-          mem.id, apiKeyId, mem.agent_id, mem.content,
-          mem.embedding_vec || "[]", plaintext, mem.event_date_from, mem.event_date_to,
-        );
-
-    // Queue extraction (uses the existing concurrency-limited queue)
-    queueFactExtraction({
-      memoryId: mem.id,
-      apiKeyId,
-      agentId: mem.agent_id,
-      rawApiKey,
-      plaintext,
-      fallbackFactId: fallbackId,
-      eventFrom: mem.event_date_from || null,
-      eventTo: mem.event_date_to || null,
-    });
-    queued++;
+    return { processed: 0, failed: 0, remaining: parseInt((remaining[0] as any).c) || 0 };
   }
 
-  console.log(`[extract] Queued ${queued}/${total} pending memories for extraction`);
-  return { queued, total };
+  // Step 3: Mark batch as 'processing' (claim the work)
+  const batchIds = (batch as any[]).map((m: any) => m.id);
+  await sql`
+    UPDATE memories SET extraction_status = 'processing', updated_at = now()
+    WHERE id = ANY(${batchIds})
+  `;
+
+  // Step 4: Process batch concurrently with per-extraction timeout
+  const results = await Promise.allSettled(
+    (batch as any[]).map(async (mem: any) => {
+      const plaintext = decrypt(mem.content, rawApiKey);
+      if (!plaintext || plaintext === mem.content) {
+        await sql`UPDATE memories SET extraction_status = 'failed' WHERE id = ${mem.id}`;
+        return;
+      }
+
+      // Find or create fallback
+      const fallbacks = await sql`
+        SELECT id FROM fact_units WHERE memory_id = ${mem.id} AND is_fallback = true LIMIT 1
+      `;
+      const fallbackId = fallbacks.length > 0
+        ? (fallbacks[0] as any).id
+        : await createFallbackFact(
+            mem.id, apiKeyId, mem.agent_id, mem.content,
+            "[]", plaintext, mem.event_date_from, mem.event_date_to,
+          );
+
+      // Run extraction with timeout
+      await Promise.race([
+        processExtraction({
+          memoryId: mem.id,
+          apiKeyId,
+          agentId: mem.agent_id,
+          rawApiKey,
+          plaintext,
+          fallbackFactId: fallbackId,
+          eventFrom: mem.event_date_from || null,
+          eventTo: mem.event_date_to || null,
+        }),
+        new Promise<void>((_, reject) =>
+          setTimeout(() => reject(new Error("timeout")), EXTRACTION_TIMEOUT_MS)
+        ),
+      ]);
+    })
+  );
+
+  // Step 5: Count results
+  let processed = 0;
+  let failed = 0;
+  for (let i = 0; i < results.length; i++) {
+    if (results[i].status === "rejected") {
+      failed++;
+      const memId = (batch as any[])[i].id;
+      await sql`UPDATE memories SET extraction_status = 'failed', extraction_retries = extraction_retries + 1 WHERE id = ${memId}`.catch(() => {});
+    } else {
+      processed++;
+    }
+  }
+
+  // Count remaining
+  const remaining = await sql`
+    SELECT COUNT(*) as c FROM memories
+    WHERE api_key_id = ${apiKeyId} AND deleted_at IS NULL
+      AND (extraction_status = 'pending' OR (extraction_status = 'failed' AND extraction_retries < 3))
+  `;
+
+  console.log(`[extract] Batch: ${processed} complete, ${failed} failed, ${parseInt((remaining[0] as any).c) || 0} remaining`);
+  return { processed, failed, remaining: parseInt((remaining[0] as any).c) || 0 };
 }
 
 /**
