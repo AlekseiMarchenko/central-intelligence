@@ -263,49 +263,15 @@ if [ "${SKIP_ENRICHMENT_AND_EVAL:-}" = "true" ]; then
 else
 
 # ═══════════════════════════════════════════════════
-#  PHASE B: ENRICHMENT (deferred, via /memories/extract)
+#  PHASE B: SKIPPED (v2 architecture — no extraction needed)
 # ═══════════════════════════════════════════════════
 echo ""
 echo "═══════════════════════════════════════════════════"
-echo "  PHASE B: Enrichment (deferred)"
+echo "  PHASE B: Skipped (v2 — no fact extraction)"
 echo "═══════════════════════════════════════════════════"
-
-# Clean up stale extraction data before re-enriching
-echo "  Cleaning up fallback facts and stale extraction data..."
-su postgres -c "psql -d ci_bench -c \"DELETE FROM fact_links\"" > /dev/null 2>&1
-su postgres -c "psql -d ci_bench -c \"DELETE FROM entity_facts\"" > /dev/null 2>&1
-su postgres -c "psql -d ci_bench -c \"DELETE FROM entity_cooccurrences\"" > /dev/null 2>&1
-su postgres -c "psql -d ci_bench -c \"DELETE FROM fact_units\"" > /dev/null 2>&1
-su postgres -c "psql -d ci_bench -c \"DELETE FROM entities\"" > /dev/null 2>&1
-su postgres -c "psql -d ci_bench -c \"UPDATE memories SET extraction_status = 'pending', extraction_retries = 0, entities = NULL, preferences = NULL, enriched_at = NULL\"" > /dev/null 2>&1
-
-TOTAL_PENDING=$(su postgres -c "psql -d ci_bench -tAc \"SELECT COUNT(*) FROM memories WHERE extraction_status = 'pending'\"" | tr -d ' ')
-echo "  Cleaned. Memories to enrich: $TOTAL_PENDING"
-
-start_api 3 1  # concurrency=3, skip_observations=1
-
-# Trigger batch extraction via the dedicated endpoint
-EXTRACT_RESPONSE=$(curl -sf -X POST http://localhost:3141/memories/extract \
-  -H "Authorization: Bearer $BENCH_KEY" \
-  -H "Content-Type: application/json")
-echo "  Extract response: $EXTRACT_RESPONSE"
-
-# Wait for extraction to complete
-echo "  Waiting for extraction to complete..."
-while true; do
-  PENDING=$(su postgres -c "psql -d ci_bench -tAc \"SELECT COUNT(*) FROM memories WHERE extraction_status = 'pending'\"" | tr -d ' ')
-  PROCESSING=$(su postgres -c "psql -d ci_bench -tAc \"SELECT COUNT(*) FROM memories WHERE extraction_status = 'processing'\"" | tr -d ' ')
-  COMPLETE=$(su postgres -c "psql -d ci_bench -tAc \"SELECT COUNT(*) FROM memories WHERE extraction_status = 'complete'\"" | tr -d ' ')
-  echo "  Enrichment: $COMPLETE complete, $PROCESSING processing, $PENDING pending"
-  if [ "$PENDING" = "0" ] && [ "$PROCESSING" = "0" ]; then
-    break
-  fi
-  sleep 30
-done
-
+echo "  v2 architecture uses pgvector + BM25 on raw memories."
+echo "  No fact decomposition, entity graph, or temporal search."
 ENRICH_TIME=$(date +%s)
-echo ""
-echo "  Enrichment complete in $(( (ENRICH_TIME - INGEST_TIME) / 60 ))m $(( (ENRICH_TIME - INGEST_TIME) % 60 ))s"
 
 stop_api
 

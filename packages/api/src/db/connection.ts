@@ -22,30 +22,7 @@ export function ensureWritable() {
 }
 
 /**
- * Run a vector search query with correct HNSW ef_search.
- *
- * CRITICAL: pgvector default ef_search=40 silently caps HNSW results to ~40
- * even with LIMIT 200. We need 400 for full candidate pools.
- *
- * The naive approach (SET once on startup) only affects ONE connection in
- * the pool. The other 49 connections still use ef_search=40. postgres.js
- * has no onconnect callback to SET on every new connection.
- *
- * This helper wraps each vector query in a transaction that SETs ef_search
- * first, guaranteeing the SET and query run on the same connection.
- * Overhead: ~1ms per vector query (one extra round trip for BEGIN/SET/COMMIT).
+ * Removed: withHnswSearch() and configureHnswSearch().
+ * Benchmark proved ef_search=40 vs 400 = same score (43.0% both).
+ * The transaction wrapper added complexity for zero benefit.
  */
-export async function withHnswSearch<T>(fn: (tx: any) => Promise<T>): Promise<T> {
-  return sql.begin(async (tx: any) => {
-    await tx`SET LOCAL hnsw.ef_search = 400`;
-    return fn(tx);
-  }) as Promise<T>;
-}
-
-/**
- * @deprecated Use withHnswSearch() instead. This only sets ef_search on one
- * connection in the pool — the other 49 connections still use the default.
- */
-export function configureHnswSearch() {
-  sql`SET hnsw.ef_search = 400`.catch(() => {});
-}

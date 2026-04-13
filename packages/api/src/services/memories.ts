@@ -1,10 +1,9 @@
-import { sql, withHnswSearch } from "../db/connection.js";
+import { sql } from "../db/connection.js";
 import { embed, embedBatch, embeddingTokenEstimate } from "./embeddings.js";
 import { encrypt, decrypt, isEncrypted } from "./encryption.js";
 import { rerank } from "./rerank.js";
 import { isPgvectorAvailable } from "../db/migrate-pgvector.js";
 import { parseDates } from "./date-parser.js";
-import { decomposeQuery } from "./query-decompose.js";
 import { extractFacts } from "./fact-extraction.js";
 import {
   resolveEntities,
@@ -12,8 +11,6 @@ import {
   linkEntitiesToFacts,
   clearEntityCache,
 } from "./entity-resolution.js";
-// consolidateObservations import removed — observations are skipped by default (SKIP_OBSERVATIONS=1)
-// and not wired into the current pipeline. Re-add when observation synthesis is needed.
 
 /** Validate a date string — returns null if it can't be parsed as a valid date. */
 function safeDate(val: string | null | undefined): string | null {
@@ -121,37 +118,71 @@ async function bm25Search(
   agentId: string,
   query: string,
   limit: number = 50,
-  includeShared: boolean = false
+  includeShared: boolean = false,
+  dateFrom?: string,
+  dateTo?: string,
 ): Promise<{ id: string; rank: number }[]> {
   try {
-    // Use plainto_tsquery for safe query parsing (no special syntax needed)
+    const hasDateFilter = dateFrom || dateTo;
+    const effectiveDateFrom = dateFrom || "1970-01-01T00:00:00Z";
+    const effectiveDateTo = dateTo || "2099-12-31T23:59:59Z";
+
+    // Date filter clause: NULL event_dates always pass through (dateless memories)
     const results = includeShared
-      ? await sql`
-          SELECT id,
-            ts_rank_cd(content_tsv, plainto_tsquery('english', ${query})) as bm25_score
-          FROM memories
-          WHERE api_key_id = ${apiKeyId}
-            AND deleted_at IS NULL
-            AND content_tsv @@ plainto_tsquery('english', ${query})
-            AND (agent_id = ${agentId} OR scope IN ('user', 'org'))
-          ORDER BY bm25_score DESC
-          LIMIT ${limit}
-        `
-      : await sql`
-          SELECT id,
-            ts_rank_cd(content_tsv, plainto_tsquery('english', ${query})) as bm25_score
-          FROM memories
-          WHERE api_key_id = ${apiKeyId}
-            AND agent_id = ${agentId}
-            AND deleted_at IS NULL
-            AND content_tsv @@ plainto_tsquery('english', ${query})
-          ORDER BY bm25_score DESC
-          LIMIT ${limit}
-        `;
+      ? hasDateFilter
+        ? await sql`
+            SELECT id,
+              ts_rank_cd(content_tsv, plainto_tsquery('english', ${query})) as bm25_score
+            FROM memories
+            WHERE api_key_id = ${apiKeyId}
+              AND deleted_at IS NULL
+              AND content_tsv @@ plainto_tsquery('english', ${query})
+              AND (agent_id = ${agentId} OR scope IN ('user', 'org'))
+              AND (event_date_from IS NULL
+                OR (event_date_to >= ${effectiveDateFrom}::timestamptz
+                    AND event_date_from <= ${effectiveDateTo}::timestamptz))
+            ORDER BY bm25_score DESC
+            LIMIT ${limit}
+          `
+        : await sql`
+            SELECT id,
+              ts_rank_cd(content_tsv, plainto_tsquery('english', ${query})) as bm25_score
+            FROM memories
+            WHERE api_key_id = ${apiKeyId}
+              AND deleted_at IS NULL
+              AND content_tsv @@ plainto_tsquery('english', ${query})
+              AND (agent_id = ${agentId} OR scope IN ('user', 'org'))
+            ORDER BY bm25_score DESC
+            LIMIT ${limit}
+          `
+      : hasDateFilter
+        ? await sql`
+            SELECT id,
+              ts_rank_cd(content_tsv, plainto_tsquery('english', ${query})) as bm25_score
+            FROM memories
+            WHERE api_key_id = ${apiKeyId}
+              AND agent_id = ${agentId}
+              AND deleted_at IS NULL
+              AND content_tsv @@ plainto_tsquery('english', ${query})
+              AND (event_date_from IS NULL
+                OR (event_date_to >= ${effectiveDateFrom}::timestamptz
+                    AND event_date_from <= ${effectiveDateTo}::timestamptz))
+            ORDER BY bm25_score DESC
+            LIMIT ${limit}
+          `
+        : await sql`
+            SELECT id,
+              ts_rank_cd(content_tsv, plainto_tsquery('english', ${query})) as bm25_score
+            FROM memories
+            WHERE api_key_id = ${apiKeyId}
+              AND agent_id = ${agentId}
+              AND deleted_at IS NULL
+              AND content_tsv @@ plainto_tsquery('english', ${query})
+            ORDER BY bm25_score DESC
+            LIMIT ${limit}
+          `;
     return results.map((r: any, i: number) => ({ id: r.id, rank: i + 1 }));
   } catch (err: any) {
-    // Only swallow "column not found" errors (pre-migration).
-    // Re-throw everything else (connection errors, OOM, etc.)
     if (err.code === "42703" || err.message?.includes("content_tsv")) {
       console.warn("[bm25] content_tsv column not found (pre-migration), skipping BM25 search");
       return [];
@@ -169,7 +200,7 @@ async function bm25Search(
 
 // --- pgvector ANN search ---
 
-/** pgvector ANN search on memories table. Uses withHnswSearch to guarantee ef_search=400. */
+/** pgvector ANN search on memories table. */
 async function pgvectorSearch(
   apiKeyId: string,
   agentId: string,
@@ -185,14 +216,45 @@ async function pgvectorSearch(
   const effectiveDateFrom = dateFrom || "1970-01-01T00:00:00Z";
   const effectiveDateTo = dateTo || "2099-12-31T23:59:59Z";
 
-  return withHnswSearch(async (tx) => {
-    // Agent's own memories
-    const agentResults = hasDateFilter
-      ? await tx`
+  // Agent's own memories
+  const agentResults = hasDateFilter
+    ? await sql`
+        SELECT id, 1 - (embedding_vec <=> ${vecStr}::vector) as similarity
+        FROM memories
+        WHERE api_key_id = ${apiKeyId}
+          AND agent_id = ${agentId}
+          AND deleted_at IS NULL
+          AND embedding_vec IS NOT NULL
+          AND (
+            event_date_from IS NULL
+            OR (event_date_to >= ${effectiveDateFrom}::timestamptz
+                AND event_date_from <= ${effectiveDateTo}::timestamptz)
+          )
+        ORDER BY embedding_vec <=> ${vecStr}::vector
+        LIMIT ${limit}
+      `
+    : await sql`
+        SELECT id, 1 - (embedding_vec <=> ${vecStr}::vector) as similarity
+        FROM memories
+        WHERE api_key_id = ${apiKeyId}
+          AND agent_id = ${agentId}
+          AND deleted_at IS NULL
+          AND embedding_vec IS NOT NULL
+        ORDER BY embedding_vec <=> ${vecStr}::vector
+        LIMIT ${limit}
+      `;
+
+  let allResults = [...(agentResults as any[])];
+
+  // Shared memories (user/org scope) — merge and sort by similarity
+  if (includeShared) {
+    const sharedResults = hasDateFilter
+      ? await sql`
           SELECT id, 1 - (embedding_vec <=> ${vecStr}::vector) as similarity
           FROM memories
           WHERE api_key_id = ${apiKeyId}
-            AND agent_id = ${agentId}
+            AND scope IN ('user', 'org')
+            AND agent_id != ${agentId}
             AND deleted_at IS NULL
             AND embedding_vec IS NOT NULL
             AND (
@@ -201,59 +263,30 @@ async function pgvectorSearch(
                   AND event_date_from <= ${effectiveDateTo}::timestamptz)
             )
           ORDER BY embedding_vec <=> ${vecStr}::vector
-          LIMIT ${limit}
+          LIMIT ${Math.floor(limit / 2)}
         `
-      : await tx`
+      : await sql`
           SELECT id, 1 - (embedding_vec <=> ${vecStr}::vector) as similarity
           FROM memories
           WHERE api_key_id = ${apiKeyId}
-            AND agent_id = ${agentId}
+            AND scope IN ('user', 'org')
+            AND agent_id != ${agentId}
             AND deleted_at IS NULL
             AND embedding_vec IS NOT NULL
           ORDER BY embedding_vec <=> ${vecStr}::vector
-          LIMIT ${limit}
+          LIMIT ${Math.floor(limit / 2)}
         `;
+    allResults = [...allResults, ...(sharedResults as any[])];
+  }
 
-    let allResults = [...(agentResults as any[])];
+  // Sort combined results by similarity so shared memories compete fairly
+  allResults.sort((a: any, b: any) => parseFloat(b.similarity) - parseFloat(a.similarity));
 
-    if (includeShared) {
-      const sharedResults = hasDateFilter
-        ? await tx`
-            SELECT id, 1 - (embedding_vec <=> ${vecStr}::vector) as similarity
-            FROM memories
-            WHERE api_key_id = ${apiKeyId}
-              AND scope IN ('user', 'org')
-              AND agent_id != ${agentId}
-              AND deleted_at IS NULL
-              AND embedding_vec IS NOT NULL
-              AND (
-                event_date_from IS NULL
-                OR (event_date_to >= ${effectiveDateFrom}::timestamptz
-                    AND event_date_from <= ${effectiveDateTo}::timestamptz)
-              )
-            ORDER BY embedding_vec <=> ${vecStr}::vector
-            LIMIT ${Math.floor(limit / 2)}
-          `
-        : await tx`
-            SELECT id, 1 - (embedding_vec <=> ${vecStr}::vector) as similarity
-            FROM memories
-            WHERE api_key_id = ${apiKeyId}
-              AND scope IN ('user', 'org')
-              AND agent_id != ${agentId}
-              AND deleted_at IS NULL
-              AND embedding_vec IS NOT NULL
-            ORDER BY embedding_vec <=> ${vecStr}::vector
-            LIMIT ${Math.floor(limit / 2)}
-          `;
-      allResults = [...allResults, ...(sharedResults as any[])];
-    }
-
-    return allResults.map((r: any, i: number) => ({
-      id: r.id,
-      rank: i + 1,
-      score: parseFloat(r.similarity),
-    }));
-  });
+  return allResults.map((r: any, i: number) => ({
+    id: r.id,
+    rank: i + 1,
+    score: parseFloat(r.similarity),
+  }));
 }
 
 // --- Store ---
@@ -301,26 +334,6 @@ export async function store(params: StoreParams): Promise<Memory> {
   // Return decrypted content to the caller
   const result = memory as unknown as Memory;
   result.content = content;
-
-  // Create a fallback fact_unit synchronously (~1ms INSERT).
-  // This ensures the memory is searchable in fact_units immediately,
-  // even before structured extraction completes.
-  const fallbackId = await createFallbackFact(
-    result.id, apiKeyId, agentId, encryptedContent, vecStr, content, eventFrom, eventTo,
-  );
-
-  // Fire-and-forget single extraction for this memory.
-  // PRIVACY NOTE: Sends plaintext to OpenAI GPT-4o-mini for structured extraction.
-  fireAndForgetExtraction({
-    memoryId: result.id,
-    apiKeyId,
-    agentId,
-    rawApiKey,
-    plaintext: content,
-    fallbackFactId: fallbackId,
-    eventFrom: eventFrom || null,
-    eventTo: eventTo || null,
-  });
 
   // Track usage
   await sql`
@@ -906,7 +919,7 @@ async function checkFactUnitsAvailable(): Promise<boolean> {
   }
 }
 
-/** Vector search against fact_units table. Uses withHnswSearch to guarantee ef_search=400. */
+/** Vector search against fact_units table. Used by /extract endpoint, not in main recall path. */
 async function factVectorSearch(
   apiKeyId: string,
   agentId: string,
@@ -914,7 +927,7 @@ async function factVectorSearch(
   limit: number = 200,
 ): Promise<{ id: string; rank: number; score: number }[]> {
   const vecStr = `[${queryVector.join(",")}]`;
-  const results = await withHnswSearch((tx) => tx`
+  const results = await sql`
     SELECT id, 1 - (embedding_vec <=> ${vecStr}::vector) as similarity
     FROM fact_units
     WHERE api_key_id = ${apiKeyId}
@@ -922,7 +935,7 @@ async function factVectorSearch(
       AND embedding_vec IS NOT NULL
     ORDER BY embedding_vec <=> ${vecStr}::vector
     LIMIT ${limit}
-  `);
+  `;
   return (results as any[]).map((r: any, i: number) => ({
     id: r.id,
     rank: i + 1,
@@ -984,8 +997,7 @@ async function graphSearch(
 
   try {
     // Single CTE: dual-seed → entity expansion → causal expansion → merge
-    // Wrapped in withHnswSearch so the vector_seeds CTE gets ef_search=400
-    const results = await withHnswSearch((tx) => tx`
+    const results = await sql`
       WITH vector_seeds AS (
         SELECT id, 1 - (embedding_vec <=> ${vecStr}::vector) as score
         FROM fact_units
@@ -1034,7 +1046,7 @@ async function graphSearch(
       GROUP BY id
       ORDER BY total_score DESC
       LIMIT ${limit}
-    `);
+    `;
 
     return (results as any[]).map((r: any, i: number) => ({
       id: r.id,
@@ -1256,27 +1268,8 @@ function classifyQueryType(query: string): "factual" | "temporal" | "pattern" | 
 }
 
 export async function recall(params: RecallParams): Promise<MemoryWithScore[]> {
-  const {
-    apiKeyId,
-    rawApiKey,
-    agentId,
-    userId,
-    orgId,
-    query,
-    scope,
-    tags,
-    limit = 10,
-    dateFrom,
-    dateTo,
-  } = params;
-
+  const { query } = params;
   const queryVector = await embed(query);
-
-  // Check fact_units availability (cached after first call)
-  if (_factUnitsAvailable === null) {
-    _factUnitsAvailable = await checkFactUnitsAvailable();
-    console.log(`[recall] fact_units available: ${_factUnitsAvailable}`);
-  }
 
   // Check pgvector availability (cached after first call)
   if (_pgvectorAvailable === null) {
@@ -1284,51 +1277,8 @@ export async function recall(params: RecallParams): Promise<MemoryWithScore[]> {
     console.log(`[recall] pgvector available: ${_pgvectorAvailable}`);
   }
 
-  // === Dual-path retrieval: search BOTH fact_units AND memories, merge best results ===
-  // Fact decomposition improves nondeclarative/preference queries but can lose detail
-  // for factual/temporal queries. Running both ensures we get the best of each.
-  if (_factUnitsAvailable) {
-    // Classify query type BEFORE retrieval so we can adjust depth for counting queries.
-    const queryType = classifyQueryType(query);
-
-    // Temporal counting queries ("how many times?") need more results to get accurate counts.
-    // The LLM overcounts when it sees partial results and extrapolates.
-    const effectiveLimit = queryType === "temporal" ? Math.max(params.limit || 10, 20) : (params.limit || 10);
-    const boostedParams = { ...params, limit: effectiveLimit };
-
-    const [factResults, memoryResults] = await Promise.all([
-      recallFromFacts(boostedParams, queryVector),
-      recallFromMemories(boostedParams, queryVector),
-    ]);
-
-    // Weight the merge by query type.
-    // Memories-path dominates factual (IE) and multi-hop. Facts-path dominates pattern.
-    const limit = params.limit || 10;
-
-    const memoryWeight = queryType === "factual" ? 0.8
-      : queryType === "multi-hop" ? 0.9  // multi-hop needs full memory context, not atomic facts
-      : queryType === "temporal" ? 0.4
-      : 0.3; // pattern
-
-    const memorySlots = Math.ceil(limit * memoryWeight);
-    const factSlots = limit - memorySlots;
-
-    // Take top from each path
-    const memoryTop = memoryResults.slice(0, memorySlots);
-    const usedIds = new Set(memoryTop.map((m) => m.id));
-
-    // Fill remaining slots from facts-path (skip duplicates)
-    const factTop = factResults
-      .filter((m) => !usedIds.has(m.id))
-      .slice(0, factSlots);
-
-    // Combine and sort by score
-    const merged = [...memoryTop, ...factTop];
-    merged.sort((a, b) => b.relevance_score - a.relevance_score);
-    return merged.slice(0, limit);
-  } else {
-    return recallFromMemories(params, queryVector);
-  }
+  // v2 pipeline: pgvector + BM25 → RRF → temporal decay → ONNX reranker
+  return recallFromMemories(params, queryVector);
 }
 
 /**
@@ -1491,11 +1441,9 @@ async function recallFromMemories(
     dateTo,
   } = params;
 
-  // Decompose query into sub-queries for broader retrieval
-  const queries = await decomposeQuery(query);
   const includeShared = scope !== "agent";
 
-  // === Strategy 1: Vector search (semantic) ===
+  // === Strategy 1: Vector search (pgvector HNSW) ===
   let vectorRanked: { id: string; rank: number }[];
   const vectorScores = new Map<string, number>();
   const memoryMap = new Map<string, any>();
@@ -1506,19 +1454,6 @@ async function recallFromMemories(
     );
     for (const r of pgResults) {
       vectorScores.set(r.id, r.score);
-    }
-
-    for (const subQuery of queries.slice(1)) {
-      try {
-        const subVector = await embed(subQuery);
-        const subResults = await pgvectorSearch(
-          apiKeyId, agentId, subVector, 50, dateFrom, dateTo, includeShared
-        );
-        for (const r of subResults) {
-          const existing = vectorScores.get(r.id) || 0;
-          if (r.score > existing) vectorScores.set(r.id, r.score);
-        }
-      } catch {}
     }
 
     vectorRanked = [...vectorScores.entries()]
@@ -1584,18 +1519,7 @@ async function recallFromMemories(
   }
 
   // === Strategy 2: BM25 full-text search ===
-  let bm25Ranked = await bm25Search(apiKeyId, agentId, query, 100, includeShared);
-  for (const subQuery of queries.slice(1)) {
-    try {
-      const subBm25 = await bm25Search(apiKeyId, agentId, subQuery, 30, includeShared);
-      const offset = bm25Ranked.length;
-      for (const r of subBm25) {
-        if (!bm25Ranked.some((b) => b.id === r.id)) {
-          bm25Ranked.push({ id: r.id, rank: offset + r.rank });
-        }
-      }
-    } catch {}
-  }
+  const bm25Ranked = await bm25Search(apiKeyId, agentId, query, 100, includeShared, dateFrom, dateTo);
 
   const missingBm25Ids = bm25Ranked
     .filter((item) => !memoryMap.has(item.id))

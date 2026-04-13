@@ -70,13 +70,13 @@ async function onnxRerank(
 
   try {
     // Score each (query, document) pair through the cross-encoder
-    // BERT tokenizer limit is 512 tokens. With the quantized ms-marco-MiniLM model,
-    // 512 chars (~128 tokens) performed better than 2000 chars in benchmarks.
-    // Longer input adds noise for short-document reranking (atomic facts are <200 chars).
-    // Tested 2000 chars: caused -6.3 point regression (46.4% → 40.1%).
+    // MiniLM-L-6-v2 tokenizer limit is 512 tokens (~2000 chars).
+    // 512 chars only showed ~25% of full memories (500-5000 chars).
+    // 2000 chars caused regression (too much noise for the small model).
+    // 1000 chars hits ~256 tokens: the sweet spot for MiniLM reranking.
     const pairs = documents.map((d) => ({
       text: query,
-      text_pair: d.content.substring(0, 512),
+      text_pair: d.content.substring(0, 1000),
     }));
 
     const scores: Array<{ id: string; score: number }> = [];
