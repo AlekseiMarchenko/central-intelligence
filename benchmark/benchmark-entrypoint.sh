@@ -28,7 +28,9 @@ done
 
 BENCHMARK="${POSITIONAL[0]:-lifebench}"
 USERS="${POSITIONAL[1]:-all}"
-TOP_K="${POSITIONAL[2]:-20}"
+# NeurIPS 2024 finding: accuracy saturates at k=10, degrades up to -20% with more docs.
+# Previous runs used k=40 and k=20. Research says 10 is optimal for QA accuracy.
+TOP_K="${POSITIONAL[2]:-10}"
 CONCURRENCY="${POSITIONAL[3]:-10}"
 STORE_DELAY="${POSITIONAL[4]:-}"
 

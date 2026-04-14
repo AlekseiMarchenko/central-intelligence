@@ -10,10 +10,9 @@ COPY tsconfig.base.json .
 RUN npm run build --workspace=packages/api
 
 # Pre-download the ONNX cross-encoder model during build so it's cached in the image.
-# This avoids a ~30MB download on first recall in production.
-# Cache dir set explicitly so it works in non-root build contexts.
+# bge-reranker-v2-m3: +14% nDCG@10 over MiniLM. ~1.1GB quantized, 8K context.
 ENV TRANSFORMERS_CACHE=/app/.model-cache
-RUN node -e "import('@xenova/transformers').then(({pipeline,env})=>{env.cacheDir='/app/.model-cache';return pipeline('text-classification','Xenova/ms-marco-MiniLM-L-6-v2',{quantized:true})}).then(()=>console.log('Model cached')).catch(e=>console.warn('Model pre-cache skipped:',e.message))"
+RUN node -e "import('@xenova/transformers').then(({pipeline,env})=>{env.cacheDir='/app/.model-cache';return pipeline('text-classification','onnx-community/bge-reranker-v2-m3-ONNX',{quantized:true})}).then(()=>console.log('Model cached')).catch(e=>console.warn('Model pre-cache skipped:',e.message))"
 
 FROM node:22-slim
 WORKDIR /app

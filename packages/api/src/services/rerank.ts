@@ -41,11 +41,14 @@ async function getOnnxPipeline(): Promise<any> {
 
     // Load the cross-encoder model
     // Uses "text-classification" pipeline which handles (query, document) pairs
-    console.log("[rerank] Loading local ONNX cross-encoder model...");
+    // bge-reranker-v2-m3: +14% nDCG@10 over MiniLM-L-6-v2 on BEIR.
+    // 568M params, ~1.1GB quantized, 8K context. ONNX-compatible.
+    // Source: arxiv 2409.07691 (Benchmarking Rerankers for RAG)
+    console.log("[rerank] Loading local ONNX cross-encoder model (bge-reranker-v2-m3)...");
     _onnxPipeline = await pipeline(
       "text-classification",
-      "Xenova/ms-marco-MiniLM-L-6-v2",
-      { quantized: true }, // Use quantized model (~30MB instead of ~80MB)
+      "onnx-community/bge-reranker-v2-m3-ONNX",
+      { quantized: true },
     );
     console.log("[rerank] ONNX cross-encoder loaded successfully");
     return _onnxPipeline;
@@ -70,13 +73,11 @@ async function onnxRerank(
 
   try {
     // Score each (query, document) pair through the cross-encoder
-    // MiniLM-L-6-v2 tokenizer limit is 512 tokens (~2000 chars).
-    // 512 chars only showed ~25% of full memories (500-5000 chars).
-    // 2000 chars caused regression (too much noise for the small model).
-    // 1000 chars hits ~256 tokens: the sweet spot for MiniLM reranking.
+    // bge-reranker-v2-m3 supports 8192 tokens (~32K chars).
+    // No truncation needed for personal memories (typically <5000 chars).
     const pairs = documents.map((d) => ({
       text: query,
-      text_pair: d.content.substring(0, 1000),
+      text_pair: d.content,
     }));
 
     const scores: Array<{ id: string; score: number }> = [];
