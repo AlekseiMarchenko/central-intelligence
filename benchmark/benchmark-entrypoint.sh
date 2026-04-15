@@ -4,12 +4,13 @@ set -euo pipefail
 # Add Postgres binaries to PATH
 export PATH="/usr/lib/postgresql/17/bin:$PATH"
 
-# Usage: benchmark-entrypoint.sh [--detach] <benchmark> [users] [top-k] [concurrency] [store-delay-ms]
-#   benchmark:   lifebench | longmemeval
-#   users:       comma-separated user IDs or "all" (lifebench only, default: all)
-#   top-k:       memories to retrieve per question (default: 20)
-#   concurrency: parallel API calls (default: 10)
-#   store-delay: ms between stores (default: 0 for lifebench, 3000 for longmemeval)
+# Usage: benchmark-entrypoint.sh [--detach] <benchmark> [users] [top-k] [concurrency] [store-delay-ms] [answer-model]
+#   benchmark:    lifebench | longmemeval
+#   users:        comma-separated user IDs or "all" (lifebench only, default: all)
+#   top-k:        memories to retrieve per question (default: 10)
+#   concurrency:  parallel API calls (default: 10)
+#   store-delay:  ms between stores (default: 0 for lifebench, 3000 for longmemeval)
+#   answer-model: LLM for answer generation (default: gpt-4o-mini)
 
 LOG_FILE="/data/benchmark.log"
 DATA_DIR="/data/benchmark-data"
@@ -33,6 +34,7 @@ USERS="${POSITIONAL[1]:-all}"
 TOP_K="${POSITIONAL[2]:-10}"
 CONCURRENCY="${POSITIONAL[3]:-10}"
 STORE_DELAY="${POSITIONAL[4]:-}"
+ANSWER_MODEL="${POSITIONAL[5]:-gpt-4o-mini}"
 
 # If --detach, re-exec in background
 if [ "$DETACH" = true ]; then
@@ -61,6 +63,7 @@ echo "  Benchmark:   $BENCHMARK"
 echo "  Users:       $USERS"
 echo "  Top-K:       $TOP_K"
 echo "  Concurrency: $CONCURRENCY"
+echo "  Answer Model: $ANSWER_MODEL"
 echo "============================================"
 
 # ─── Validate ───
@@ -224,6 +227,7 @@ if [ "$BENCHMARK" = "lifebench" ]; then
     --top-k "$TOP_K" \
     --concurrency "$CONCURRENCY" \
     --store-delay "$DELAY" \
+    --answer-model "$ANSWER_MODEL" \
     --data-dir "$DATA_DIR" \
     --output "$RESULTS_DIR" \
     --verbose
@@ -236,6 +240,7 @@ elif [ "$BENCHMARK" = "longmemeval" ]; then
     --api-url http://localhost:3141 \
     --top-k "$TOP_K" \
     --store-delay "$DELAY" \
+    --answer-model "$ANSWER_MODEL" \
     --data-dir "$DATA_DIR" \
     --output "$RESULTS_DIR" \
     --verbose
@@ -295,6 +300,7 @@ node dist/cli.js run \
   --phase evaluate \
   --users "$USERS" \
   --top-k "$TOP_K" \
+  --answer-model "$ANSWER_MODEL" \
   --data-dir "$DATA_DIR" \
   --output "$RESULTS_DIR" \
   --verbose
