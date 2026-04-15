@@ -1381,7 +1381,7 @@ function downloadConfig(platform) {
 <section id="lifebench" style="padding: 100px 0; border-bottom: 1px solid var(--border);">
   <div class="container" style="max-width: 900px;">
     <p style="color: var(--accent); font-weight: 600; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px;"><a href="https://arxiv.org/abs/2603.03781" style="color: var(--accent); text-decoration: none;">LifeBench (2026)</a></p>
-    <h2 style="font-size: 42px; font-weight: 700; letter-spacing: -2px; margin-bottom: 16px;">44.4% on <a href="https://arxiv.org/abs/2603.03781" style="color: var(--accent); text-decoration: none;">LifeBench</a></h2>
+    <h2 style="font-size: 42px; font-weight: 700; letter-spacing: -2px; margin-bottom: 16px;">52.2% on <a href="https://arxiv.org/abs/2603.03781" style="color: var(--accent); text-decoration: none;">LifeBench</a></h2>
     <p style="color: var(--text-muted); font-size: 18px; line-height: 1.7; margin-bottom: 48px;"><a href="https://arxiv.org/abs/2603.03781" style="color: var(--text-muted); text-decoration: underline;">LifeBench</a> is a 2026 academic benchmark testing long-term memory across real-world data: messages, calendar, health records, notes, and calls. 2,003 questions, 10 users, 51K events. The hardest memory benchmark published to date.</p>
 
     <!-- Results table — CI only -->
@@ -1394,15 +1394,17 @@ function downloadConfig(platform) {
             <th style="text-align: right; padding: 14px 20px; color: var(--text-muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Info Extraction</th>
             <th style="text-align: right; padding: 14px 20px; color: var(--text-muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Multi-hop</th>
             <th style="text-align: right; padding: 14px 20px; color: var(--text-muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Temporal</th>
+            <th style="text-align: right; padding: 14px 20px; color: var(--text-muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Nondecl.</th>
           </tr>
         </thead>
         <tbody>
           <tr style="background: rgba(109, 90, 255, 0.05);">
             <td style="padding: 14px 20px; font-weight: 700; color: var(--accent);">Central Intelligence</td>
-            <td style="text-align: right; padding: 14px 20px; font-weight: 700; color: var(--accent);">44.4%</td>
+            <td style="text-align: right; padding: 14px 20px; font-weight: 700; color: var(--accent);">52.2%</td>
+            <td style="text-align: right; padding: 14px 20px; font-weight: 600; color: var(--text);">47.2%</td>
+            <td style="text-align: right; padding: 14px 20px; font-weight: 600; color: var(--text);">57.4%</td>
             <td style="text-align: right; padding: 14px 20px; font-weight: 600; color: var(--text);">50.0%</td>
-            <td style="text-align: right; padding: 14px 20px; font-weight: 600; color: var(--text);">45.6%</td>
-            <td style="text-align: right; padding: 14px 20px; font-weight: 600; color: var(--text);">28.6%</td>
+            <td style="text-align: right; padding: 14px 20px; font-weight: 600; color: var(--text);">53.8%</td>
           </tr>
         </tbody>
       </table>
@@ -1419,8 +1421,8 @@ function downloadConfig(platform) {
         <div style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">A full year of behavioral data. Tests retrieval at real scale, not toy examples.</div>
       </div>
       <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
-        <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px;">SOTA is only 55%</div>
-        <div style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">The top system barely passes half. This benchmark is unsolved. We're working on it.</div>
+        <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px;">SOTA is 55%, we're at 52%</div>
+        <div style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">The top system (MemOS) barely passes half. We're closing the gap with no fact extraction, just better retrieval and ranking.</div>
       </div>
     </div>
 
