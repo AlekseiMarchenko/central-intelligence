@@ -203,6 +203,16 @@
   .step .ping .dotY { display:inline-block; width:6px; height:6px; border-radius:50%; background: var(--amber); margin-right:6px; vertical-align: middle; }
   .step.needs-you .ping .dotY { background: var(--amber); }
   .step.auto .ping .dotY { background: var(--accent); }
+  /* Mobile: collapse 3-column grid to a single stacked column so long
+     code snippets / file paths inside .detail don't push the step past
+     the viewport. Same pattern as the fix for .navlinks. */
+  @media (max-width: 720px) {
+    .step { grid-template-columns: 1fr; gap: 10px; padding: 18px; }
+    .step .idx { font-size: 13px; }
+    .step .body { min-width: 0; }
+    .step .body .detail { max-width: 100%; overflow-wrap: anywhere; word-break: break-word; }
+    .step .ping { padding-top: 0; justify-self: start; }
+  }
 
   /* ---------- Two-column ---------- */
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
