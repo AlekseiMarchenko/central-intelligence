@@ -62,6 +62,12 @@ nav.top .inner { display: flex; align-items: center; justify-content: space-betw
 .navlinks .btn { font-family: var(--crt); background: var(--accent); color: #020a14; text-shadow: none; padding: 5px 12px; border-radius: 2px; font-size: 15px; text-decoration: none; white-space: nowrap; }
 .navlinks .btn:hover { background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 4px 11px; }
 @media (max-width: 720px) { .hide-sm { display: none; } }
+/* Very narrow phones (≤360px): brand + "Open app →" still risk colliding.
+   Shrink button padding so the nav fits inside the iPhone SE viewport. */
+@media (max-width: 360px) {
+  .navlinks .btn { padding: 4px 8px; font-size: 13px; }
+  .navlinks .btn:hover { padding: 3px 7px; }
+}
 
 .hero { padding: 64px 0 40px; border-bottom: 1px solid var(--line-2); position: relative; }
 .vt-label { position: absolute; top: 24px; right: 28px; font-family: var(--crt); font-size: 16px; color: var(--accent); text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 2px; letter-spacing: 0.08em; white-space: nowrap; }
@@ -193,7 +199,7 @@ footer a { color: var(--accent); }
       <a href="/vt220" class="hide-sm">Home</a>
       <a href="/vt220/agent" class="hide-sm">/agent</a>
       <a href="/vt220/docs" class="hide-sm">/docs</a>
-      <a href="#dash" class="current">Dashboard</a>
+      <a href="#dash" class="current hide-sm">Dashboard</a>
       <a href="https://centralintelligence.online/app" class="btn">Open app →</a>
     </div>
   </div>
