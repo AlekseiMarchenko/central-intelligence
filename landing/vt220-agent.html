@@ -426,23 +426,23 @@ p, li, td, th, .lede, .sec-lede, .step .body p, .panel p, .panel .kv .v, .see-ro
 CI is an MCP server. It gives you five tools: <span class="c-k">remember</span>, <span class="c-k">recall</span>,
 <span class="c-k">context</span>, <span class="c-k">share</span>, <span class="c-k">forget</span>. You can run it in two modes:
 
-  <span class="c-n">local</span>   — SQLite on the user's machine. No signup. No API key.
   <span class="c-n">cloud</span>   — hosted, cross-device sync. Requires a free API key.
+  <span class="c-n">local</span>   — SQLite on the user's machine. No signup. No API key.
 
 <span class="c-h">## Decide which mode to install</span>
-<span class="c-p">1.</span> Ask the user <span class="c-s">"local-only or cloud-sync?"</span> if you don't know.
-<span class="c-p">2.</span> Default to <span class="c-n">local</span> if they have no preference. It's zero-config.
+<span class="c-p">1.</span> Ask the user <span class="c-s">"cloud-sync or local-only?"</span> if you don't know.
+<span class="c-p">2.</span> Default to <span class="c-n">cloud</span> if they have no preference. Sync works across the user's devices.
 
-<span class="c-h">## Install (local mode, recommended default)</span>
-<span class="c-p">$</span> <span class="c-k">npx</span> central-intelligence-local
-
-<span class="c-c"># This starts the MCP server. No signup needed.</span>
-<span class="c-c"># Dashboard runs at http://localhost:3141</span>
-
-<span class="c-h">## Install (cloud mode)</span>
+<span class="c-h">## Install (cloud mode, recommended default)</span>
 <span class="c-p">$</span> <span class="c-k">npx</span> central-intelligence-local signup
-<span class="c-c"># Opens a browser. User completes signup. CLI receives the key.</span>
+<span class="c-c"># Opens a browser. User completes signup. CLI captures the API key.</span>
 <span class="c-c"># The key looks like: ci_sk_xxxxxxxxxxxxxxxx</span>
+<span class="c-c"># Dashboard runs at https://centralintelligence.online/dashboard</span>
+
+<span class="c-h">## Install (local mode — only if the user asked for it)</span>
+<span class="c-p">$</span> <span class="c-k">npx</span> central-intelligence-local
+<span class="c-c"># Starts the MCP server with local SQLite. No signup.</span>
+<span class="c-c"># Dashboard runs at http://localhost:3141</span>
 
 <span class="c-h">## Configure the user's MCP host</span>
 <span class="c-c"># Detect which editor(s) the user runs. Configure each one you find:</span>
@@ -457,7 +457,7 @@ CI is an MCP server. It gives you five tools: <span class="c-k">remember</span>,
   <span class="c-s">"central-intelligence"</span>: {
     <span class="c-s">"command"</span>: <span class="c-s">"npx"</span>,
     <span class="c-s">"args"</span>: [<span class="c-s">"central-intelligence-mcp"</span>],
-    <span class="c-s">"env"</span>: { <span class="c-s">"CI_API_KEY"</span>: <span class="c-s">"&lt;KEY_OR_EMPTY_FOR_LOCAL&gt;"</span> }
+    <span class="c-s">"env"</span>: { <span class="c-s">"CI_API_KEY"</span>: <span class="c-s">"&lt;ci_sk_...&gt; (leave empty for local mode)"</span> }
   }
 }
 
@@ -472,7 +472,7 @@ CI is an MCP server. It gives you five tools: <span class="c-k">remember</span>,
 Tell the user:
   <span class="c-p">-</span> which mode you installed (local vs cloud)
   <span class="c-p">-</span> which editors you configured
-  <span class="c-p">-</span> the dashboard URL (local: <span class="c-s">http://localhost:3141</span>)
+  <span class="c-p">-</span> the dashboard URL (cloud: <span class="c-s">https://centralintelligence.online/dashboard</span>, local: <span class="c-s">http://localhost:3141</span>)
   <span class="c-p">-</span> that you've stored a first test memory
 
 <span class="c-h">## Things you should NOT do</span>
@@ -492,15 +492,15 @@ Tell the user:
   <div class="wrap">
     <h2><span class="num">02</span> For the human</h2>
     <h3 class="sec-title" data-tone="walkthrough-title">Here's what your agent is about to do.</h3>
-    <p class="sec-lede" data-tone="walkthrough-lede">Four steps. Roughly 90 seconds. Your agent handles three of them; you'll be pulled in once, for signup — or not at all if you chose local mode.</p>
+    <p class="sec-lede" data-tone="walkthrough-lede">Four steps. Roughly 90 seconds. Your agent handles three of them; you'll be pulled in once, for a quick cloud signup — or not at all if you asked for local mode.</p>
 
     <div class="steps">
       <div class="step auto">
         <div class="idx">step · 01</div>
         <div class="body">
           <h4>Agent picks a mode</h4>
-          <p>Local (SQLite on your machine, no signup) or cloud (cross-device sync, needs an API key). If you didn't say, the agent defaults to local.</p>
-          <div class="detail">$ npx central-intelligence-local</div>
+          <p>Cloud (cross-device sync, needs a free API key) or local (SQLite on your machine, no signup). If you didn't say, the agent defaults to cloud.</p>
+          <div class="detail">$ npx central-intelligence-local signup</div>
         </div>
         <div class="ping"><span class="dotY"></span>automatic</div>
       </div>
@@ -508,8 +508,8 @@ Tell the user:
       <div class="step needs-you">
         <div class="idx">step · 02</div>
         <div class="body">
-          <h4>You sign up (cloud mode only)</h4>
-          <p>A browser tab opens on centralintelligence.online. You confirm an email and the CLI captures an API key on the other side. Skip this entirely if you went local.</p>
+          <h4>You sign up (skipped if you chose local)</h4>
+          <p>A browser tab opens on centralintelligence.online. You confirm an email and the CLI captures an API key on the other side. Skip this entirely if you asked for local mode.</p>
           <div class="detail">→ browser opens · ~20 seconds of your time</div>
         </div>
         <div class="ping"><span class="dotY"></span>needs you</div>
@@ -553,17 +553,17 @@ Tell the user:
       </div>
       <div class="see-row">
         <div class="when">00:05</div>
-        <div class="what"><strong>Agent asks you once:</strong> local mode or cloud sync? Answer in one word.</div>
+        <div class="what"><strong>Agent asks you once:</strong> cloud sync or local mode? Answer in one word.</div>
         <div class="who you">you</div>
       </div>
       <div class="see-row">
         <div class="when">00:15</div>
-        <div class="what"><strong>A terminal spins up.</strong> <code>npx central-intelligence-local</code> runs; dashboard boots at localhost:3141.</div>
+        <div class="what"><strong>A terminal spins up.</strong> <code>npx central-intelligence-local signup</code> runs; a browser tab opens for signup.</div>
         <div class="who agent">agent</div>
       </div>
       <div class="see-row">
         <div class="when">00:30</div>
-        <div class="what"><strong>(Cloud only)</strong> A browser tab opens for signup. Confirm your email; come back.</div>
+        <div class="what"><strong>(Skip if local)</strong> Confirm your email in the browser; come back. Dashboard waiting at centralintelligence.online/dashboard.</div>
         <div class="who you">you</div>
       </div>
       <div class="see-row">
@@ -599,8 +599,8 @@ Tell the user:
       </div>
 <pre><span class="prompt">$</span> <span class="cmd">ci status</span>
 <span class="dim">Central Intelligence Local · v0.9</span>
-<span class="dim">Mode:         </span><span class="ok">local</span><span class="dim"> (no API key)</span>
-<span class="dim">Dashboard:    </span>http://localhost:3141
+<span class="dim">Mode:         </span><span class="ok">cloud</span><span class="dim"> (synced via API key)</span>
+<span class="dim">Dashboard:    </span>https://centralintelligence.online/dashboard
 <span class="dim">Memories:     </span>1 stored
 <span class="dim">MCP server:   </span><span class="ok">running</span>
 
@@ -667,7 +667,7 @@ Tell the user:
 
 <script>
   // --- Prompt the user copies and pastes to their agent ---
-  const AGENT_PROMPT = `Please set up Central Intelligence (CI) for me — the persistent-memory MCP server. Open https://centralintelligence.online/agent and follow the instructions block on that page exactly. It covers install (local or cloud), configuring my editor's MCP config, and verifying with a test memory round-trip. Ask me one question only if you need to — local-only or cloud-sync. Otherwise default to local. Report back with what you installed, which editors you configured, and the dashboard URL.`;
+  const AGENT_PROMPT = `Please set up Central Intelligence (CI) for me — the persistent-memory MCP server. Open https://centralintelligence.online/agent and follow the instructions block on that page exactly. It covers install (local or cloud), configuring my editor's MCP config, and verifying with a test memory round-trip. Ask me one question only if you need to — cloud-sync or local-only. Otherwise default to cloud. Report back with what you installed, which editors you configured, and the dashboard URL.`;
 
   function doCopy(text, btn) {
     navigator.clipboard.writeText(text).then(() => {
@@ -708,7 +708,7 @@ Tell the user:
       'cta-primary': ['Copy prompt for my agent'],
       'cta-secondary': ['Jump to instructions ↓'],
       'walkthrough-title': ["Here's what your agent is about to do."],
-      'walkthrough-lede': ['Four steps. Roughly 90 seconds. Your agent handles three of them; you\'ll be pulled in once, for signup — or not at all if you chose local mode.'],
+      'walkthrough-lede': ['Four steps. Roughly 90 seconds. Your agent handles three of them; you\'ll be pulled in once, for a quick cloud signup — or not at all if you asked for local mode.'],
       'see-title': ['A timeline, so nothing surprises you.'],
       'see-lede': ["You're not babysitting the agent — but it helps to know when it's your turn."],
       'verify-title': ["Don't trust — check."],
