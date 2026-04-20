@@ -98,6 +98,10 @@ npx agent-memory-benchmark --provider central-intelligence --api-key $CI_API_KEY
 
 > **Note:** AMB is maintained by the same author as Central Intelligence. Run it yourself and verify the results. PRs with new provider adapters are welcome.
 
+## Roadmap
+
+Advanced retrieval — fact extraction, entity graph, multi-hop reasoning, temporal inference, explainability traces — is prototyped in the codebase and coming to Enterprise. Architecture details: [v1.0.0 prototype release](https://github.com/AlekseiMarchenko/central-intelligence/releases/tag/v1.0.0). Commercial availability: [pricing](https://centralintelligence.online/#pricing).
+
 ## Cross-Tool Memory
 
 CI Local reads config files from **5 AI coding platforms** and makes them searchable alongside your stored memories:
