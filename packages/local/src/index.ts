@@ -410,6 +410,39 @@ async function main() {
     process.exit(0);
   }
 
+  if (subcommand === "status") {
+    const { statusCommand } = await import("./status.js");
+    await statusCommand();
+    process.exit(0);
+  }
+
+  if (subcommand === "test-memory") {
+    const { testMemoryCommand } = await import("./test-memory.js");
+    await testMemoryCommand();
+    process.exit(0);
+  }
+
+  if (subcommand === "which-editors") {
+    const { whichEditorsCommand } = await import("./which-editors.js");
+    await whichEditorsCommand();
+    process.exit(0);
+  }
+
+  if (subcommand === "help" || subcommand === "--help" || subcommand === "-h") {
+    console.log("");
+    console.log("Central Intelligence Local — persistent memory for AI agents");
+    console.log("");
+    console.log("Usage:");
+    console.log("  ci                       Start the MCP server (default)");
+    console.log("  ci signup                Create a cloud API key + auto-configure editors");
+    console.log("  ci sync --key <key>      Sync local memories to the cloud");
+    console.log("  ci status                Show mode, dashboard, memory count");
+    console.log("  ci test-memory           Round-trip a test memory (remember + recall)");
+    console.log("  ci which-editors         Show which editors have CI in their MCP config");
+    console.log("");
+    process.exit(0);
+  }
+
   // Default: start MCP server
   const transport = new StdioServerTransport();
   await server.connect(transport);
