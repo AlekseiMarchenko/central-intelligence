@@ -1,0 +1,400 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CI · Memory Dashboard · VT220 v2.0</title>
+<!-- Brand: favicons + theme + manifest -->
+<link rel="icon" type="image/svg+xml" href="/brand/logomark-static.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/brand/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/brand/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/brand/favicon-180.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="theme-color" content="#020a14">
+<!-- SEO -->
+<meta name="description" content="Memory dashboard for Claude Code, Cursor, Windsurf, and ChatGPT. Search, edit, share memories across all your AI tools. Free, local, private.">
+<link rel="canonical" href="https://centralintelligence.online/vt220/dashboard">
+<!-- Open Graph -->
+<meta property="og:title" content="CI Memory Dashboard — See what your AI actually remembers">
+<meta property="og:description" content="Memory dashboard for Claude Code, Cursor, Windsurf, and ChatGPT. Search, edit, share memories across all your AI tools. Free, local, private.">
+<meta property="og:url" content="https://centralintelligence.online/vt220/dashboard">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://centralintelligence.online/brand/og-dashboard.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="CI Memory Dashboard — See what your AI actually remembers">
+<meta name="twitter:description" content="Memory dashboard for Claude Code, Cursor, Windsurf, and ChatGPT. Search, edit, share memories across all your AI tools. Free, local, private.">
+<meta name="twitter:image" content="https://centralintelligence.online/brand/og-dashboard.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&amp;family=VT323&amp;display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #020a14; --bg-2: #031220; --bg-3: #06192b;
+  --line: #0e3252; --line-2: #144568;
+  --fg: #5fe6e8; --fg-dim: #3cb8bf; --fg-dimmer: #2a8990;
+  --accent: #5fe6e8; --accent-2: #7ff4f6;
+  --danger: #ff8a8a;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --crt: 'VT323', 'JetBrains Mono', ui-monospace, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); font-family: var(--mono); font-size: 15px; line-height: 1.6; text-shadow: 0 0 6px rgba(95,230,232,0.35); }
+body { background: radial-gradient(1400px 800px at 50% 20%, rgba(95,230,232,0.07), transparent 70%), var(--bg); min-height: 100vh; }
+body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index:200; background: repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0, rgba(0,0,0,0) 2px, rgba(0,0,0,0.22) 2px, rgba(0,0,0,0.22) 3px); mix-blend-mode: multiply; }
+body::after { content:''; position:fixed; inset:0; pointer-events:none; z-index:201; background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%); }
+a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+a:hover { background: var(--accent); color: #020a14; text-shadow: none; text-decoration: none; }
+code, pre { font-family: var(--mono); }
+pre { margin: 0; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+
+nav.top { position: sticky; top: 0; z-index: 50; background: rgba(2,10,20,0.9); backdrop-filter: blur(10px); border-bottom: 1px solid var(--accent); }
+nav.top .inner { display: flex; align-items: center; justify-content: space-between; height: 56px; }
+.brand { display: flex; align-items: center; gap: 10px; font-family: var(--crt); font-size: 20px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); text-shadow: 0 0 8px rgba(95,230,232,0.5); text-decoration: none; }
+.brand .dot { width: 10px; height: 10px; background: var(--accent); box-shadow: 0 0 12px rgba(95,230,232,0.9); }
+.brand .slash { color: var(--fg-dimmer); }
+.brand .sub { text-decoration: underline; text-underline-offset: 3px; }
+.navlinks { display: flex; gap: 20px; align-items: center; }
+.navlinks a { font-family: var(--crt); font-size: 16px; color: var(--fg-dim); text-decoration: none; letter-spacing: 0.04em; }
+.navlinks a:hover { color: var(--accent); background: transparent; text-decoration: underline; }
+.navlinks a.current { color: var(--accent); text-decoration: underline; }
+.navlinks .btn { font-family: var(--crt); background: var(--accent); color: #020a14; text-shadow: none; padding: 5px 12px; border-radius: 2px; font-size: 15px; text-decoration: none; white-space: nowrap; }
+.navlinks .btn:hover { background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 4px 11px; }
+@media (max-width: 720px) { .hide-sm { display: none; } }
+
+.hero { padding: 64px 0 40px; border-bottom: 1px solid var(--line-2); position: relative; }
+.vt-label { position: absolute; top: 24px; right: 28px; font-family: var(--crt); font-size: 16px; color: var(--accent); text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 2px; letter-spacing: 0.08em; white-space: nowrap; }
+@media (max-width: 900px) { .vt-label { display: none; } }
+.pill { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px; background: var(--accent); color: #020a14; font-family: var(--crt); font-size: 14px; font-weight: 600; text-shadow: none; border-radius: 2px; letter-spacing: 0.04em; white-space: nowrap; }
+.pill .blink { width: 6px; height: 6px; background: #020a14; animation: blink 1.6s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+h1.title { font-family: var(--crt); font-size: clamp(48px, 7.5vw, 96px); line-height: 1.02; letter-spacing: 0; margin: 20px 0 16px; font-weight: 400; color: var(--accent); text-shadow: 0 0 20px rgba(95,230,232,0.5); max-width: 24ch; }
+.hero .lede { color: var(--fg); max-width: 64ch; font-size: 16px; margin: 0; }
+.cta-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; font-family: var(--crt); font-size: 15px; letter-spacing: 0.04em; background: var(--accent); color: #020a14; text-shadow: none; border-radius: 2px; border: 2px solid var(--accent); text-decoration: none; cursor: pointer; }
+.btn:hover { background: transparent; color: var(--accent); text-shadow: 0 0 8px rgba(95,230,232,0.5); }
+.btn.ghost { background: transparent; color: var(--accent); text-shadow: 0 0 6px rgba(95,230,232,0.4); }
+.btn.ghost:hover { background: var(--accent); color: #020a14; text-shadow: none; }
+.hero-foot { margin-top: 22px; color: var(--fg-dim); font-size: 13.5px; max-width: 72ch; }
+.hero-foot strong { color: var(--accent); }
+
+.section { padding: 48px 0; border-bottom: 1px solid var(--line-2); }
+.sec-eyebrow { font-family: var(--crt); font-size: 16px; letter-spacing: 0.1em; color: var(--fg-dim); text-transform: uppercase; margin: 0 0 10px; text-shadow: none; }
+.sec-eyebrow .num { color: var(--accent); margin-right: 8px; }
+.sec-title { font-family: var(--crt); font-size: clamp(32px, 4vw, 52px); line-height: 1.05; letter-spacing: 0; margin: 0 0 16px; color: var(--accent-2); text-shadow: 0 0 14px rgba(95,230,232,0.4); font-weight: 400; }
+.sec-lede { color: var(--fg); max-width: 68ch; margin: 0 0 28px; }
+
+.cmd-box { border: 1px solid var(--line-2); background: #01070f; border-radius: 2px; margin-bottom: 12px; overflow: hidden; }
+.cmd-head { display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; background: rgba(10,34,56,0.7); border-bottom: 1px solid var(--line-2); }
+.cmd-head .lbl { font-family: var(--crt); font-size: 13px; color: var(--fg-dim); letter-spacing: 0.04em; text-transform: uppercase; }
+.copy-btn { font-family: var(--crt); font-size: 13px; background: transparent; color: var(--accent); border: 1px solid var(--line-2); padding: 2px 10px; border-radius: 2px; cursor: pointer; letter-spacing: 0.04em; }
+.copy-btn:hover { background: var(--accent); color: #020a14; text-shadow: none; border-color: var(--accent); }
+.copy-btn.done { background: var(--accent); color: #020a14; }
+.cmd-box pre { padding: 14px 16px; color: var(--accent); text-shadow: 0 0 6px rgba(95,230,232,0.4); font-size: 14px; overflow-x: auto; }
+.cmd-box pre .p { color: var(--fg-dim); }
+
+/* ============ Dashboard mockup ============ */
+.dash-frame { border: 1px solid var(--line-2); border-radius: 2px; background: rgba(6,25,43,0.5); overflow: hidden; margin-top: 28px; }
+.dash-chrome { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: rgba(10,34,56,0.7); border-bottom: 1px solid var(--line-2); }
+.dash-chrome .dots { display: flex; gap: 6px; }
+.dash-chrome .dots span { width: 10px; height: 10px; background: var(--accent); opacity: 0.5; border-radius: 0; }
+.dash-chrome .url { font-family: var(--crt); font-size: 15px; color: var(--accent); letter-spacing: 0.04em; }
+.dash-chrome .tag { margin-left: auto; font-family: var(--crt); font-size: 13px; background: var(--accent); color: #020a14; text-shadow: none; padding: 2px 8px; border-radius: 2px; letter-spacing: 0.04em; }
+.dash-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 1px; background: var(--line-2); border-bottom: 1px solid var(--line-2); }
+.dash-metric { background: rgba(6,25,43,0.5); padding: 16px 18px; display: flex; flex-direction: column; gap: 4px; }
+.dash-metric .k { font-family: var(--crt); font-size: 13px; background: var(--accent); color: #020a14; text-shadow: none; padding: 1px 8px; border-radius: 2px; align-self: flex-start; letter-spacing: 0.04em; }
+.dash-metric .v { font-family: var(--crt); font-size: 34px; color: var(--accent-2); text-shadow: 0 0 12px rgba(95,230,232,0.45); line-height: 1; }
+.dash-metric .sub { color: var(--fg-dim); font-size: 12px; text-shadow: none; }
+
+.dash-toolbar { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line-2); flex-wrap: wrap; }
+.dash-search { flex: 1; min-width: 240px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--line-2); background: #01070f; padding: 6px 12px; border-radius: 2px; }
+.dash-search::before { content: '>'; color: var(--accent); font-family: var(--crt); font-size: 16px; }
+.dash-search input { background: transparent; border: 0; color: var(--fg); font-family: var(--mono); font-size: 13.5px; flex: 1; outline: none; text-shadow: 0 0 5px rgba(95,230,232,0.3); }
+.dash-search input::placeholder { color: var(--fg-dim); }
+.chip { font-family: var(--crt); font-size: 13px; padding: 3px 10px; border: 1px solid var(--line-2); background: transparent; color: var(--fg-dim); border-radius: 2px; letter-spacing: 0.04em; cursor: pointer; text-shadow: none; }
+.chip.active { background: var(--accent); color: #020a14; border-color: var(--accent); }
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+.chip.active:hover { background: var(--accent-2); color: #020a14; }
+
+.dash-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 13.5px; }
+.dash-table th { text-align: left; padding: 10px 14px; font-family: var(--crt); font-size: 14px; letter-spacing: 0.06em; color: var(--fg-dim); text-transform: uppercase; background: rgba(10,34,56,0.4); border-bottom: 1px solid var(--line-2); text-shadow: none; font-weight: 400; }
+.dash-table td { padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; text-shadow: none; }
+.dash-table tr:hover td { background: rgba(95,230,232,0.04); }
+.dash-table td .proj { color: var(--accent); font-weight: 600; text-shadow: 0 0 5px rgba(95,230,232,0.3); }
+.dash-table td .src { font-family: var(--crt); font-size: 13px; background: var(--accent); color: #020a14; padding: 1px 8px; border-radius: 2px; letter-spacing: 0.04em; display: inline-block; }
+.dash-table td .mem { color: var(--fg); }
+.dash-table td .age { color: var(--fg-dim); font-family: var(--crt); font-size: 14px; letter-spacing: 0.04em; }
+.dash-table td .age.aging { color: #ffb86b; }
+.dash-table td .rel { font-family: var(--crt); font-size: 16px; color: var(--accent-2); text-shadow: 0 0 8px rgba(95,230,232,0.4); }
+.dash-table td .chk { width: 14px; height: 14px; border: 1px solid var(--line-2); display: inline-block; background: transparent; }
+
+/* ============ Feature grid ============ */
+.features { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 18px; }
+.feat { border: 1px solid var(--line-2); background: rgba(6,25,43,0.4); padding: 22px 22px; border-radius: 2px; }
+.feat .icon { font-family: var(--crt); font-size: 32px; color: var(--accent); text-shadow: 0 0 10px rgba(95,230,232,0.5); margin-bottom: 10px; line-height: 1; }
+.feat h3 { font-family: var(--crt); font-size: 22px; letter-spacing: 0.02em; margin: 0 0 10px; color: var(--accent-2); text-shadow: 0 0 10px rgba(95,230,232,0.4); font-weight: 400; }
+.feat p { color: var(--fg); margin: 0; font-size: 14.5px; text-shadow: none; }
+.feat p a { color: var(--accent); }
+
+/* ============ Steps ============ */
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 18px; }
+.step { border: 1px solid var(--line-2); background: rgba(6,25,43,0.4); padding: 22px; border-radius: 2px; position: relative; }
+.step .idx { font-family: var(--crt); font-size: 44px; color: var(--accent); text-shadow: 0 0 12px rgba(95,230,232,0.5); line-height: 1; }
+.step h4 { font-family: var(--crt); font-size: 22px; color: var(--accent-2); margin: 10px 0 8px; font-weight: 400; }
+.step p { color: var(--fg); margin: 0; font-size: 14.5px; text-shadow: none; }
+.step p code { background: rgba(95,230,232,0.06); border: 1px solid var(--line-2); padding: 1px 6px; border-radius: 2px; color: var(--accent); font-size: 12.5px; }
+
+/* ============ Transfer block ============ */
+.transfer-prompt { border: 1px solid var(--line-2); background: #01070f; border-radius: 2px; margin-top: 20px; overflow: hidden; }
+.transfer-prompt .head { display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; background: rgba(10,34,56,0.7); border-bottom: 1px solid var(--line-2); }
+.transfer-prompt .head .lbl { font-family: var(--crt); font-size: 14px; color: var(--fg-dim); letter-spacing: 0.06em; text-transform: uppercase; }
+.transfer-prompt pre { padding: 16px; color: var(--fg); text-shadow: 0 0 5px rgba(95,230,232,0.25); font-size: 13px; line-height: 1.55; white-space: pre-wrap; }
+.transfer-prompt pre .k { color: var(--accent); font-weight: 600; }
+
+/* ============ CTA ============ */
+.cta-block { text-align: center; padding: 56px 0; }
+.cta-block h2 { font-family: var(--crt); font-size: clamp(40px, 6vw, 72px); color: var(--accent); text-shadow: 0 0 18px rgba(95,230,232,0.5); margin: 0 0 10px; font-weight: 400; line-height: 1.05; }
+.cta-block p { color: var(--fg); margin: 0 0 24px; }
+.cta-block .foot { color: var(--fg-dim); font-size: 13px; margin-top: 16px; text-shadow: none; }
+
+/* ============ Manual setup ============ */
+.tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 18px 0; }
+.tab { font-family: var(--crt); font-size: 14px; padding: 4px 12px; border: 1px solid var(--line-2); background: transparent; color: var(--fg-dim); border-radius: 2px; letter-spacing: 0.04em; cursor: pointer; text-shadow: none; }
+.tab.active { background: var(--accent); color: #020a14; border-color: var(--accent); }
+.tab:hover { color: var(--accent); border-color: var(--accent); }
+.tab.active:hover { background: var(--accent-2); color: #020a14; }
+.manual-code { border: 1px solid var(--line-2); background: #01070f; border-radius: 2px; overflow: hidden; }
+.manual-code .head { display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; background: rgba(10,34,56,0.7); border-bottom: 1px solid var(--line-2); }
+.manual-code .head .lbl { font-family: var(--crt); font-size: 13px; color: var(--fg-dim); letter-spacing: 0.04em; text-transform: uppercase; }
+.manual-code pre { padding: 14px 16px; color: var(--fg); text-shadow: 0 0 5px rgba(95,230,232,0.25); font-size: 13px; line-height: 1.55; overflow-x: auto; }
+.manual-code pre .k { color: var(--accent); }
+.manual-code pre .s { color: #b5f5f7; }
+.manual-code pre .c { color: var(--fg-dim); }
+
+footer { padding: 32px 0 48px; border-top: 1px solid var(--accent); color: var(--fg-dim); font-size: 13px; text-shadow: none; }
+footer .row { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; align-items: center; }
+footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="wrap inner">
+    <a href="/vt220" class="brand">
+      <span class="dot"></span><span>CI</span><span class="slash">/</span><span class="sub">dashboard</span>
+    </a>
+    <div class="navlinks">
+      <a href="/vt220" class="hide-sm">Home</a>
+      <a href="/vt220/agent" class="hide-sm">/agent</a>
+      <a href="/vt220/docs" class="hide-sm">/docs</a>
+      <a href="#dash" class="current">Dashboard</a>
+      <a href="https://centralintelligence.online/app" class="btn">Open app →</a>
+    </div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="wrap">
+    <span class="vt-label">DASH v2.0</span>
+    <span class="pill"><span class="blink"></span> Free · Local · Private</span>
+    <h1 class="title">See what your AI actually remembers</h1>
+    <p class="lede">One control panel for all your AI memories. Claude Code, Cursor, Windsurf, ChatGPT. Search by meaning. Edit. Delete. Share across tools.</p>
+    <div class="cta-row">
+      <a href="https://centralintelligence.online/app" class="btn">Open Memory Dashboard →</a>
+      <a href="#install-local" class="btn ghost">Run locally</a>
+    </div>
+    <p class="hero-foot">
+      <strong>Free and open source</strong>, Apache 2.0. Unlimited local memories, returned exactly as you stored them. <strong>Zero rewrites, zero hallucinations, zero data loss.</strong>
+    </p>
+  </div>
+</section>
+
+<!-- ============ INSTALL ============ -->
+<section class="section" id="install-local">
+  <div class="wrap">
+    <p class="sec-eyebrow"><span class="num">01</span> Install &amp; open</p>
+    <h2 class="sec-title">One command</h2>
+    <div class="cmd-box">
+      <div class="cmd-head"><span class="lbl">Install &amp; open dashboard</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+<pre><span class="p">$</span> npm i -g central-intelligence-local && ci dashboard</pre>
+    </div>
+    <p class="sec-lede" style="margin-top: 22px;">Optional — get an API key and sync to cloud:</p>
+    <div class="cmd-box">
+      <div class="cmd-head"><span class="lbl">Sign up + auto-configure editors</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+<pre><span class="p">$</span> ci signup</pre>
+    </div>
+    <p style="color: var(--fg-dim); margin-top: 16px; font-size: 14px;">Auto-configures Claude Code, Cursor, and Windsurf. Then run <code style="color:var(--accent); background: rgba(95,230,232,0.06); border: 1px solid var(--line-2); padding: 1px 6px; border-radius: 2px;">ci sync</code> to upload memories to <a href="https://centralintelligence.online/app">centralintelligence.online/app</a>.</p>
+  </div>
+</section>
+
+<!-- ============ DASHBOARD MOCKUP ============ -->
+<section class="section" id="dash">
+  <div class="wrap">
+    <p class="sec-eyebrow"><span class="num">02</span> Dashboard</p>
+    <h2 class="sec-title">localhost:3141</h2>
+    <div class="dash-frame">
+      <div class="dash-chrome">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <span class="url">localhost:3141</span>
+        <span class="tag">LOCAL</span>
+      </div>
+      <div class="dash-metrics">
+        <div class="dash-metric"><span class="k">HEALTH</span><span class="v">9/10</span><span class="sub">Good signal</span></div>
+        <div class="dash-metric"><span class="k">TOTAL</span><span class="v">89</span><span class="sub">memories</span></div>
+        <div class="dash-metric"><span class="k">DATABASE</span><span class="v">67</span><span class="sub">stored</span></div>
+        <div class="dash-metric"><span class="k">FILES</span><span class="v">22</span><span class="sub">on disk</span></div>
+        <div class="dash-metric"><span class="k">PLATFORMS</span><span class="v">3</span><span class="sub">connected</span></div>
+      </div>
+      <div class="dash-toolbar">
+        <div class="dash-search"><input placeholder="Search memories by meaning..."></div>
+        <span class="chip active">All</span>
+        <span class="chip">CI Architecture (14)</span>
+        <span class="chip">Payment Setup (12)</span>
+        <span class="chip">Claude Code (8)</span>
+        <span class="chip">Cursor (4)</span>
+      </div>
+      <table class="dash-table">
+        <thead><tr><th></th><th>Project</th><th>Source</th><th>Memory</th><th>Age</th><th>Score</th></tr></thead>
+        <tbody>
+          <tr><td><span class="chk"></span></td><td><span class="proj">CI Architecture</span></td><td><span class="src">chatgpt</span></td><td><span class="mem">Use Hono over Express for all API endpoints</span></td><td><span class="age">fresh</span></td><td><span class="rel">87%</span></td></tr>
+          <tr><td><span class="chk"></span></td><td><span class="proj">CI Architecture</span></td><td><span class="src">claude_md</span></td><td><span class="mem">Hybrid search: vector + BM25 + temporal decay</span></td><td><span class="age">fresh</span></td><td><span class="rel">82%</span></td></tr>
+          <tr><td><span class="chk"></span></td><td><span class="proj">Payment Setup</span></td><td><span class="src">chatgpt</span></td><td><span class="mem">Use Lemon Squeezy for MVP payment processing</span></td><td><span class="age">fresh</span></td><td><span class="rel">78%</span></td></tr>
+          <tr><td><span class="chk"></span></td><td><span class="proj">Preferences</span></td><td><span class="src">cursor</span></td><td><span class="mem">Always use TypeScript strict mode</span></td><td><span class="age">fresh</span></td><td><span class="rel">71%</span></td></tr>
+          <tr><td><span class="chk"></span></td><td><span class="proj">Deploy</span></td><td><span class="src">claude_mem</span></td><td><span class="mem">Deploy to Fly.io using flyctl deploy</span></td><td><span class="age aging">aging</span></td><td><span class="rel">64%</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURES ============ -->
+<section class="section" id="features">
+  <div class="wrap">
+    <p class="sec-eyebrow"><span class="num">03</span> Features</p>
+    <h2 class="sec-title">Everything you need to manage AI memory</h2>
+    <div class="features">
+      <div class="feat"><div class="icon">[?]</div><h3>Semantic search</h3><p>Search by meaning, not keywords. Type "how do I deploy" and find Fly.io, Docker, and CI/CD memories instantly.</p></div>
+      <div class="feat"><div class="icon">[#]</div><h3>Project tags</h3><p>Every memory is tagged by source project and tool. Filter by project, source, or both. Click any tag to filter.</p></div>
+      <div class="feat"><div class="icon">[~]</div><h3>Cross-tool memory</h3><p>Memories from Claude Code available in Cursor. Cursor rules visible in Windsurf. One memory, every tool.</p></div>
+      <div class="feat"><div class="icon">[*]</div><h3>Health score</h3><p>Spot stale memories, duplicates, and bloat before they make your agent worse. Memory health at a glance.</p></div>
+      <div class="feat"><div class="icon">[x]</div><h3>Bulk management</h3><p>Select by search, by project, or one by one. Click rows to select. Delete what's wrong in one click.</p></div>
+      <div class="feat"><div class="icon">[&gt;]</div><h3>ChatGPT transfer</h3><p>Bring your ChatGPT knowledge to Claude and Cursor. One prompt extracts it all. <a href="#transfer">See how ↓</a></p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ STEPS ============ -->
+<section class="section">
+  <div class="wrap">
+    <p class="sec-eyebrow"><span class="num">04</span> Setup</p>
+    <h2 class="sec-title">Up and running in 30 seconds</h2>
+    <div class="steps">
+      <div class="step"><div class="idx">01</div><h4>Install &amp; open</h4><p>One command installs and opens the dashboard. Browser launches automatically.</p></div>
+      <div class="step"><div class="idx">02</div><h4>See your memories</h4><p>Auto-detects memories from Claude Code, Cursor, Windsurf, Codex, and Copilot.</p></div>
+      <div class="step"><div class="idx">03</div><h4>Sync to cloud</h4><p>Run <code>ci signup</code> to get an API key and sync memories across devices.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TRANSFER ============ -->
+<section class="section" id="transfer">
+  <div class="wrap">
+    <p class="sec-eyebrow"><span class="num">05</span> ChatGPT transfer</p>
+    <h2 class="sec-title">Transfer from ChatGPT in 60 seconds</h2>
+    <p class="sec-lede">Your ChatGPT conversations hold decisions, preferences, and project context. One prompt extracts it. Paste the result in the dashboard. Done.</p>
+    <div class="steps">
+      <div class="step"><div class="idx">01</div><h4>Copy the prompt</h4><p>Copy the extraction prompt from the dashboard's Transfer tab.</p></div>
+      <div class="step"><div class="idx">02</div><h4>Paste in ChatGPT</h4><p>Open the conversation you want to transfer. ChatGPT extracts the important stuff.</p></div>
+      <div class="step"><div class="idx">03</div><h4>Paste in dashboard</h4><p>Paste ChatGPT's output in the Transfer tab. One click imports everything.</p></div>
+    </div>
+    <div class="transfer-prompt">
+      <div class="head"><span class="lbl">The extraction prompt</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+<pre>Review our entire conversation. Extract every preference, decision, project detail, architectural choice, and instruction I shared. Ignore questions, debugging, code blocks, and small talk.
+
+Write each as a standalone fact useful to a different AI assistant with zero context. Start each with an action word (Use, Prefer, Always, Never, Deploy, etc).
+
+Output ONLY this format, nothing else:
+
+<span class="k">TRANSFER TO CI:</span>
+Project: [name of this conversation as shown in your sidebar]
+- [fact 1]
+- [fact 2]
+- [fact 3]
+...</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CTA ============ -->
+<section class="section">
+  <div class="wrap">
+    <div class="cta-block">
+      <h2>Your AI has memories. See them.</h2>
+      <p>Stop guessing what your agent knows. Start managing it.</p>
+      <div class="cmd-box" style="max-width: 720px; margin: 0 auto;">
+        <div class="cmd-head"><span class="lbl">Install</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+<pre><span class="p">$</span> curl -fsSL https://centralintelligence.online/install.sh | sh</pre>
+      </div>
+      <p class="foot">Free for 500 memories. Local only. Nothing leaves your machine.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MANUAL SETUP ============ -->
+<section class="section" id="manual">
+  <div class="wrap">
+    <p class="sec-eyebrow"><span class="num">06</span> Manual setup</p>
+    <h2 class="sec-title">Configure by hand</h2>
+    <p class="sec-lede">Prefer to configure manually? Pick your platform and add the MCP server config to the appropriate file. Requires an API key from <code style="color:var(--accent); background: rgba(95,230,232,0.06); border: 1px solid var(--line-2); padding: 1px 6px; border-radius: 2px;">ci signup</code>.</p>
+    <div class="tabs">
+      <span class="tab active" onclick="pickTab(this)">Claude Code</span>
+      <span class="tab" onclick="pickTab(this)">Cursor</span>
+      <span class="tab" onclick="pickTab(this)">Windsurf</span>
+      <span class="tab" onclick="pickTab(this)">Codex</span>
+      <span class="tab" onclick="pickTab(this)">GitHub Copilot</span>
+      <span class="tab" onclick="pickTab(this)">ChatGPT</span>
+    </div>
+    <div class="manual-code">
+      <div class="head"><span class="lbl">~/.claude/settings.json</span><button class="copy-btn" onclick="copyCmd(this)">COPY</button></div>
+<pre>{
+  <span class="k">"mcpServers"</span>: {
+    <span class="k">"central-intelligence"</span>: {
+      <span class="k">"command"</span>: <span class="s">"npx"</span>,
+      <span class="k">"args"</span>: [<span class="s">"central-intelligence-mcp"</span>],
+      <span class="k">"env"</span>: { <span class="k">"CI_API_KEY"</span>: <span class="s">"YOUR_KEY"</span> }
+    }
+  }
+}</pre>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap row">
+    <span>CI /dashboard · VT220 v2.0</span>
+    <span>
+      <a href="/vt220">Home</a> ·
+      <a href="/vt220/agent">/agent</a> ·
+      <a href="/vt220/docs">/docs</a> ·
+      <a href="https://github.com/AlekseiMarchenko/central-intelligence">GitHub</a>
+    </span>
+  </div>
+</footer>
+
+<script>
+  function copyCmd(btn) {
+    const pre = btn.closest('.cmd-box, .transfer-prompt, .manual-code').querySelector('pre');
+    navigator.clipboard.writeText(pre.innerText).then(() => {
+      btn.textContent = 'COPIED';
+      btn.classList.add('done');
+      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('done'); }, 1500);
+    });
+  }
+  function pickTab(el) {
+    el.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+  }
+</script>
+
+</body></html>
