@@ -282,6 +282,10 @@ h1.title {
 }
 .copy-btn:hover { background: var(--accent); color: #020a14; text-shadow: none; border-color: var(--accent); }
 .copy-btn.done { background: var(--accent); color: #020a14; text-shadow: none; }
+/* Mobile: ensure the COPY tap target meets the 44px Apple HIG minimum */
+@media (max-width: 720px) {
+  .copy-btn { min-height: 44px; min-width: 44px; padding: 8px 14px; font-size: 14px; }
+}
 .code-block pre {
   padding: 14px 16px; overflow-x: auto;
   font-size: 13px; line-height: 1.55;
