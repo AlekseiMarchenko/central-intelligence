@@ -117,7 +117,12 @@ h1.title { font-family: var(--crt); font-size: clamp(48px, 7.5vw, 96px); line-he
 .chip:hover { border-color: var(--accent); color: var(--accent); }
 .chip.active:hover { background: var(--accent-2); color: #020a14; }
 
+.dash-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--line-2); border-radius: 2px; }
 .dash-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 13.5px; }
+@media (max-width: 720px) {
+  .dash-table { min-width: 560px; font-size: 12px; }
+  .dash-table th, .dash-table td { padding: 8px 10px; }
+}
 .dash-table th { text-align: left; padding: 10px 14px; font-family: var(--crt); font-size: 14px; letter-spacing: 0.06em; color: var(--fg-dim); text-transform: uppercase; background: rgba(10,34,56,0.4); border-bottom: 1px solid var(--line-2); text-shadow: none; font-weight: 400; }
 .dash-table td { padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; text-shadow: none; }
 .dash-table tr:hover td { background: rgba(95,230,232,0.04); }
@@ -254,7 +259,7 @@ footer a { color: var(--accent); }
         <span class="chip">Claude Code (8)</span>
         <span class="chip">Cursor (4)</span>
       </div>
-      <table class="dash-table">
+      <div class="dash-table-wrap"><table class="dash-table">
         <thead><tr><th></th><th>Project</th><th>Source</th><th>Memory</th><th>Age</th><th>Score</th></tr></thead>
         <tbody>
           <tr><td><span class="chk"></span></td><td><span class="proj">CI Architecture</span></td><td><span class="src">chatgpt</span></td><td><span class="mem">Use Hono over Express for all API endpoints</span></td><td><span class="age">fresh</span></td><td><span class="rel">87%</span></td></tr>
@@ -263,7 +268,7 @@ footer a { color: var(--accent); }
           <tr><td><span class="chk"></span></td><td><span class="proj">Preferences</span></td><td><span class="src">cursor</span></td><td><span class="mem">Always use TypeScript strict mode</span></td><td><span class="age">fresh</span></td><td><span class="rel">71%</span></td></tr>
           <tr><td><span class="chk"></span></td><td><span class="proj">Deploy</span></td><td><span class="src">claude_mem</span></td><td><span class="mem">Deploy to Fly.io using flyctl deploy</span></td><td><span class="age aging">aging</span></td><td><span class="rel">64%</span></td></tr>
         </tbody>
-      </table>
+      </table></div>
     </div>
   </div>
 </section>
