@@ -78,6 +78,16 @@ CI scores **52.2%** on [LifeBench](https://arxiv.org/abs/2603.03781), the hardes
 
 Answer model: `gpt-5.4-mini`. Judge: `gpt-4.1-mini`. Evaluation harness: [lifebench-eval](https://github.com/AlekseiMarchenko/lifebench-eval).
 
+### LongMemEval (ICLR 2025) — Conversational Memory
+
+CI scores **75.0%** on [LongMemEval](https://arxiv.org/abs/2410.10813), testing conversational memory across 500 questions spanning single-session recall, multi-session reasoning, temporal reasoning, knowledge updates, and preference tracking.
+
+| Overall | Single-session | Multi-session | Temporal | Preference |
+|---------|----------------|---------------|----------|------------|
+| **75.0%** | **91.9%** | **66.2%** | **69.9%** | **76.7%** |
+
+Answer model: `gpt-5.4-mini`. Judge: `gpt-4o`. Evaluation harness: [lifebench-eval](https://github.com/AlekseiMarchenko/lifebench-eval).
+
 ### Agent Memory Benchmark (AMB) — Infrastructure Testing
 
 Test CI against other providers using the open-source [Agent Memory Benchmark](https://github.com/AlekseiMarchenko/agent-memory-benchmark):
