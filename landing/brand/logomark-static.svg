@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <title>Central Intelligence logomark (static)</title>
+  <rect x="2" y="2" width="60" height="60" rx="4" fill="#020a14" stroke="#5fe6e8" stroke-width="3"></rect>
+  <rect x="2" y="2" width="60" height="3" fill="#5fe6e8" opacity="0.25"></rect>
+  <path d="M14 22 L22 32 L14 42" fill="none" stroke="#5fe6e8" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter"></path>
+  <rect x="28" y="26" width="22" height="12" fill="#5fe6e8"></rect>
+</svg>

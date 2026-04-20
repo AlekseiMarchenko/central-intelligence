@@ -14,7 +14,7 @@ type Env = {
 const app = new Hono<Env>();
 
 // POST /memories/remember
-const rememberSchema = z.object({
+export const rememberSchema = z.object({
   agent_id: z.string().min(1).max(200),
   user_id: z.string().max(200).optional(),
   content: z.string().min(1).max(10000),
@@ -58,7 +58,7 @@ app.post("/remember", async (c) => {
 });
 
 // POST /memories/recall
-const recallSchema = z.object({
+export const recallSchema = z.object({
   agent_id: z.string().min(1).max(200),
   user_id: z.string().max(200).optional(),
   query: z.string().min(1).max(5000),
@@ -104,7 +104,7 @@ app.post("/recall", async (c) => {
 });
 
 // POST /memories/context
-const contextSchema = z.object({
+export const contextSchema = z.object({
   agent_id: z.string().min(1).max(200),
   user_id: z.string().max(200).optional(),
   current_context: z.string().min(1).max(5000),
@@ -152,7 +152,7 @@ app.delete("/:id", async (c) => {
 });
 
 // POST /memories/:id/share
-const shareSchema = z.object({
+export const shareSchema = z.object({
   target_scope: z.enum(["user", "org"]),
   user_id: z.string().optional(),
 });
@@ -203,7 +203,7 @@ app.post("/extract", async (c) => {
 });
 
 // POST /memories/build-graph — build entity graph in bulk after extraction
-const buildGraphSchema = z.object({
+export const buildGraphSchema = z.object({
   agent_id: z.string().min(1).max(200),
 });
 

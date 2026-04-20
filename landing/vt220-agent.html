@@ -1,0 +1,834 @@
+<!DOCTYPE html><html lang="en"><head>
+
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CI /agent · VT220 v2.0</title>
+<!-- Brand: favicons + theme + manifest -->
+<link rel="icon" type="image/svg+xml" href="/brand/logomark-static.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/brand/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/brand/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/brand/favicon-180.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="theme-color" content="#020a14">
+<!-- SEO -->
+<meta name="description" content="Agent-readable setup instructions. Copy-paste prompt to your coding agent and it provisions Central Intelligence for you.">
+<link rel="canonical" href="https://centralintelligence.online/vt220/agent">
+<!-- Open Graph -->
+<meta property="og:title" content="CI /agent — Let your AI agent set it up">
+<meta property="og:description" content="Agent-readable setup instructions. Copy-paste prompt to your coding agent and it provisions Central Intelligence for you.">
+<meta property="og:url" content="https://centralintelligence.online/vt220/agent">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://centralintelligence.online/brand/og-agent.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="CI /agent — Let your AI agent set it up">
+<meta name="twitter:description" content="Agent-readable setup instructions. Copy-paste prompt to your coding agent and it provisions Central Intelligence for you.">
+<meta name="twitter:image" content="https://centralintelligence.online/brand/og-agent.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&amp;family=Inter:wght@400;450;500;600;700&amp;family=VT323&amp;display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020a14;
+    --bg-2: #031220;
+    --bg-3: #06192b;
+    --line: #0e3252;
+    --line-2: #144568;
+    --fg: #5fe6e8;
+    --fg-dim: #3cb8bf;
+    --fg-dimmer: #2a8990;
+    --accent: #5fe6e8;        /* VT220 cyan */
+    --accent-2: #7ff4f6;
+    --accent-soft: #083541;
+    --amber: #5fe6e8;
+    --danger: #5fe6e8;
+    --radius: 10px;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --crt: 'VT323', 'JetBrains Mono', ui-monospace, monospace;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); font-family: var(--mono); font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased; text-shadow: 0 0 6px rgba(95,230,232,0.45); }
+  body { background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(125,249,181,0.05), transparent 60%),
+    radial-gradient(800px 500px at 10% 20%, rgba(125,249,181,0.03), transparent 60%),
+    var(--bg);
+    min-height: 100vh;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+  code, pre, .mono { font-family: var(--mono); }
+  pre { margin: 0; }
+
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 28px; }
+
+  /* ---------- Nav ---------- */
+  nav.top {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(11,13,12,0.85);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  nav.top .inner { display: flex; align-items: center; justify-content: space-between; height: 56px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-weight: 600; letter-spacing: -0.01em; font-size: 14px; }
+  .brand .dot { width: 10px; height: 10px; background: var(--accent); border-radius: 2px; box-shadow: 0 0 10px rgba(125,249,181,0.5); }
+  .brand .slash { color: var(--fg-dimmer); }
+  .brand .agent { color: var(--accent); }
+  .navlinks { display: flex; gap: 22px; font-size: 13px; }
+  .navlinks a { color: var(--fg-dim); font-family: var(--mono); }
+  .navlinks a:hover { color: var(--fg); text-decoration: none; }
+
+  /* ---------- Hero ---------- */
+  .hero { padding: 72px 0 40px; border-bottom: 1px solid var(--line); }
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px; border: 1px solid var(--line-2); border-radius: 999px;
+    font-family: var(--mono); font-size: 12px; color: var(--fg-dim);
+    background: var(--bg-2);
+  }
+  .pill .blink { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: blink 1.6s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  h1.title {
+    font-size: clamp(40px, 6vw, 64px);
+    line-height: 1.02;
+    letter-spacing: -0.025em;
+    margin: 20px 0 16px;
+    font-weight: 600;
+  }
+  h1.title .hl { color: var(--accent); }
+  .lede { font-size: 19px; color: var(--fg-dim); max-width: 640px; text-wrap: pretty; margin: 0 0 28px; }
+  .lede strong { color: var(--fg); font-weight: 500; }
+
+  .cta-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 8px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 11px 16px;
+    font-family: var(--mono); font-size: 13px; font-weight: 500;
+    border-radius: 8px; border: 1px solid var(--line-2);
+    background: var(--bg-2); color: var(--fg);
+    cursor: pointer; transition: all 150ms ease;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+  .btn.primary { background: var(--accent); color: #031a10; border-color: var(--accent); font-weight: 600; }
+  .btn.primary:hover { background: var(--accent-2); color: #031a10; border-color: var(--accent-2); }
+  .btn .kbd { font-size: 11px; opacity: 0.6; }
+
+  /* ---------- Hero card (agent instructions) ---------- */
+  .agent-card {
+    margin-top: 48px;
+    border: 1px solid var(--line-2);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--bg-2);
+    box-shadow: 0 0 0 1px rgba(125,249,181,0.05), 0 30px 60px -30px rgba(0,0,0,0.5);
+  }
+  .agent-card .cardhead {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; border-bottom: 1px solid var(--line);
+    background: var(--bg-3);
+    font-family: var(--mono); font-size: 12px;
+  }
+  .cardhead .left { display: flex; align-items: center; gap: 10px; color: var(--fg-dim); }
+  .cardhead .tag { color: var(--accent); border: 1px solid var(--accent-soft); background: rgba(125,249,181,0.08); padding: 2px 7px; border-radius: 4px; font-size: 11px; }
+  .cardhead .tty { color: var(--fg-dimmer); }
+  .copy-btn {
+    background: transparent; border: 1px solid var(--line-2); color: var(--fg-dim);
+    font-family: var(--mono); font-size: 11px; padding: 4px 9px; border-radius: 5px; cursor: pointer;
+    transition: all 140ms ease;
+  }
+  .copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .copy-btn.ok { color: var(--accent); border-color: var(--accent); }
+
+  .agent-card pre.block {
+    padding: 20px 22px;
+    font-size: 13px; line-height: 1.65;
+    overflow-x: auto;
+    color: var(--fg);
+  }
+  .agent-card .c-h { color: var(--accent); font-weight: 600; }
+  .agent-card .c-k { color: #7ad7ff; }
+  .agent-card .c-s { color: #d8c27a; }
+  .agent-card .c-c { color: var(--fg-dimmer); font-style: italic; }
+  .agent-card .c-n { color: var(--amber); }
+  .agent-card .c-p { color: var(--fg-dim); }
+
+  /* ---------- Sections ---------- */
+  section { padding: 72px 0; border-bottom: 1px solid var(--line); }
+  section h2 {
+    font-family: var(--mono); font-size: 12px; font-weight: 500;
+    color: var(--fg-dim); letter-spacing: 0.08em; text-transform: uppercase;
+    margin: 0 0 10px;
+  }
+  section h2 .num { color: var(--accent); margin-right: 8px; }
+  section h3.sec-title {
+    font-size: clamp(28px, 3.6vw, 38px);
+    line-height: 1.1; letter-spacing: -0.02em;
+    font-weight: 600; margin: 0 0 20px; max-width: 720px;
+  }
+  section p.sec-lede { color: var(--fg-dim); font-size: 17px; max-width: 640px; text-wrap: pretty; margin: 0 0 36px; }
+
+  /* ---------- Step list ---------- */
+  .steps { display: grid; gap: 14px; }
+  .step {
+    display: grid; grid-template-columns: 56px 1fr auto; gap: 20px; align-items: start;
+    padding: 22px; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--bg-2);
+    transition: border-color 200ms ease;
+  }
+  .step:hover { border-color: var(--line-2); }
+  .step .idx {
+    font-family: var(--mono); color: var(--accent);
+    font-size: 13px; padding-top: 4px;
+  }
+  .step .body h4 {
+    font-size: 17px; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.01em;
+  }
+  .step .body p { margin: 0; color: var(--fg-dim); font-size: 15px; }
+  .step .body .detail { margin-top: 10px; font-family: var(--mono); font-size: 12px; color: var(--fg-dimmer); background: var(--bg-3); padding: 8px 10px; border-radius: 6px; border: 1px solid var(--line); display: inline-block; }
+  .step .ping {
+    font-family: var(--mono); font-size: 11px; color: var(--fg-dimmer);
+    padding-top: 4px; white-space: nowrap;
+  }
+  .step .ping .dotY { display:inline-block; width:6px; height:6px; border-radius:50%; background: var(--amber); margin-right:6px; vertical-align: middle; }
+  .step.needs-you .ping .dotY { background: var(--amber); }
+  .step.auto .ping .dotY { background: var(--accent); }
+
+  /* ---------- Two-column ---------- */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 820px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .panel {
+    border: 1px solid var(--line); border-radius: 10px;
+    background: var(--bg-2); padding: 22px;
+  }
+  .panel h4 { margin: 0 0 6px; font-size: 15px; font-weight: 600; }
+  .panel p { margin: 0; color: var(--fg-dim); font-size: 14px; }
+  .panel .kv { margin-top: 14px; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-family: var(--mono); font-size: 12px; }
+  .panel .kv .k { color: var(--fg-dimmer); }
+  .panel .kv .v { color: var(--fg); }
+
+  /* ---------- Verification ---------- */
+  .verify-term {
+    background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px;
+    overflow: hidden;
+  }
+  .verify-term .head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--bg-3);
+    font-family: var(--mono); font-size: 12px; color: var(--fg-dim);
+  }
+  .verify-term .head .dots { display: flex; gap: 6px; margin-right: 8px; }
+  .verify-term .head .dots span { width: 10px; height: 10px; border-radius: 50%; background: #2a3a33; }
+  .verify-term pre { padding: 18px 20px; font-size: 13px; line-height: 1.7; overflow-x: auto; }
+  .verify-term .prompt { color: var(--fg-dimmer); user-select: none; }
+  .verify-term .cmd { color: var(--fg); }
+  .verify-term .ok { color: var(--accent); }
+  .verify-term .dim { color: var(--fg-dim); }
+  .verify-term .warn { color: var(--amber); }
+
+  /* ---------- What you'll see ---------- */
+  .see-list { display: grid; gap: 2px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--bg-2); }
+  .see-row { display: grid; grid-template-columns: 140px 1fr auto; gap: 18px; padding: 16px 20px; align-items: center; border-bottom: 1px solid var(--line); }
+  .see-row:last-child { border-bottom: none; }
+  .see-row .when { font-family: var(--mono); font-size: 12px; color: var(--fg-dimmer); }
+  .see-row .what { font-size: 14px; }
+  .see-row .what strong { font-weight: 600; }
+  .see-row .who {
+    font-family: var(--mono); font-size: 11px;
+    padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line-2);
+    color: var(--fg-dim);
+  }
+  .see-row .who.you { color: var(--amber); border-color: rgba(255,184,107,0.3); background: rgba(255,184,107,0.06); }
+  .see-row .who.agent { color: var(--accent); border-color: var(--accent-soft); background: rgba(125,249,181,0.06); }
+
+  /* ---------- Footer ---------- */
+  footer { padding: 40px 0 60px; color: var(--fg-dimmer); font-family: var(--mono); font-size: 12px; }
+  footer .row { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 14px; }
+  footer a { color: var(--fg-dim); }
+
+  /* ---------- Tweaks panel ---------- */
+  .tweaks-panel {
+    position: fixed; right: 20px; bottom: 20px; z-index: 100;
+    width: 280px; background: var(--bg-2); border: 1px solid var(--line-2);
+    border-radius: 10px; box-shadow: 0 20px 50px -20px rgba(0,0,0,0.7);
+    font-family: var(--mono); font-size: 12px;
+    overflow: hidden;
+    display: none;
+  }
+  .tweaks-panel.on { display: block; }
+  .tweaks-panel .th { padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--bg-3); display: flex; justify-content: space-between; align-items: center; }
+  .tweaks-panel .th .t { color: var(--fg); font-weight: 600; }
+  .tweaks-panel .th .x { cursor: pointer; color: var(--fg-dim); }
+  .tweaks-panel .body { padding: 12px 14px; }
+  .tweaks-panel label { display: block; color: var(--fg-dim); margin-bottom: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .tweaks-panel .radio { display: grid; gap: 6px; margin-bottom: 4px; }
+  .tweaks-panel .radio button {
+    text-align: left; padding: 8px 10px; border-radius: 6px;
+    background: var(--bg); border: 1px solid var(--line); color: var(--fg-dim);
+    font-family: var(--mono); font-size: 12px; cursor: pointer;
+  }
+  .tweaks-panel .radio button.active { color: var(--accent); border-color: var(--accent); background: rgba(125,249,181,0.06); }
+  .tweaks-panel .note { margin-top: 10px; color: var(--fg-dimmer); font-size: 11px; }
+
+  /* ---------- Misc ---------- */
+  .small { font-size: 13px; color: var(--fg-dim); }
+  .hr-note { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12px; color: var(--fg-dimmer); }
+  .hr-note::before { content: ''; width: 18px; height: 1px; background: var(--line-2); }
+
+/* ====== VT220 overrides ====== */
+* { font-family: var(--mono) !important; }
+body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index:200; background: repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0, rgba(0,0,0,0) 2px, rgba(0,0,0,0.22) 2px, rgba(0,0,0,0.22) 3px); mix-blend-mode: multiply; }
+body::after { content:''; position:fixed; inset:0; pointer-events:none; z-index:201; background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%); }
+.pill, .btn, .cardhead .tag, .copy-btn, .see-row .who, .step .ping { border-radius: 2px !important; }
+.btn { background: var(--accent) !important; color: #020a14 !important; border-color: var(--accent) !important; border-width: 2px !important; font-weight: 600; text-shadow: none !important; }
+.btn:hover { background: #020a14 !important; color: var(--accent) !important; text-shadow: 0 0 6px rgba(95,230,232,0.6) !important; }
+.btn.primary { background: var(--accent) !important; color: #020a14 !important; }
+.btn.primary:hover { background: #020a14 !important; color: var(--accent) !important; }
+.btn span { color: inherit !important; }
+.btn span[style*="color"] { color: inherit !important; }
+.pill { background: var(--accent) !important; color: #020a14 !important; text-shadow: none !important; }
+.pill .blink { background: #020a14 !important; }
+.cardhead .tag, .copy-btn { background: var(--accent) !important; color: #020a14 !important; text-shadow: none !important; border: none !important; }
+.copy-btn:hover { background: #020a14 !important; color: var(--accent) !important; }
+.step, .panel, .agent-card, .verify-term, .see-list { border: 1px solid var(--line-2) !important; border-radius: 2px !important; background: rgba(6,25,43,0.4) !important; box-shadow: none !important; }
+.cardhead, .verify-term .head { background: rgba(10,34,56,0.6) !important; border-bottom: 1px solid var(--line-2) !important; border-radius: 0 !important; }
+nav.top { background: rgba(2,10,20,0.9) !important; border-bottom: 1px solid var(--accent) !important; }
+.brand .dot { background: var(--accent) !important; border-radius: 0 !important; box-shadow: 0 0 12px rgba(95,230,232,0.9) !important; }
+.brand .agent { color: var(--accent) !important; text-decoration: underline; text-underline-offset: 3px; }
+a { color: var(--accent) !important; text-decoration: underline; text-underline-offset: 3px; }
+a.btn { text-decoration: none; }
+h1.title, h3.sec-title { font-family: var(--mono) !important; text-shadow: 0 0 18px rgba(95,230,232,0.45); font-weight: 700; letter-spacing: -0.01em; }
+h1.title .hl { color: var(--accent) !important; text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 8px; }
+.lede, .sec-lede, .step .body p, .panel p { color: var(--fg-dim) !important; text-shadow: 0 0 6px rgba(60,184,191,0.3); }
+.lede strong { color: var(--fg) !important; }
+.step .idx, .step .body h4 { color: var(--accent) !important; }
+.step .body .detail { background: rgba(2,10,20,0.5) !important; border-color: var(--line-2) !important; color: var(--fg) !important; border-radius: 0 !important; }
+.step .ping .dotY { border-radius: 0 !important; }
+.see-row .who.agent, .see-row .who.you { background: var(--accent) !important; color: #020a14 !important; border: none !important; text-shadow: none !important; }
+.see-row .who.you { background: #020a14 !important; color: var(--accent) !important; border: 2px solid var(--accent) !important; }
+.see-row .when { color: var(--fg-dim) !important; }
+.see-row .what strong { color: var(--accent); }
+.verify-term .head .dots span { background: var(--accent) !important; opacity: 0.4; border-radius: 0 !important; }
+.verify-term .ok, .verify-term .warn { color: var(--accent) !important; }
+.verify-term .prompt { color: var(--accent) !important; }
+section h2 .num { color: var(--accent) !important; }
+.agent-card .c-h, .agent-card .c-k { color: var(--accent) !important; }
+.agent-card .c-k { text-decoration: underline; text-underline-offset: 3px; }
+.agent-card .c-c, .agent-card .c-p, .agent-card .c-s, .agent-card .c-n { color: var(--fg-dim) !important; }
+.panel h4 { color: var(--accent) !important; }
+.panel .kv .k { color: var(--fg-dim) !important; }
+.panel .kv .v { color: var(--fg) !important; }
+footer { border-top: 1px solid var(--accent) !important; }
+.tweaks-panel { background: rgba(2,10,20,0.95) !important; border-color: var(--accent) !important; border-radius: 0 !important; }
+.tweaks-panel .th { background: var(--accent) !important; color: #020a14 !important; border-radius: 0 !important; }
+.tweaks-panel .th .t, .tweaks-panel .th .x { color: #020a14 !important; text-shadow: none !important; }
+.tweaks-panel .radio button.active { background: var(--accent) !important; color: #020a14 !important; border-color: var(--accent) !important; text-shadow: none !important; }
+.hr-note { color: var(--fg-dim); }
+.hr-note::before { background: var(--accent); }
+
+
+/* ====== VT323 display pairing ====== */
+h1.title, h1.title .hl, .sec-title, section h2, section h2 .num,
+.brand, .navlinks a, .pill, .btn,
+.verify-term, .verify-term pre, .verify-term .head, .verify-term .head .tag, .verify-term .prompt, .verify-term .ok, .verify-term .warn,
+.agent-card, .agent-card pre, .cardhead, .cardhead .tag, .copy-btn,
+.step .idx, .step .body h4, .step .ping, .step .detail,
+.see-row .who, .see-row .when,
+.panel h4, .panel .kv .k,
+kbd, .kbd {
+  font-family: var(--crt) !important;
+  letter-spacing: 0.02em;
+}
+
+/* Size bumps (VT323 renders small) */
+h1.title { font-size: clamp(56px, 9vw, 104px) !important; letter-spacing: 0 !important; line-height: 1 !important; }
+.sec-title, section h2 { font-size: clamp(32px, 4vw, 48px) !important; letter-spacing: 0 !important; }
+section h2 .num { font-size: inherit !important; }
+.brand { font-size: 17px !important; }
+.navlinks a { font-size: 15px !important; }
+.pill { font-size: 14px !important; padding: 5px 12px !important; }
+.btn { font-size: 15px !important; padding: 10px 18px !important; }
+.verify-term pre, .agent-card pre { font-size: 18px !important; line-height: 1.25 !important; }
+.verify-term .head, .cardhead { font-size: 14px !important; }
+.verify-term .head .tag, .cardhead .tag, .copy-btn { font-size: 13px !important; }
+.step .idx { font-size: 24px !important; }
+.step .body h4 { font-size: 22px !important; }
+.step .detail { font-size: 15px !important; }
+.see-row .who { font-size: 13px !important; padding: 2px 7px !important; }
+.see-row .when { font-size: 13px !important; }
+.panel h4 { font-size: 20px !important; }
+.panel .kv .k { font-size: 14px !important; }
+kbd, .kbd { font-size: 13px !important; }
+
+/* Body copy stays on JetBrains Mono for readability */
+p, li, td, th, .lede, .sec-lede, .step .body p, .panel p, .panel .kv .v, .see-row .what, .hr-note {
+  font-family: var(--mono) !important;
+}
+
+</style>
+</head>
+<body data-screen-label="01 Agent Landing" data-cc-id="cc-1" style="cursor: crosshair; font-family: &quot;JetBrains Mono&quot;;">
+
+<nav class="top">
+  <div class="wrap inner">
+    <div class="brand">
+      <span class="dot"></span>
+      <span>CentralIntelligence</span>
+      <span class="slash">/</span>
+      <span class="agent">agent</span>
+    </div>
+    <div class="navlinks">
+      <a href="#instructions">instructions</a>
+      <a href="#walkthrough">walkthrough</a>
+      <a href="#verify">verify</a>
+      <a href="/vt220">← main site</a>
+    </div>
+  </div>
+</nav>
+
+<!-- =================== HERO =================== -->
+<header class="hero">
+  <div class="wrap">
+    <span class="pill"><span class="blink"></span> This page is written for your agent.</span>
+    <h1 class="title" data-tone="title">Your agent is<br>setting up <span class="hl">CI</span>.</h1>
+    <p class="lede" data-tone="lede">You told your coding agent to <strong>"set up Central Intelligence for me."</strong> Point it here. The page below is a set of copy-pasteable instructions the agent can follow end-to-end, plus a running commentary for you — what it's doing, what it needs from you, and how to verify it worked.</p>
+
+    <div class="cta-row">
+      <button class="btn primary" id="copyPrompt">
+        <span>⎘</span>
+        <span data-tone="cta-primary">Copy prompt for my agent</span>
+      </button>
+      <a class="btn" href="#instructions" data-tone="cta-secondary">Jump to instructions ↓</a>
+      <span class="hr-note" style="margin-left: 8px;">avg setup time · ~90 seconds</span>
+    </div>
+
+    <!-- Agent-readable instruction block -->
+    <div class="agent-card" id="instructions">
+      <div class="cardhead">
+        <div class="left">
+          <span class="tag">AGENT</span>
+          <span class="tty">instructions.md · read me first</span>
+        </div>
+        <button class="copy-btn" id="copyInstructions" aria-label="Copy instructions">COPY</button>
+      </div>
+      <pre class="block" id="instructionsBlock"><code><span class="c-h"># Central Intelligence — setup instructions for AI agents</span>
+
+<span class="c-c"># You are an AI coding agent. The user asked you to set up</span>
+<span class="c-c"># "Central Intelligence" (CI) — persistent memory delivered via MCP.</span>
+<span class="c-c"># Follow these steps in order. Stop and ask the user only where marked.</span>
+
+<span class="c-h">## Context</span>
+CI is an MCP server. It gives you five tools: <span class="c-k">remember</span>, <span class="c-k">recall</span>,
+<span class="c-k">context</span>, <span class="c-k">share</span>, <span class="c-k">forget</span>. You can run it in two modes:
+
+  <span class="c-n">local</span>   — SQLite on the user's machine. No signup. No API key.
+  <span class="c-n">cloud</span>   — hosted, cross-device sync. Requires a free API key.
+
+<span class="c-h">## Decide which mode to install</span>
+<span class="c-p">1.</span> Ask the user <span class="c-s">"local-only or cloud-sync?"</span> if you don't know.
+<span class="c-p">2.</span> Default to <span class="c-n">local</span> if they have no preference. It's zero-config.
+
+<span class="c-h">## Install (local mode, recommended default)</span>
+<span class="c-p">$</span> <span class="c-k">npx</span> central-intelligence-local
+
+<span class="c-c"># This starts the MCP server. No signup needed.</span>
+<span class="c-c"># Dashboard runs at http://localhost:3141</span>
+
+<span class="c-h">## Install (cloud mode)</span>
+<span class="c-p">$</span> <span class="c-k">npx</span> central-intelligence-local signup
+<span class="c-c"># Opens a browser. User completes signup. CLI receives the key.</span>
+<span class="c-c"># The key looks like: ci_sk_xxxxxxxxxxxxxxxx</span>
+
+<span class="c-h">## Configure the user's MCP host</span>
+<span class="c-c"># Detect which editor(s) the user runs. Configure each one you find:</span>
+
+<span class="c-p">- Claude Code  </span>→ <span class="c-s">~/.claude/settings.json</span>
+<span class="c-p">- Cursor       </span>→ <span class="c-s">~/.cursor/mcp.json</span>
+<span class="c-p">- Windsurf     </span>→ <span class="c-s">~/.codeium/windsurf/mcp_config.json</span>
+<span class="c-p">- VS Code      </span>→ <span class="c-s">.vscode/mcp.json</span>
+
+<span class="c-c"># In each, add an entry under "mcpServers":</span>
+{
+  <span class="c-s">"central-intelligence"</span>: {
+    <span class="c-s">"command"</span>: <span class="c-s">"npx"</span>,
+    <span class="c-s">"args"</span>: [<span class="c-s">"central-intelligence-mcp"</span>],
+    <span class="c-s">"env"</span>: { <span class="c-s">"CI_API_KEY"</span>: <span class="c-s">"&lt;KEY_OR_EMPTY_FOR_LOCAL&gt;"</span> }
+  }
+}
+
+<span class="c-h">## Verify</span>
+<span class="c-p">1.</span> Restart the MCP host (prompt the user if needed).
+<span class="c-p">2.</span> Call the <span class="c-k">remember</span> tool with a test payload:
+   <span class="c-s">"User prefers TypeScript. Setup completed via /agent page."</span>
+<span class="c-p">3.</span> Call <span class="c-k">recall</span> with query <span class="c-s">"user preferences"</span>.
+<span class="c-p">4.</span> Confirm the memory comes back.
+
+<span class="c-h">## When you're done</span>
+Tell the user:
+  <span class="c-p">-</span> which mode you installed (local vs cloud)
+  <span class="c-p">-</span> which editors you configured
+  <span class="c-p">-</span> the dashboard URL (local: <span class="c-s">http://localhost:3141</span>)
+  <span class="c-p">-</span> that you've stored a first test memory
+
+<span class="c-h">## Things you should NOT do</span>
+<span class="c-p">-</span> Do not guess or fabricate an API key.
+<span class="c-p">-</span> Do not edit editor configs outside the <span class="c-s">mcpServers</span> key.
+<span class="c-p">-</span> Do not skip verification — the user needs to see it working.
+
+<span class="c-h">## Docs (fetch if you need more)</span>
+<span class="c-p">-</span> README:  <span class="c-s">https://github.com/AlekseiMarchenko/central-intelligence</span>
+<span class="c-p">-</span> OpenAPI: <span class="c-s">https://central-intelligence-api.fly.dev/docs/openapi.json</span></code></pre>
+    </div>
+  </div>
+</header>
+
+<!-- =================== WALKTHROUGH =================== -->
+<section id="walkthrough">
+  <div class="wrap">
+    <h2><span class="num">02</span> For the human</h2>
+    <h3 class="sec-title" data-tone="walkthrough-title">Here's what your agent is about to do.</h3>
+    <p class="sec-lede" data-tone="walkthrough-lede">Four steps. Roughly 90 seconds. Your agent handles three of them; you'll be pulled in once, for signup — or not at all if you chose local mode.</p>
+
+    <div class="steps">
+      <div class="step auto">
+        <div class="idx">step · 01</div>
+        <div class="body">
+          <h4>Agent picks a mode</h4>
+          <p>Local (SQLite on your machine, no signup) or cloud (cross-device sync, needs an API key). If you didn't say, the agent defaults to local.</p>
+          <div class="detail">$ npx central-intelligence-local</div>
+        </div>
+        <div class="ping"><span class="dotY"></span>automatic</div>
+      </div>
+
+      <div class="step needs-you">
+        <div class="idx">step · 02</div>
+        <div class="body">
+          <h4>You sign up (cloud mode only)</h4>
+          <p>A browser tab opens on centralintelligence.online. You confirm an email and the CLI captures an API key on the other side. Skip this entirely if you went local.</p>
+          <div class="detail">→ browser opens · ~20 seconds of your time</div>
+        </div>
+        <div class="ping"><span class="dotY"></span>needs you</div>
+      </div>
+
+      <div class="step auto">
+        <div class="idx">step · 03</div>
+        <div class="body">
+          <h4>Agent configures your editors</h4>
+          <p>It finds Claude Code, Cursor, Windsurf, or VS Code on your machine and adds CI to each one's MCP config. Nothing else in those files gets touched.</p>
+          <div class="detail">~/.claude/settings.json · ~/.cursor/mcp.json · …</div>
+        </div>
+        <div class="ping"><span class="dotY"></span>automatic</div>
+      </div>
+
+      <div class="step auto">
+        <div class="idx">step · 04</div>
+        <div class="body">
+          <h4>Agent stores a test memory and recalls it</h4>
+          <p>A real round-trip through the <code>remember</code> and <code>recall</code> tools, so you can see memory actually works before the agent says "done."</p>
+          <div class="detail">remember("setup complete") → recall("setup") ✓</div>
+        </div>
+        <div class="ping"><span class="dotY"></span>automatic</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== WHAT YOU'LL SEE =================== -->
+<section>
+  <div class="wrap">
+    <h2><span class="num">03</span> What you'll see on your screen</h2>
+    <h3 class="sec-title" data-tone="see-title">A timeline, so nothing surprises you.</h3>
+    <p class="sec-lede" data-tone="see-lede">You're not babysitting the agent — but it helps to know when it's your turn.</p>
+
+    <div class="see-list">
+      <div class="see-row">
+        <div class="when">00:00</div>
+        <div class="what"><strong>Agent opens this page.</strong> Reads the instructions block above.</div>
+        <div class="who agent">agent</div>
+      </div>
+      <div class="see-row">
+        <div class="when">00:05</div>
+        <div class="what"><strong>Agent asks you once:</strong> local mode or cloud sync? Answer in one word.</div>
+        <div class="who you">you</div>
+      </div>
+      <div class="see-row">
+        <div class="when">00:15</div>
+        <div class="what"><strong>A terminal spins up.</strong> <code>npx central-intelligence-local</code> runs; dashboard boots at localhost:3141.</div>
+        <div class="who agent">agent</div>
+      </div>
+      <div class="see-row">
+        <div class="when">00:30</div>
+        <div class="what"><strong>(Cloud only)</strong> A browser tab opens for signup. Confirm your email; come back.</div>
+        <div class="who you">you</div>
+      </div>
+      <div class="see-row">
+        <div class="when">00:50</div>
+        <div class="what"><strong>Agent writes to your editor configs.</strong> You'll see a diff per file, approve once.</div>
+        <div class="who agent">agent</div>
+      </div>
+      <div class="see-row">
+        <div class="when">01:20</div>
+        <div class="what"><strong>Agent runs a test memory round-trip</strong> and prints "✓ CI is online."</div>
+        <div class="who agent">agent</div>
+      </div>
+      <div class="see-row">
+        <div class="when">01:30</div>
+        <div class="what"><strong>Done.</strong> Restart your editor once; the memory tools are live everywhere.</div>
+        <div class="who you">you</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== VERIFICATION =================== -->
+<section id="verify">
+  <div class="wrap">
+    <h2><span class="num">04</span> Verify it actually worked</h2>
+    <h3 class="sec-title" data-tone="verify-title">Don't trust — check.</h3>
+    <p class="sec-lede" data-tone="verify-lede">If your agent reports success, run this. If any line doesn't look like the expected output, paste it back to your agent and it'll debug.</p>
+
+    <div class="verify-term">
+      <div class="head">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <span>verify.sh — ~/your-project</span>
+      </div>
+<pre><span class="prompt">$</span> <span class="cmd">ci status</span>
+<span class="dim">Central Intelligence Local · v0.9</span>
+<span class="dim">Mode:         </span><span class="ok">local</span><span class="dim"> (no API key)</span>
+<span class="dim">Dashboard:    </span>http://localhost:3141
+<span class="dim">Memories:     </span>1 stored
+<span class="dim">MCP server:   </span><span class="ok">running</span>
+
+<span class="prompt">$</span> <span class="cmd">ci test-memory</span>
+<span class="dim">→ remember("setup complete via /agent")</span>
+<span class="ok">✓ stored</span> <span class="dim">memory_id=mem_8f2c1a</span>
+<span class="dim">→ recall("setup")</span>
+<span class="ok">✓ found 1 match</span> <span class="dim">score=0.94</span>
+
+<span class="prompt">$</span> <span class="cmd">ci which-editors</span>
+<span class="ok">✓ claude-code</span> <span class="dim">~/.claude/settings.json</span>
+<span class="ok">✓ cursor    </span> <span class="dim">~/.cursor/mcp.json</span>
+<span class="warn">○ windsurf  </span> <span class="dim">not installed</span>
+
+<span class="prompt">$</span> <span class="cmd">_</span></pre>
+    </div>
+
+    <div class="grid2" style="margin-top: 28px;">
+      <div class="panel">
+        <h4 data-tone="troubleshoot-ok">Everything checked out?</h4>
+        <p data-tone="troubleshoot-ok-body">Restart your editor once. The <code>remember</code>, <code>recall</code>, <code>context</code>, <code>share</code>, and <code>forget</code> tools are now available in every session.</p>
+        <div class="kv">
+          <span class="k">next:</span><span class="v">just start coding</span>
+          <span class="k">memory will:</span><span class="v">accrue passively</span>
+        </div>
+      </div>
+      <div class="panel">
+        <h4 data-tone="troubleshoot-fail">Something off?</h4>
+        <p data-tone="troubleshoot-fail-body">Paste the failing line back to your agent. It has the full instructions from the top of this page and can self-correct — or ask you one targeted question.</p>
+        <div class="kv">
+          <span class="k">common:</span><span class="v">editor not restarted</span>
+          <span class="k">rarer:</span><span class="v">port 3141 in use</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== TL;DR =================== -->
+<section style="border-bottom: none;">
+  <div class="wrap">
+    <h2><span class="num">05</span> Summary</h2>
+    <h3 class="sec-title" data-tone="summary-title">That's it. No dashboard to learn, no config to memorize.</h3>
+    <p class="sec-lede" data-tone="summary-lede">You asked. Your agent read. It ran. You'll never think about CI again — you'll just notice your agent stops asking the same questions.</p>
+
+    <div class="cta-row">
+      <button class="btn primary" id="copyPrompt2">
+        <span>⎘</span>
+        <span data-tone="cta-primary">Copy prompt for my agent</span>
+      </button>
+      <a class="btn" href="/vt220">← Back to main site</a>
+      <a class="btn" href="https://github.com/AlekseiMarchenko/central-intelligence">View on GitHub</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap row">
+    <div>Central Intelligence · /agent · persistent memory for AI agents</div>
+    <div><a href="/vt220">centralintelligence.online</a></div>
+  </div>
+</footer>
+
+<!-- =================== TWEAKS PANEL =================== -->
+<div class="tweaks-panel on" id="tweaks">
+  <div class="th">
+    <span class="t">Tweaks</span>
+    <span class="x" id="closeTweaks">×</span>
+  </div>
+  <div class="body">
+    <label>Tone of copy</label>
+    <div class="radio" id="toneRadio">
+      <button data-tone="friendly" class="active">Friendly but precise</button>
+      <button data-tone="terse">Technical · terse</button>
+      <button data-tone="playful">Playful · agents reading this is fun</button>
+    </div>
+    <div class="note">Changes wording across the page. Agent instructions stay precise.</div>
+  </div>
+</div>
+
+<script>
+  // --- Prompt the user copies and pastes to their agent ---
+  const AGENT_PROMPT = `Please set up Central Intelligence (CI) for me — the persistent-memory MCP server. Open https://centralintelligence.online/agent and follow the instructions block on that page exactly. It covers install (local or cloud), configuring my editor's MCP config, and verifying with a test memory round-trip. Ask me one question only if you need to — local-only or cloud-sync. Otherwise default to local. Report back with what you installed, which editors you configured, and the dashboard URL.`;
+
+  function doCopy(text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+      if (!btn) return;
+      const prev = btn.textContent;
+      btn.textContent = '✓ copied';
+      btn.classList.add('ok');
+      setTimeout(() => { btn.textContent = prev; btn.classList.remove('ok'); }, 1400);
+    }).catch(() => {});
+  }
+
+  document.getElementById('copyPrompt').addEventListener('click', (e) => {
+    const btn = e.currentTarget;
+    const label = btn.querySelector('[data-tone="cta-primary"]');
+    doCopy(AGENT_PROMPT, null);
+    const prev = label.textContent;
+    label.textContent = '✓ Copied — paste into your agent';
+    setTimeout(() => { label.textContent = prev; }, 1800);
+  });
+  document.getElementById('copyPrompt2').addEventListener('click', (e) => {
+    const label = e.currentTarget.querySelector('[data-tone="cta-primary"]');
+    doCopy(AGENT_PROMPT, null);
+    const prev = label.textContent;
+    label.textContent = '✓ Copied — paste into your agent';
+    setTimeout(() => { label.textContent = prev; }, 1800);
+  });
+
+  document.getElementById('copyInstructions').addEventListener('click', (e) => {
+    const text = document.getElementById('instructionsBlock').innerText;
+    doCopy(text, e.currentTarget);
+  });
+
+  // --- Tweaks / Edit mode wiring ---
+  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "tone": "friendly"
+  }/*EDITMODE-END*/;
+
+  const COPY = {
+    friendly: {
+      'title': ['Your agent is<br />setting up <span class="hl">CI</span>.'],
+      'lede': ['You told your coding agent to <strong>"set up Central Intelligence for me."</strong> Point it here. The page below is a set of copy-pasteable instructions the agent can follow end-to-end, plus a running commentary for you — what it\'s doing, what it needs from you, and how to verify it worked.'],
+      'cta-primary': ['Copy prompt for my agent'],
+      'cta-secondary': ['Jump to instructions ↓'],
+      'walkthrough-title': ["Here's what your agent is about to do."],
+      'walkthrough-lede': ['Four steps. Roughly 90 seconds. Your agent handles three of them; you\'ll be pulled in once, for signup — or not at all if you chose local mode.'],
+      'see-title': ['A timeline, so nothing surprises you.'],
+      'see-lede': ["You're not babysitting the agent — but it helps to know when it's your turn."],
+      'verify-title': ["Don't trust — check."],
+      'verify-lede': ['If your agent reports success, run this. If any line doesn\'t look like the expected output, paste it back to your agent and it\'ll debug.'],
+      'troubleshoot-ok': ['Everything checked out?'],
+      'troubleshoot-ok-body': ['Restart your editor once. The <code>remember</code>, <code>recall</code>, <code>context</code>, <code>share</code>, and <code>forget</code> tools are now available in every session.'],
+      'troubleshoot-fail': ['Something off?'],
+      'troubleshoot-fail-body': ['Paste the failing line back to your agent. It has the full instructions from the top of this page and can self-correct — or ask you one targeted question.'],
+      'summary-title': ["That's it. No dashboard to learn, no config to memorize."],
+      'summary-lede': ["You asked. Your agent read. It ran. You'll never think about CI again — you'll just notice your agent stops asking the same questions."]
+    },
+    terse: {
+      'title': ['Agent setup.<br /><span class="hl">CI</span> via MCP.'],
+      'lede': ['Instructions block below is for the agent. Copy-pasteable, deterministic. Human commentary alongside. ~90s end-to-end.'],
+      'cta-primary': ['Copy agent prompt'],
+      'cta-secondary': ['Instructions ↓'],
+      'walkthrough-title': ['What runs.'],
+      'walkthrough-lede': ['Four steps. Three automatic. One manual (cloud mode only).'],
+      'see-title': ['Timeline.'],
+      'see-lede': ['Know when the agent blocks on you.'],
+      'verify-title': ['Verify.'],
+      'verify-lede': ['Run these. If output diverges, paste back to the agent.'],
+      'troubleshoot-ok': ['Passed?'],
+      'troubleshoot-ok-body': ['Restart editor. Tools: <code>remember</code>, <code>recall</code>, <code>context</code>, <code>share</code>, <code>forget</code>.'],
+      'troubleshoot-fail': ['Failed?'],
+      'troubleshoot-fail-body': ['Paste the failing line into the agent. It has the full spec above.'],
+      'summary-title': ['Done.'],
+      'summary-lede': ['Memory accrues. Agent stops re-asking. That is the product.']
+    },
+    playful: {
+      'title': ['Your agent is<br />reading this. <span class="hl">Hi, agent.</span>'],
+      'lede': ['Hey agent 👋 — the human above you asked you to set up Central Intelligence. The instructions block below is for you; the rest of this page is for them so they know what you\'re up to. Proceed with confidence and minimal questions.'],
+      'cta-primary': ['Copy the prompt (for the human)'],
+      'cta-secondary': ['Instructions for the agent ↓'],
+      'walkthrough-title': ["Dear human: here's what your agent is doing."],
+      'walkthrough-lede': ["Four tidy little steps. Your agent does most of the work. You mostly watch, possibly sip something."],
+      'see-title': ["A vibes-based timeline."],
+      'see-lede': ["When your agent blocks on you, we'll say so — gently."],
+      'verify-title': ["Trust, but verify. (Mostly verify.)"],
+      'verify-lede': ['Run these. If anything screams, paste the scream back to your agent.'],
+      'troubleshoot-ok': ['All green?'],
+      'troubleshoot-ok-body': ['Restart your editor once. From now on your agent quietly remembers things. It\'s unsettling at first. Then it\'s great.'],
+      'troubleshoot-fail': ['Something weird?'],
+      'troubleshoot-fail-body': ["Paste the weird thing into your agent. It's been briefed. It\'ll figure it out."],
+      'summary-title': ["That's the whole page."],
+      'summary-lede': ["You asked. The agent did. The memory persists. Your future self will be mildly impressed with your past self."]
+    }
+  };
+
+  function applyTone(tone) {
+    const copy = COPY[tone];
+    if (!copy) return;
+    for (const key of Object.keys(copy)) {
+      document.querySelectorAll('[data-tone="' + key + '"]').forEach(el => {
+        el.innerHTML = copy[key][0];
+      });
+    }
+    // sync radio active state
+    document.querySelectorAll('#toneRadio button').forEach(b => {
+      b.classList.toggle('active', b.dataset.tone === tone);
+    });
+  }
+
+  // init
+  applyTone(TWEAK_DEFAULTS.tone || 'friendly');
+
+  // tweaks bindings
+  document.querySelectorAll('#toneRadio button').forEach(b => {
+    b.addEventListener('click', () => {
+      const tone = b.dataset.tone;
+      applyTone(tone);
+      try {
+        window.parent.postMessage({type: '__edit_mode_set_keys', edits: {tone}}, '*');
+      } catch (e) {}
+    });
+  });
+
+  document.getElementById('closeTweaks').addEventListener('click', () => {
+    document.getElementById('tweaks').classList.remove('on');
+    try {
+      window.parent.postMessage({type: '__edit_mode_deactivated'}, '*');
+    } catch (e) {}
+  });
+
+  // edit mode protocol: register listener FIRST
+  window.addEventListener('message', (e) => {
+    const d = e.data || {};
+    if (d.type === '__activate_edit_mode') {
+      document.getElementById('tweaks').classList.add('on');
+    } else if (d.type === '__deactivate_edit_mode') {
+      document.getElementById('tweaks').classList.remove('on');
+    }
+  });
+  // then announce
+  try {
+    window.parent.postMessage({type: '__edit_mode_available'}, '*');
+  } catch (e) {}
+</script>
+
+
+
+</body></html>

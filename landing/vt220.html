@@ -1,0 +1,1502 @@
+<!DOCTYPE html><html lang="en"><head>
+
+
+
+
+
+
+
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CI · VT220 v2.0</title>
+<!-- Brand: favicons + theme + manifest -->
+<link rel="icon" type="image/svg+xml" href="/brand/logomark-static.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/brand/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/brand/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/brand/favicon-180.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="theme-color" content="#020a14">
+<!-- SEO -->
+<meta name="description" content="Open-source memory infrastructure for AI agents. Hybrid retrieval (pgvector + BM25 + cross-encoder). 75% LongMemEval, 52% LifeBench.">
+<link rel="canonical" href="https://centralintelligence.online/vt220">
+<!-- Open Graph -->
+<meta property="og:title" content="Central Intelligence — Persistent memory for AI agents">
+<meta property="og:description" content="Open-source memory infrastructure for AI agents. Hybrid retrieval (pgvector + BM25 + cross-encoder). 75% LongMemEval, 52% LifeBench.">
+<meta property="og:url" content="https://centralintelligence.online/vt220">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://centralintelligence.online/brand/og-home.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Central Intelligence — Persistent memory for AI agents">
+<meta name="twitter:description" content="Open-source memory infrastructure for AI agents. Hybrid retrieval (pgvector + BM25 + cross-encoder). 75% LongMemEval, 52% LifeBench.">
+<meta name="twitter:image" content="https://centralintelligence.online/brand/og-home.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&amp;family=Inter:wght@400;450;500;600;700&amp;family=VT323&amp;display=swap" rel="stylesheet">
+<style>
+/* ============ CI design system ============ */
+:root {
+  --bg: #020a14;
+  --bg-2: #031220;
+  --bg-3: #06192b;
+  --bg-4: #0a2238;
+  --line: #0e3252;
+  --line-2: #144568;
+  --line-3: #1d5a85;
+  --fg: #5fe6e8;
+  --fg-dim: #3cb8bf;
+  --fg-dimmer: #2a8990;
+  --accent: #5fe6e8;
+  --accent-2: #7ff4f6;
+  --accent-soft: #083541;
+  --amber: #5fe6e8;
+  --blue: #5fe6e8;
+  --rose: #5fe6e8;
+  --danger: #ff8a8a;
+  --radius: 10px;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --crt: 'VT323', 'JetBrains Mono', ui-monospace, monospace;
+  --sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); font-family: var(--mono); font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased; text-shadow: 0 0 6px rgba(95,230,232,0.45); }
+body {
+  background:
+    radial-gradient(1400px 800px at 50% 30%, rgba(95,230,232,0.07), transparent 70%),
+    var(--bg);
+  min-height: 100vh;
+  overflow-x: hidden;
+  font-family: var(--mono);
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 200;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0,0,0,0) 0,
+    rgba(0,0,0,0) 2px,
+    rgba(0,0,0,0.22) 2px,
+    rgba(0,0,0,0.22) 3px
+  );
+  mix-blend-mode: multiply;
+}
+body::after {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 201;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%);
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 3px; }
+code, pre, .mono { font-family: var(--mono); }
+pre { margin: 0; }
+
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+.wrap-tight { max-width: 960px; margin: 0 auto; padding: 0 28px; }
+
+/* ============ Nav ============ */
+nav.top {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(11,13,12,0.8);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+nav.top .inner { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+.brand { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-weight: 600; letter-spacing: -0.01em; font-size: 14px; }
+.brand .dot { width: 10px; height: 10px; background: var(--accent); border-radius: 2px; box-shadow: 0 0 12px rgba(125,249,181,0.6); }
+.navlinks { display: flex; gap: 22px; font-size: 13px; align-items: center; }
+.navlinks a { color: var(--fg-dim); font-family: var(--mono); }
+.navlinks a:hover { color: var(--fg); text-decoration: none; }
+.navlinks .divider { width: 1px; height: 16px; background: var(--line-2); }
+@media (max-width: 720px) { .navlinks .hide-sm { display: none; } }
+
+/* ============ Generic UI ============ */
+.pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 12px; border: 1px solid var(--line-2); border-radius: 999px;
+  font-family: var(--mono); font-size: 12px; color: var(--fg-dim);
+  background: var(--bg-2);
+}
+.pill .blink { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: blink 1.6s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 16px;
+  font-family: var(--mono); font-size: 13px; font-weight: 500;
+  border-radius: 8px; border: 1px solid var(--line-2);
+  background: var(--bg-2); color: var(--fg);
+  cursor: pointer; transition: all 150ms ease; text-decoration: none;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+.btn.primary { background: var(--accent); color: #031a10; border-color: var(--accent); font-weight: 600; }
+.btn.primary:hover { background: var(--accent-2); color: #031a10; border-color: var(--accent-2); }
+.btn.ghost { background: transparent; }
+.btn.sm { padding: 8px 12px; font-size: 12px; }
+
+.sec-eyebrow {
+  font-family: var(--mono); font-size: 12px; font-weight: 500;
+  color: var(--fg-dim); letter-spacing: 0.08em; text-transform: uppercase;
+  margin: 0 0 10px;
+}
+.sec-eyebrow .num { color: var(--accent); margin-right: 8px; }
+.sec-title {
+  font-size: clamp(28px, 3.6vw, 40px);
+  line-height: 1.08; letter-spacing: -0.022em;
+  font-weight: 600; margin: 0 0 18px; max-width: 760px;
+  text-wrap: balance;
+}
+.sec-lede { color: var(--fg-dim); font-size: 17px; max-width: 640px; text-wrap: pretty; margin: 0 0 36px; }
+
+section { padding: 88px 0; border-bottom: 1px solid var(--line); position: relative; }
+
+/* ============ Hero ============ */
+.hero { padding: 84px 0 72px; border-bottom: 1px solid var(--line); position: relative; overflow: hidden; }
+.hero::before {
+  content: ''; position: absolute; inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(125,249,181,0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(125,249,181,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 30%, transparent 75%);
+  pointer-events: none;
+}
+.hero .inner { position: relative; z-index: 1; }
+h1.hero-title {
+  font-size: clamp(48px, 8vw, 96px);
+  line-height: 0.98; letter-spacing: -0.035em;
+  margin: 22px 0 20px; font-weight: 600;
+}
+h1.hero-title .hl { color: var(--accent); }
+h1.hero-title .strike { color: var(--fg-dimmer); text-decoration: line-through; text-decoration-color: var(--line-3); text-decoration-thickness: 2px; }
+.hero-lede { font-size: 20px; color: var(--fg-dim); max-width: 600px; text-wrap: pretty; margin: 0 0 32px; }
+.hero-lede strong { color: var(--fg); font-weight: 500; }
+.cta-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.hero-meta { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 40px; font-family: var(--mono); font-size: 12px; color: var(--fg-dimmer); }
+.hero-meta span { display: inline-flex; align-items: center; gap: 6px; }
+.hero-meta span::before { content: '→'; color: var(--accent); }
+
+/* ============ Terminal card (hero) ============ */
+.term {
+  border: 1px solid var(--line-2);
+  border-radius: 12px; overflow: hidden;
+  background: var(--bg-2);
+  box-shadow: 0 0 0 1px rgba(125,249,181,0.04), 0 30px 80px -30px rgba(0,0,0,0.6);
+}
+.term .head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; border-bottom: 1px solid var(--line);
+  background: var(--bg-3); font-family: var(--mono); font-size: 12px; color: var(--fg-dim);
+}
+.term .head .left { display: flex; align-items: center; gap: 10px; }
+.term .head .dots { display: flex; gap: 6px; }
+.term .head .dots span { width: 10px; height: 10px; border-radius: 50%; background: #2a3a33; }
+.term .head .tag { color: var(--accent); border: 1px solid var(--accent-soft); background: rgba(125,249,181,0.08); padding: 2px 7px; border-radius: 4px; font-size: 11px; }
+.term pre { padding: 20px 22px; font-size: 13px; line-height: 1.7; overflow-x: auto; }
+.term .prompt { color: var(--fg-dimmer); user-select: none; }
+.term .cmd { color: var(--fg); }
+.term .ok { color: var(--accent); }
+.term .dim { color: var(--fg-dim); }
+.term .warn { color: var(--amber); }
+.term .c-c { color: var(--fg-dimmer); font-style: italic; }
+.term .c-k { color: var(--blue); }
+.term .c-s { color: #d8c27a; }
+.term .c-h { color: var(--accent); font-weight: 600; }
+.term .c-n { color: var(--amber); }
+.term .c-p { color: var(--fg-dim); }
+
+/* ============ Problem: without/with ============ */
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+@media (max-width: 820px) { .compare { grid-template-columns: 1fr; } }
+.compare .col { padding: 26px; background: var(--bg-2); }
+.compare .col + .col { border-left: 1px solid var(--line); }
+@media (max-width: 820px) { .compare .col + .col { border-left: none; border-top: 1px solid var(--line); } }
+.compare .col h4 { margin: 0 0 16px; font-size: 13px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.08em; }
+.compare .col.bad h4 { color: var(--rose); }
+.compare .col.good h4 { color: var(--accent); }
+.compare .col .q { padding: 12px 14px; border: 1px dashed var(--line-2); border-radius: 8px; margin-bottom: 10px; font-size: 14px; color: var(--fg-dim); font-family: var(--mono); }
+.compare .col.bad .q { opacity: 0.85; }
+.compare .col.good .q { border-style: solid; border-color: var(--accent-soft); background: rgba(125,249,181,0.04); color: var(--fg); font-family: var(--sans); }
+.compare .tail { color: var(--fg-dimmer); font-family: var(--mono); font-size: 12px; margin-top: 14px; }
+
+.stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 36px; }
+@media (max-width: 620px) { .stats { grid-template-columns: 1fr; } }
+.stat { padding: 22px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-2); }
+.stat .big { font-size: clamp(40px, 6vw, 64px); font-family: var(--mono); font-weight: 600; letter-spacing: -0.02em; color: var(--fg); line-height: 1; }
+.stat .big .accent { color: var(--accent); }
+.stat .label { margin-top: 12px; color: var(--fg-dim); font-size: 14px; }
+
+/* ============ Tools grid ============ */
+.tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media (max-width: 960px) { .tools { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 620px) { .tools { grid-template-columns: 1fr; } }
+.tool {
+  border: 1px solid var(--line); border-radius: 12px; background: var(--bg-2);
+  padding: 24px; display: flex; flex-direction: column; gap: 14px;
+  transition: all 200ms ease;
+  position: relative; overflow: hidden;
+}
+.tool:hover { border-color: var(--line-3); transform: translateY(-2px); }
+.tool .name {
+  font-family: var(--mono); font-size: 18px; font-weight: 600;
+  color: var(--accent); letter-spacing: -0.01em;
+}
+.tool .desc { color: var(--fg-dim); font-size: 14px; margin: 0; flex-grow: 1; }
+.tool .ex { font-family: var(--mono); font-size: 12px; color: var(--fg-dimmer); padding: 10px 12px; border-left: 2px solid var(--accent); background: var(--bg-3); border-radius: 0 6px 6px 0; line-height: 1.6; }
+.tool.rest { background: linear-gradient(135deg, var(--bg-2), var(--bg-3)); border-style: dashed; }
+.tool.rest .name { color: var(--blue); }
+
+/* ============ Scopes ============ */
+.scopes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media (max-width: 820px) { .scopes { grid-template-columns: 1fr; } }
+.scope {
+  border: 1px solid var(--line); border-radius: 12px; background: var(--bg-2);
+  padding: 24px; position: relative;
+}
+.scope .tag { font-family: var(--mono); font-size: 12px; color: var(--accent); margin-bottom: 16px; display: inline-block; padding: 4px 10px; background: rgba(125,249,181,0.07); border: 1px solid var(--accent-soft); border-radius: 4px; }
+.scope h4 { margin: 0 0 8px; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+.scope p { color: var(--fg-dim); margin: 0; font-size: 14px; }
+.scope .ring { position: absolute; right: 24px; top: 24px; display: flex; gap: 2px; }
+.scope .ring span { width: 6px; height: 6px; border-radius: 50%; background: var(--line-3); }
+.scope .ring span.on { background: var(--accent); }
+
+/* ============ Integrations grid ============ */
+.integrations { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+@media (max-width: 960px) { .integrations { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 720px) { .integrations { grid-template-columns: repeat(2, 1fr); } }
+.integ {
+  border: 1px solid var(--line); border-radius: 10px; background: var(--bg-2);
+  padding: 20px; cursor: pointer; transition: all 180ms ease;
+  display: flex; flex-direction: column; gap: 6px; min-height: 120px;
+  text-align: left;
+  font-family: inherit; color: inherit;
+}
+.integ:hover, .integ.active { border-color: var(--accent); background: var(--bg-3); }
+.integ .ic { width: 28px; height: 28px; border-radius: 6px; background: var(--bg-4); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--accent); margin-bottom: 6px; border: 1px solid var(--line-2); }
+.integ .n { font-size: 14px; font-weight: 500; color: var(--fg); }
+.integ .s { font-size: 11px; font-family: var(--mono); color: var(--fg-dimmer); text-transform: uppercase; letter-spacing: 0.06em; }
+.integ.active .s { color: var(--accent); }
+
+.integ-panel {
+  margin-top: 20px; border: 1px solid var(--line-2); border-radius: 12px; overflow: hidden;
+  background: var(--bg-2);
+}
+.integ-panel .head { padding: 14px 18px; border-bottom: 1px solid var(--line); background: var(--bg-3); font-family: var(--mono); font-size: 12px; color: var(--fg-dim); display: flex; justify-content: space-between; align-items: center; }
+.integ-panel .head .nm { color: var(--accent); font-weight: 600; }
+.integ-panel .body { padding: 22px; }
+.integ-panel .body p { margin: 0 0 12px; color: var(--fg-dim); font-size: 14px; }
+.integ-panel pre { padding: 14px 16px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; font-size: 12.5px; line-height: 1.65; overflow-x: auto; color: var(--fg); }
+
+/* ============ Local vs Cloud ============ */
+.twomode { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 820px) { .twomode { grid-template-columns: 1fr; } }
+.mode { border: 1px solid var(--line); border-radius: 12px; background: var(--bg-2); padding: 26px; display: flex; flex-direction: column; gap: 14px; }
+.mode .icon { font-family: var(--mono); font-size: 20px; color: var(--accent); }
+.mode h4 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+.mode p { margin: 0; color: var(--fg-dim); font-size: 14px; }
+.mode .cmd { font-family: var(--mono); font-size: 12.5px; padding: 12px 14px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; color: var(--fg); }
+.mode .foot { font-family: var(--mono); font-size: 12px; color: var(--fg-dimmer); margin-top: auto; }
+
+/* ============ Pricing ============ */
+.pricing { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media (max-width: 900px) { .pricing { grid-template-columns: 1fr; } }
+.plan { border: 1px solid var(--line); border-radius: 12px; background: var(--bg-2); padding: 28px; display: flex; flex-direction: column; gap: 14px; position: relative; }
+.plan.featured { border-color: var(--accent); background: linear-gradient(180deg, rgba(125,249,181,0.05), var(--bg-2) 40%); }
+.plan .badge { position: absolute; top: -11px; left: 28px; background: var(--accent); color: #031a10; font-family: var(--mono); font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
+.plan .name { font-family: var(--mono); font-size: 12px; color: var(--fg-dim); text-transform: uppercase; letter-spacing: 0.08em; }
+.plan .price { font-size: 42px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; }
+.plan .price small { font-size: 14px; color: var(--fg-dim); font-weight: 400; margin-left: 4px; }
+.plan .for { color: var(--fg-dim); font-size: 14px; margin: 0; }
+.plan ul { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 8px; }
+.plan ul li { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: var(--fg); }
+.plan ul li::before { content: '✓'; color: var(--accent); font-family: var(--mono); font-size: 12px; line-height: 1.6; }
+.plan .btn { margin-top: auto; justify-content: center; }
+
+/* ============ Benchmarks ============ */
+.bench-wrap { display: grid; gap: 40px; }
+.bench { border: 1px solid var(--line); border-radius: 12px; background: var(--bg-2); overflow: hidden; }
+.bench .top { padding: 28px; border-bottom: 1px solid var(--line); }
+.bench .eyebrow { font-family: var(--mono); font-size: 12px; color: var(--accent); margin-bottom: 6px; }
+.bench h3 { margin: 0 0 10px; font-size: 28px; font-weight: 600; letter-spacing: -0.02em; }
+.bench p { color: var(--fg-dim); font-size: 15px; margin: 0; max-width: 680px; }
+.bench-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 13px; }
+.bench-table th, .bench-table td { padding: 14px 20px; text-align: left; border-bottom: 1px solid var(--line); }
+.bench-table th { color: var(--fg-dim); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; background: var(--bg-3); }
+.bench-table td { color: var(--fg); }
+.bench-table td.score { color: var(--accent); font-weight: 600; }
+.bench-table tr:last-child td { border-bottom: none; }
+.bench .extras { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border-top: 1px solid var(--line); }
+@media (max-width: 820px) { .bench .extras { grid-template-columns: 1fr; } }
+.bench .extras .cell { padding: 20px 24px; border-right: 1px solid var(--line); }
+.bench .extras .cell:last-child { border-right: none; }
+@media (max-width: 820px) { .bench .extras .cell { border-right: none; border-bottom: 1px solid var(--line); } }
+.bench .extras h5 { margin: 0 0 6px; font-size: 14px; font-weight: 600; }
+.bench .extras p { font-size: 13px; color: var(--fg-dim); }
+.bench .footnote { padding: 16px 28px; font-family: var(--mono); font-size: 12px; color: var(--fg-dimmer); border-top: 1px solid var(--line); }
+
+/* ============ Dashboard preview ============ */
+.dash-card {
+  border: 1px solid var(--line-2); border-radius: 14px; overflow: hidden;
+  background: var(--bg-2);
+  box-shadow: 0 30px 80px -30px rgba(0,0,0,0.6);
+}
+.dash-head { padding: 12px 18px; background: var(--bg-3); border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; font-family: var(--mono); font-size: 12px; color: var(--fg-dim); }
+.dash-head .url { color: var(--accent); }
+.dash-body { padding: 22px; display: grid; grid-template-columns: 220px 1fr; gap: 22px; }
+@media (max-width: 820px) { .dash-body { grid-template-columns: 1fr; } }
+.dash-side { display: grid; gap: 8px; }
+.dash-metric { padding: 14px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.dash-metric .k { font-family: var(--mono); font-size: 11px; color: var(--fg-dimmer); text-transform: uppercase; letter-spacing: 0.06em; }
+.dash-metric .v { font-family: var(--mono); font-size: 20px; font-weight: 600; margin-top: 4px; color: var(--fg); }
+.dash-metric .v.ok { color: var(--accent); }
+.dash-metric .v.warn { color: var(--amber); }
+.dash-metric .v.dim { color: var(--fg-dim); }
+
+.dash-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.dash-table th { text-align: left; padding: 10px 12px; font-family: var(--mono); font-size: 11px; color: var(--fg-dimmer); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--line); font-weight: 500; }
+.dash-table td { padding: 12px; border-bottom: 1px solid var(--line); color: var(--fg); vertical-align: top; }
+.dash-table td .proj { font-family: var(--mono); font-size: 12px; color: var(--blue); }
+.dash-table td .src { font-family: var(--mono); font-size: 11px; color: var(--fg-dimmer); }
+.dash-table td .content { color: var(--fg-dim); font-size: 13px; }
+.dash-table td .chip { display: inline-block; font-family: var(--mono); font-size: 10px; padding: 2px 6px; border-radius: 3px; margin-left: 4px; }
+.dash-table td .chip.fresh { color: var(--accent); background: rgba(125,249,181,0.1); }
+.dash-table td .chip.aging { color: var(--amber); background: rgba(255,184,107,0.1); }
+.dash-table td .chip.dup { color: var(--rose); background: rgba(255,138,168,0.1); }
+
+/* ============ Final CTA ============ */
+.mega-cta {
+  border: 1px solid var(--line-2); border-radius: 16px;
+  padding: 60px 40px;
+  background:
+    radial-gradient(600px 300px at 50% 100%, rgba(125,249,181,0.1), transparent 70%),
+    var(--bg-2);
+  text-align: center;
+}
+.mega-cta h3 { font-size: clamp(32px, 4.5vw, 52px); margin: 0 0 12px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.05; }
+.mega-cta p { color: var(--fg-dim); font-size: 17px; max-width: 520px; margin: 0 auto 30px; }
+.mega-cta .cta-row { justify-content: center; }
+
+/* ============ Privacy / Terms ============ */
+.legal { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+@media (max-width: 820px) { .legal { grid-template-columns: 1fr; } }
+.legal-col { border: 1px solid var(--line); border-radius: 12px; background: var(--bg-2); padding: 28px; }
+.legal-col h3 { margin: 0 0 6px; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+.legal-col .updated { font-family: var(--mono); font-size: 11px; color: var(--fg-dimmer); margin-bottom: 16px; }
+.legal-col h4 { margin: 18px 0 6px; font-size: 14px; font-weight: 600; color: var(--fg); }
+.legal-col p { margin: 0; color: var(--fg-dim); font-size: 13.5px; line-height: 1.6; }
+
+/* ============ Agent banner ============ */
+.agent-banner {
+  border: 1px solid var(--accent-soft);
+  background: linear-gradient(90deg, rgba(125,249,181,0.08), rgba(125,249,181,0.02));
+  border-radius: 12px;
+  padding: 22px 26px;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px;
+}
+.agent-banner .left { display: flex; align-items: center; gap: 16px; }
+.agent-banner .glyph {
+  width: 42px; height: 42px; border-radius: 8px;
+  background: var(--bg); border: 1px solid var(--accent-soft);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); color: var(--accent); font-weight: 600;
+}
+.agent-banner .txt { font-size: 15px; color: var(--fg); }
+.agent-banner .txt strong { color: var(--accent); font-weight: 600; font-family: var(--mono); font-size: 14px; }
+.agent-banner .txt .sub { color: var(--fg-dim); font-size: 13px; margin-top: 2px; }
+
+/* ============ Footer ============ */
+footer { padding: 48px 0 72px; color: var(--fg-dimmer); font-family: var(--mono); font-size: 12px; border-top: 1px solid var(--line); }
+footer .row { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 14px; align-items: center; }
+footer a { color: var(--fg-dim); }
+footer .links { display: flex; gap: 18px; }
+
+/* ============ Tweaks ============ */
+.tweaks-panel {
+  position: fixed; right: 20px; bottom: 20px; z-index: 100;
+  width: 280px; background: var(--bg-2); border: 1px solid var(--line-2);
+  border-radius: 10px; box-shadow: 0 20px 50px -20px rgba(0,0,0,0.7);
+  font-family: var(--mono); font-size: 12px;
+  overflow: hidden; display: none;
+}
+.tweaks-panel.on { display: block; }
+.tweaks-panel .th { padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--bg-3); display: flex; justify-content: space-between; align-items: center; }
+.tweaks-panel .th .t { color: var(--fg); font-weight: 600; }
+.tweaks-panel .th .x { cursor: pointer; color: var(--fg-dim); }
+.tweaks-panel .body { padding: 12px 14px; }
+.tweaks-panel label { display: block; color: var(--fg-dim); margin-bottom: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+.tweaks-panel .radio { display: grid; gap: 6px; margin-bottom: 4px; }
+.tweaks-panel .radio button {
+  text-align: left; padding: 8px 10px; border-radius: 6px;
+  background: var(--bg); border: 1px solid var(--line); color: var(--fg-dim);
+  font-family: var(--mono); font-size: 12px; cursor: pointer;
+}
+.tweaks-panel .radio button.active { color: var(--accent); border-color: var(--accent); background: rgba(125,249,181,0.06); }
+.tweaks-panel .note { margin-top: 10px; color: var(--fg-dimmer); font-size: 11px; }
+
+.hr-note { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12px; color: var(--fg-dimmer); }
+.hr-note::before { content: ''; width: 18px; height: 1px; background: var(--line-2); }
+
+
+/* ========== VT220 overrides ========== */
+* { font-family: var(--mono) !important; }
+.strike { text-decoration: line-through; text-decoration-color: var(--accent); opacity: 0.55; }
+
+/* everything readable needs to be cyan or reverse-cyan */
+h1, h2, h3, h4, h5, p, li, td, th { color: var(--fg); }
+.btn span, .btn.primary span { color: inherit !important; }
+.btn span[style*="color"] { color: inherit !important; }
+
+/* Reverse-video blocks: button/pill/tag/chip — filled cyan bg with near-black text */
+.pill, .btn, .integ .s, .scope .tag, .dash-table td .chip, .plan .badge, .bench .eyebrow, .tool .name, .dash-metric .k, .term .head .tag {
+  background: var(--accent) !important;
+  color: #020a14 !important;
+  text-shadow: none !important;
+  border-color: var(--accent) !important;
+  border-radius: 2px !important;
+}
+.integ .s, .scope .tag, .dash-table td .chip, .plan .badge, .bench .eyebrow, .dash-metric .k, .term .head .tag {
+  display: inline-block;
+  padding: 2px 7px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.btn { border-radius: 2px !important; padding: 9px 16px; font-weight: 600; border-width: 2px !important; }
+.btn:hover { background: #020a14 !important; color: var(--accent) !important; text-shadow: 0 0 6px rgba(95,230,232,0.7) !important; }
+.btn.primary { background: var(--accent) !important; color: #020a14 !important; }
+.btn.primary:hover { background: #020a14 !important; color: var(--accent) !important; }
+.btn.ghost { background: transparent !important; color: var(--accent) !important; text-shadow: 0 0 6px rgba(95,230,232,0.5) !important; }
+.btn.ghost:hover { background: var(--accent) !important; color: #020a14 !important; text-shadow: none !important; }
+
+.pill { padding: 3px 10px; border-radius: 2px !important; font-weight: 600; }
+.pill .blink { background: #020a14 !important; }
+
+/* tool name — swap to underlined heading */
+.tool .name { background: transparent !important; color: var(--accent) !important; text-shadow: 0 0 8px rgba(95,230,232,0.6) !important; text-decoration: underline; text-underline-offset: 4px; padding: 0 !important; font-size: 18px; }
+
+/* bench eyebrow: reverse-video */
+.bench .eyebrow { font-size: 11px; }
+
+/* dash metric key: reverse-video */
+.dash-metric .k { font-size: 10px; }
+.dash-metric .v { text-shadow: 0 0 8px rgba(95,230,232,0.5); }
+
+/* scope tag on top corner */
+.scope .tag { font-size: 11px; }
+
+/* benchmark score cells stay bold cyan */
+.bench-table td.score { color: var(--accent) !important; background: transparent !important; font-weight: 700; text-shadow: 0 0 8px rgba(95,230,232,0.6); }
+
+/* borders are thin cyan lines */
+.term, .tool, .scope, .compare, .mode, .plan, .bench, .dash-card, .legal-col, .integ, .integ-panel, .stat, .agent-banner, .mega-cta, .dash-metric {
+  border: 1px solid var(--line-2) !important;
+  border-radius: 2px !important;
+  background: rgba(6,25,43,0.4) !important;
+  box-shadow: none !important;
+}
+.plan.featured { border-color: var(--accent) !important; background: rgba(95,230,232,0.04) !important; }
+.plan.featured .btn.primary { background: var(--accent) !important; color: #020a14 !important; }
+
+/* underlined "links" — classic VT style */
+a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+a:hover { background: var(--accent); color: #020a14; text-shadow: none; text-decoration: none; }
+
+/* inputs/command prompts */
+.term pre, pre { background: transparent !important; border: none !important; color: var(--fg) !important; }
+.term .head { background: rgba(10,34,56,0.6) !important; border-bottom: 1px solid var(--line-2) !important; }
+.term .head .dots span { background: var(--accent); opacity: 0.35; border-radius: 0; }
+
+/* nav */
+nav.top { background: rgba(2,10,20,0.9) !important; border-bottom: 1px solid var(--accent) !important; }
+.brand .dot { background: var(--accent) !important; border-radius: 0 !important; box-shadow: 0 0 12px rgba(95,230,232,0.9) !important; }
+.brand { text-transform: uppercase; letter-spacing: 0.08em; }
+
+/* headings: stronger, underlined accent */
+h1.hero-title { font-family: var(--mono) !important; font-weight: 700; letter-spacing: -0.01em; font-size: clamp(42px, 7vw, 80px) !important; text-shadow: 0 0 20px rgba(95,230,232,0.5); }
+h1.hero-title .hl { color: var(--accent); text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 8px; }
+.sec-title { font-family: var(--mono) !important; font-weight: 700; letter-spacing: -0.01em; text-shadow: 0 0 12px rgba(95,230,232,0.35); }
+.sec-eyebrow { color: var(--fg-dim); text-shadow: none; }
+.sec-eyebrow .num { color: var(--accent); }
+
+/* hero lede + section ledes: dim phosphor */
+.hero-lede, .sec-lede, .tool .desc, .scope p, .mode p, .plan .for, .bench p, .legal-col p, .dash-metric .v.dim, .compare .col .q, .tail {
+  color: var(--fg-dim) !important;
+  text-shadow: 0 0 6px rgba(60,184,191,0.3);
+}
+.hero-lede strong, .plan ul li { color: var(--fg) !important; }
+
+/* compare: without CI goes dim, with CI goes reverse */
+.compare .col.bad h4 { color: var(--fg-dim) !important; }
+.compare .col.good h4 { color: var(--accent) !important; }
+.compare .col.good .q { background: rgba(95,230,232,0.08) !important; border-color: var(--accent) !important; color: var(--fg) !important; }
+
+/* stats */
+.stat .big { color: var(--accent); text-shadow: 0 0 18px rgba(95,230,232,0.6); font-family: var(--mono); font-weight: 700; }
+.stat .big .accent { color: var(--accent); }
+.stat .label { color: var(--fg-dim); text-shadow: none; }
+
+/* dashboard */
+.dash-head { background: rgba(10,34,56,0.6) !important; border-bottom: 1px solid var(--line-2) !important; }
+.dash-table { font-family: var(--mono); }
+.dash-table td .proj, .dash-table td .src, .dash-table td .content { color: var(--fg-dim); text-shadow: none; }
+.dash-table td .proj { color: var(--accent); }
+.dash-metric.v.ok, .dash-metric .v.ok { color: var(--accent) !important; }
+
+/* mega cta */
+.mega-cta { background: rgba(6,25,43,0.5) !important; }
+.mega-cta h3 { color: var(--accent); text-shadow: 0 0 20px rgba(95,230,232,0.5); }
+
+/* agent banner */
+.agent-banner { background: rgba(95,230,232,0.05) !important; border-color: var(--accent) !important; }
+.agent-banner .glyph { background: var(--accent) !important; color: #020a14 !important; border: none !important; border-radius: 0 !important; }
+.agent-banner .txt strong { color: var(--accent) !important; }
+
+/* hero grid lines */
+.hero::before { background-image: linear-gradient(to right, rgba(95,230,232,0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(95,230,232,0.08) 1px, transparent 1px) !important; }
+
+/* VT220 directory label top-right of hero */
+.vt-label {
+  position: absolute; top: 28px; right: 28px;
+  font-family: var(--mono); font-size: 13px;
+  color: var(--accent); text-decoration: underline;
+  text-underline-offset: 4px; text-decoration-thickness: 2px;
+  letter-spacing: 0.05em;
+}
+
+/* tweak radio active */
+.tweaks-panel { background: rgba(2,10,20,0.95) !important; border-color: var(--accent) !important; border-radius: 0 !important; }
+.tweaks-panel .radio button.active { background: var(--accent); color: #020a14; border-color: var(--accent); text-shadow: none; }
+.tweaks-panel .th { background: var(--accent); color: #020a14; border-radius: 0; }
+.tweaks-panel .th .t, .tweaks-panel .th .x { color: #020a14 !important; text-shadow: none; }
+
+/* footer */
+footer { border-top: 1px solid var(--accent) !important; }
+
+/* integration panel */
+.integ-panel .head { background: rgba(10,34,56,0.6) !important; border-bottom: 1px solid var(--line-2) !important; }
+.integ-panel .head .nm { color: var(--accent) !important; background: transparent !important; }
+.integ.active { background: rgba(95,230,232,0.08) !important; border-color: var(--accent) !important; }
+.integ .ic { background: var(--accent) !important; color: #020a14 !important; border-radius: 0 !important; text-shadow: none; }
+
+/* hero meta arrows */
+.hero-meta span::before { color: var(--accent); }
+
+/* mode icon cyan */
+.mode .icon, .mode h4, .plan .price, .plan .name, .mode .foot { color: var(--accent) !important; }
+.mode .foot { color: var(--fg-dim) !important; }
+.mode .cmd { background: rgba(2,10,20,0.5) !important; border-color: var(--line-2) !important; color: var(--fg) !important; }
+
+/* plan */
+.plan .price small { color: var(--fg-dim) !important; }
+.plan ul li::before { color: var(--accent); }
+
+/* pill blink */
+.pill .blink { animation: blink 1.2s steps(2) infinite; }
+
+/* bench table zebra */
+.bench-table th { background: rgba(10,34,56,0.6) !important; color: var(--fg-dim) !important; }
+.bench-table td { border-color: var(--line) !important; }
+
+/* input terminal commands */
+.cmd { text-shadow: 0 0 6px rgba(95,230,232,0.5); }
+.ok { color: var(--accent) !important; }
+.c-h { color: var(--accent) !important; }
+.c-k { color: var(--accent) !important; text-decoration: underline; text-underline-offset: 3px; }
+.c-c, .dim { color: var(--fg-dim) !important; }
+.c-s, .c-n, .warn { color: var(--fg) !important; }
+.prompt { color: var(--accent) !important; }
+
+/* legal small caps */
+.legal-col h3, .legal-col h4 { color: var(--accent) !important; }
+
+/* ring dots square, cyan */
+.scope .ring span { border-radius: 0; background: var(--line-2); }
+.scope .ring span.on { background: var(--accent); }
+
+/* ========== end VT220 overrides ========== */
+
+
+
+/* ====== VT323 display pairing ====== */
+h1.hero-title, .sec-title, .sec-eyebrow, .vt-label, .hero-sys,
+.term, .term pre, .term .head, .term .head .tag, .term .prompt, .term .c-h, .term .c-k, .term .c-c, .term .dim, .term .ok, .term .warn,
+.mode .cmd, .mode .icon,
+.pill, .btn, .brand, .navlinks a,
+.dash-metric .k, .bench .eyebrow, .scope .tag, .plan .badge, .dash-metric .v,
+.stat .big, .stat .label,
+.tool .name, .plan .price, .mode h4, .plan .name,
+kbd, .kbd, .cardhead .tag, .copy-btn {
+  font-family: var(--crt) !important;
+  letter-spacing: 0.02em;
+}
+
+/* VT323 renders small — bump sizes on the elements we switched */
+h1.hero-title { font-size: clamp(56px, 9vw, 104px) !important; letter-spacing: 0 !important; }
+.sec-title { font-size: clamp(34px, 4.5vw, 52px) !important; letter-spacing: 0 !important; }
+.sec-eyebrow { font-size: 15px !important; }
+.stat .big { font-size: clamp(52px, 7vw, 84px) !important; }
+.term pre { font-size: 18px !important; line-height: 1.25 !important; }
+.term .head { font-size: 14px !important; }
+.mode .cmd { font-size: 17px !important; }
+.pill { font-size: 14px !important; padding: 5px 12px !important; }
+.btn { font-size: 15px !important; padding: 10px 18px !important; }
+.vt-label { font-size: 16px !important; }
+.hero-sys { font-size: 14px !important; }
+.dash-metric .k, .bench .eyebrow, .scope .tag, .plan .badge { font-size: 13px !important; padding: 1px 7px !important; }
+.dash-metric .v { font-size: 20px !important; }
+.brand { font-size: 17px !important; }
+.navlinks a { font-size: 15px !important; }
+.tool .name { font-size: 22px !important; }
+.plan .price { font-size: clamp(36px, 4vw, 48px) !important; }
+.plan .name, .mode h4 { font-size: 22px !important; }
+.cardhead .tag, .copy-btn { font-size: 13px !important; }
+
+/* Body copy and prose stays on JetBrains Mono for legibility */
+p, li, td, th, .hero-lede, .sec-lede, .tool .desc, .mode p, .plan .for, .bench p, .legal-col p, .scope p, .tail, .compare .col .q, .mode .foot, .plan ul li {
+  font-family: var(--mono) !important;
+}
+
+</style>
+</head>
+<body data-screen-label="01 Home" data-cc-id="cc-1" style="font-family: ui-monospace; cursor: crosshair;">
+
+<nav class="top">
+  <div class="wrap inner">
+    <div class="brand">
+      <span class="dot"></span>
+      <span>CentralIntelligence</span>
+    </div>
+    <div class="navlinks">
+      <a href="#features" class="hide-sm">Tools</a>
+      <a href="#integrations" class="hide-sm">Integrations</a>
+      <a href="#pricing" class="hide-sm">Pricing</a>
+      <a href="#benchmarks" class="hide-sm">Benchmarks</a>
+      <a href="/vt220/agent" class="hide-sm">/agent</a>
+      <a href="/vt220/docs" class="hide-sm">/docs</a>
+      <span class="divider hide-sm"></span>
+      <a href="#cta" class="btn sm">Get API key</a>
+    </div>
+  </div>
+</nav>
+
+<!-- =================== HERO =================== -->
+<header class="hero">
+  <div class="wrap inner" style="font-family: ui-monospace;">
+    <a class="vt-label" href="#cta">CI v2.0</a>
+    <span class="pill"><span class="blink"></span> Open for early access</span>
+    <h1 class="hero-title" data-tone="title"><span class="strike">Agents forget.</span><br>CI <span class="hl">remembers.</span></h1>
+    <p class="hero-lede" data-tone="lede">Persistent memory for AI agents. <strong>Store, recall, and share knowledge</strong> across sessions — five MCP tools, any agent, any editor. Set up in 30 seconds.</p>
+
+    <div class="cta-row">
+      <a href="#cta" class="btn primary" data-tone="cta-primary">Get your API key</a>
+      <a href="/vt220/agent" class="btn" data-tone="cta-agent"><span style="color: var(--accent)">⎘</span><span>Let my agent set it up →</span></a>
+      <a href="#local" class="btn ghost" data-tone="cta-local">Run locally</a>
+    </div>
+
+    <div class="hero-meta">
+      <span data-tone="meta-1">30-second install</span>
+      <span data-tone="meta-2">500 memories free</span>
+      <span data-tone="meta-3">Apache 2.0 · self-host</span>
+      <span data-tone="meta-4">52.2% LifeBench</span>
+    </div>
+
+    <!-- terminal preview -->
+    <div class="term" style="margin-top: 56px;">
+      <div class="head">
+        <div class="left">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span>terminal</span>
+        </div>
+        <span class="tag">LOCAL MODE</span>
+      </div>
+<pre><span class="c-c"># Local mode — no cloud, no signup, no API key</span>
+<span class="prompt">$</span> <span class="cmd">npx central-intelligence-local</span>
+<span class="dim">Central Intelligence Local — MCP server running</span>
+<span class="dim">Tools: </span><span class="c-k">remember, recall, forget, context, share</span>
+
+<span class="c-c"># Or use cloud mode for cross-device sync</span>
+<span class="prompt">$</span> <span class="cmd">npx central-intelligence-local sync --key ci_sk_xxx</span>
+<span class="ok">130 memories synced.</span> <span class="dim">AI tools configured.</span></pre>
+    </div>
+  </div>
+</header>
+
+<!-- =================== PROBLEM =================== -->
+<section id="problem">
+  <div class="wrap">
+    <p class="sec-eyebrow"><span class="num">01</span> The problem</p>
+    <h2 class="sec-title" data-tone="problem-title">Every agent session starts from zero.</h2>
+    <p class="sec-lede" data-tone="problem-lede">Your agent learns your preferences, understands your codebase, figures out your architecture. Then the session ends and it forgets everything. Next session — same questions, same mistakes, same context-building from scratch.</p>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="big"><span class="accent">40%</span></div>
+        <div class="label" data-tone="stat-1">of agent session time is spent re-establishing context.</div>
+      </div>
+      <div class="stat">
+        <div class="big"><span class="accent">0</span></div>
+        <div class="label" data-tone="stat-2">memories retained between sessions by default.</div>
+      </div>
+    </div>
+
+    <div class="compare">
+      <div class="col bad">
+        <h4>// without CI</h4>
+        <div class="q">"What framework is this project using?"</div>
+        <div class="q">"What's your preferred code style?"</div>
+        <div class="q">"How does the auth system work here?"</div>
+        <div class="tail">…asked every session.</div>
+      </div>
+      <div class="col good">
+        <h4>// with CI</h4>
+        <div class="q">"I recall this is a Next.js project with Tailwind. You prefer functional components and the auth uses JWT tokens stored in httpOnly cookies. Let me pick up where we left off."</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== AGENT BANNER =================== -->
+<section style="padding: 40px 0;">
+  <div class="wrap">
+    <div class="agent-banner">
+      <div class="left">
+        <div class="glyph">⎘</div>
+        <div class="txt">
+          <strong>/agent</strong>&nbsp;&nbsp;Your agent can install this for you.
+          <div class="sub" data-tone="agent-banner-sub">A dedicated page with copy-pasteable instructions — point your coding agent at it and walk away.</div>
+        </div>
+      </div>
+      <a href="/vt220/agent" class="btn primary">Open /agent →</a>
+    </div>
+  </div>
+</section>
+
+<!-- =================== FIVE TOOLS =================== -->
+<section id="features">
+  <div class="wrap">
+    <p class="sec-eyebrow"><span class="num">02</span> Five tools</p>
+    <h2 class="sec-title" data-tone="tools-title">Five tools. Infinite memory.</h2>
+    <p class="sec-lede" data-tone="tools-lede">Everything your agent needs to remember, delivered as MCP tools. Each also available as a REST endpoint.</p>
+
+    <div class="tools">
+      <div class="tool">
+        <div class="name">remember</div>
+        <p class="desc">The core primitive. Store anything for later recall — preferences, decisions, architecture, debugging insight. Institutional knowledge accrues over time.</p>
+        <div class="ex">"User prefers TypeScript, uses Hono for APIs, deploys to Fly.io. Auth is JWT in httpOnly cookies."</div>
+      </div>
+      <div class="tool">
+        <div class="name">recall</div>
+        <p class="desc">Semantic search across all stored memories. Not keyword matching — actual understanding of intent.</p>
+        <div class="ex">recall("what language does the user prefer?")</div>
+      </div>
+      <div class="tool">
+        <div class="name">context</div>
+        <p class="desc">Auto-load relevant memories for the current task. Describe what you're working on, get back everything you knew before.</p>
+        <div class="ex">context("refactoring the auth system")</div>
+      </div>
+      <div class="tool">
+        <div class="name">share</div>
+        <p class="desc">Make memories available to other agents. Your coding agent learns something, your testing agent uses it.</p>
+        <div class="ex">share(memory_id, scope: "agent" → "org")</div>
+      </div>
+      <div class="tool">
+        <div class="name">forget</div>
+        <p class="desc">Delete outdated or incorrect memories. Keep your agent's knowledge accurate and current.</p>
+        <div class="ex">forget("memory_abc123")</div>
+      </div>
+      <div class="tool rest">
+        <div class="name">+ REST API</div>
+        <p class="desc">Not using MCP? Every tool is also a REST endpoint. Works with any HTTP client, any language, any framework.</p>
+        <div class="ex">POST /memories/remember</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== SCOPES =================== -->
+<section id="scopes">
+  <div class="wrap">
+    <p class="sec-eyebrow"><span class="num">03</span> Scopes</p>
+    <h2 class="sec-title" data-tone="scopes-title">Memory that scales with your team.</h2>
+    <p class="sec-lede" data-tone="scopes-lede">Three scopes let you control exactly who knows what.</p>
+
+    <div class="scopes">
+      <div class="scope">
+        <span class="tag">scope: "agent"</span>
+        <div class="ring"><span class="on"></span><span></span><span></span></div>
+        <h4>Agent Scope</h4>
+        <p>Private to one agent. Session continuity, personal context, learned patterns.</p>
+      </div>
+      <div class="scope">
+        <span class="tag">scope: "user"</span>
+        <div class="ring"><span class="on"></span><span class="on"></span><span></span></div>
+        <h4>User Scope</h4>
+        <p>Shared across all agents serving one user. Preferences, history, consistent experience.</p>
+      </div>
+      <div class="scope">
+        <span class="tag">scope: "org"</span>
+        <div class="ring"><span class="on"></span><span class="on"></span><span class="on"></span></div>
+        <h4>Org Scope</h4>
+        <p>Organization-wide knowledge. Architecture decisions, team conventions, shared context.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== INTEGRATIONS =================== -->
+<section id="integrations">
+  <div class="wrap">
+    <p class="sec-eyebrow"><span class="num">04</span> Integrations</p>
+    <h2 class="sec-title" data-tone="integ-title">Works with everything.</h2>
+    <p class="sec-lede" data-tone="integ-lede">Click any platform for setup instructions. Every path takes about 30 seconds.</p>
+
+    <div class="integrations" id="integGrid">
+      <button class="integ active" data-integ="claude"><div class="ic">CC</div><div class="n">Claude Code</div><div class="s">MCP config</div></button>
+      <button class="integ" data-integ="cursor"><div class="ic">Cu</div><div class="n">Cursor</div><div class="s">MCP config</div></button>
+      <button class="integ" data-integ="windsurf"><div class="ic">Wi</div><div class="n">Windsurf</div><div class="s">MCP config</div></button>
+      <button class="integ" data-integ="copilot"><div class="ic">Co</div><div class="n">GitHub Copilot</div><div class="s">MCP server</div></button>
+      <button class="integ" data-integ="openai"><div class="ic">Ai</div><div class="n">OpenAI</div><div class="s">ChatGPT + Codex</div></button>
+      <button class="integ" data-integ="langchain"><div class="ic">Lc</div><div class="n">LangChain</div><div class="s">pip install</div></button>
+      <button class="integ" data-integ="crewai"><div class="ic">Cr</div><div class="n">CrewAI</div><div class="s">pip install</div></button>
+      <button class="integ" data-integ="lovable"><div class="ic">Lo</div><div class="n">Lovable</div><div class="s">MCP connector</div></button>
+      <button class="integ" data-integ="antigravity"><div class="ic">Ag</div><div class="n">Antigravity</div><div class="s">MCP server</div></button>
+      <button class="integ" data-integ="perplexity"><div class="ic">Px</div><div class="n">Perplexity</div><div class="s">MCP connector</div></button>
+      <button class="integ" data-integ="openclaw"><div class="ic">Oc</div><div class="n">OpenClaw</div><div class="s">Skill file</div></button>
+      <button class="integ" data-integ="rest"><div class="ic">{ }</div><div class="n">REST API</div><div class="s">Any language</div></button>
+    </div>
+
+    <div class="integ-panel">
+      <div class="head">
+        <span class="nm" id="integName">Claude Code</span>
+        <span id="integKind">MCP config</span>
+      </div>
+      <div class="body" id="integBody"><p>One command — gets your API key and configures everything:</p><pre>npx central-intelligence-local signup</pre><p style="margin-top: 14px;">Or add manually to ~/.claude/settings.json:</p><pre>{
+  "mcpServers": {
+    "central-intelligence": {
+      "command": "npx",
+      "args": ["central-intelligence-mcp"],
+      "env": { "CI_API_KEY": "YOUR_KEY" }
+    }
+  }
+}</pre></div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== LOCAL vs CLOUD =================== -->
+<section id="local">
+  <div class="wrap">
+    <p class="sec-eyebrow"><span class="num">05</span> Deployment</p>
+    <h2 class="sec-title" data-tone="local-title">Your data never leaves your machine — unless you want it to.</h2>
+    <p class="sec-lede" data-tone="local-lede">CI Local runs entirely on your machine. SQLite database, local embeddings, zero cloud dependencies. No signup, no API key, no trust required.</p>
+
+    <div class="twomode">
+      <div class="mode">
+        <div class="icon">⚲ local</div>
+        <h4>Local Mode</h4>
+        <p>Everything stays on your machine. SQLite + local AI embeddings. Unlimited memories. Free forever.</p>
+        <div class="cmd">npm i -g central-intelligence-local &amp;&amp; ci dashboard</div>
+        <div class="foot">→ http://localhost:3141 · health scoring · duplicate detection</div>
+      </div>
+      <div class="mode">
+        <div class="icon">☁ cloud</div>
+        <h4>Cloud + Dashboard</h4>
+        <p>Sync memories across devices. View from any browser. Auto-configures Claude Code, Cursor, and Windsurf.</p>
+        <div class="cmd">ci signup &amp;&amp; ci sync</div>
+        <div class="foot">→ <a href="https://centralintelligence.online/dashboard">Open Memory Dashboard</a> · Free tier: 500 ops/mo</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== PRICING =================== -->
+<section id="pricing">
+  <div class="wrap">
+    <p class="sec-eyebrow"><span class="num">06</span> Pricing</p>
+    <h2 class="sec-title" data-tone="pricing-title">Start free. Scale when ready.</h2>
+    <p class="sec-lede" data-tone="pricing-lede">Generous free tier. No credit card required.</p>
+
+    <div class="pricing">
+      <div class="plan">
+        <div class="name">Free</div>
+        <div class="price">$0</div>
+        <p class="for">For solo developers.</p>
+        <ul>
+          <li>500 memories</li>
+          <li>Unlimited agents</li>
+          <li>All scopes (agent + user + org)</li>
+          <li>Semantic search</li>
+          <li>Community support</li>
+        </ul>
+        <a href="#cta" class="btn">Get started</a>
+      </div>
+      <div class="plan featured">
+        <span class="badge">Most Popular</span>
+        <div class="name">Pro</div>
+        <div class="price">$29<small>/mo</small></div>
+        <p class="for">For power users.</p>
+        <ul>
+          <li>50,000 memories</li>
+          <li>Unlimited agents</li>
+          <li>120 requests/min</li>
+          <li>Priority support</li>
+          <li>Dashboard analytics</li>
+        </ul>
+        <a href="#cta" class="btn primary">Start Pro trial</a>
+      </div>
+      <div class="plan">
+        <div class="name">Team <span style="color: var(--fg-dimmer); text-transform: none; letter-spacing: 0; font-size: 11px;">(coming soon)</span></div>
+        <div class="price">$99<small>/mo</small></div>
+        <p class="for">For teams &amp; orgs.</p>
+        <ul>
+          <li>500,000 memories</li>
+          <li>Unlimited agents</li>
+          <li>Org-wide knowledge sharing</li>
+          <li>600 requests/min</li>
+          <li>Dedicated support</li>
+        </ul>
+        <a href="mailto:hello@centralintelligence.online" class="btn">Contact sales</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== BENCHMARKS =================== -->
+<section id="benchmarks">
+  <div class="wrap">
+    <p class="sec-eyebrow"><span class="num">07</span> Benchmarks</p>
+    <h2 class="sec-title" data-tone="bench-title">Measured, not marketed.</h2>
+    <p class="sec-lede" data-tone="bench-lede">Two of the hardest memory benchmarks published. Open-source harness if you want to reproduce.</p>
+
+    <div class="bench-wrap">
+      <!-- LifeBench -->
+      <div class="bench">
+        <div class="top">
+          <div class="eyebrow">LifeBench (2026)</div>
+          <h3>52.2% on LifeBench</h3>
+          <p>A 2026 academic benchmark testing long-term memory across real-world data: messages, calendar, health records, notes, calls. 2,003 questions, 10 users, 51K events. The hardest memory benchmark published to date.</p>
+        </div>
+        <table class="bench-table">
+          <thead><tr><th>System</th><th>Overall</th><th>Info Extraction</th><th>Multi-hop</th><th>Temporal</th><th>Nondecl.</th></tr></thead>
+          <tbody><tr><td>Central Intelligence · gpt-5.4-mini</td><td class="score">52.2%</td><td>47.2%</td><td>52.9%</td><td>46.4%</td><td>64.1%</td></tr></tbody>
+        </table>
+        <div class="extras">
+          <div class="cell"><h5>Multi-source, not just chat</h5><p>SMS, calendar, health records, notes, photos, calls. Real-world signals, not synthetic conversations.</p></div>
+          <div class="cell"><h5>15K memories per user</h5><p>A full year of behavioral data. Retrieval at real scale, not toy examples.</p></div>
+          <div class="cell"><h5>SOTA is 55%, we're at 52%</h5><p>Top system (MemOS) barely clears half. We close the gap with no fact extraction — just better retrieval and ranking.</p></div>
+        </div>
+        <div class="footnote">Paper: <a href="https://arxiv.org/abs/2603.03781">arxiv.org/abs/2603.03781</a> (March 2026, Nanjing University + Huawei). Answer model: gpt-5.4-mini. Judge: gpt-4.1-mini.</div>
+      </div>
+
+      <!-- LongMemEval -->
+      <div class="bench">
+        <div class="top">
+          <div class="eyebrow">LongMemEval (ICLR 2025)</div>
+          <h3>75.0% on LongMemEval</h3>
+          <p>Tests conversational memory across 500 questions: single-session recall, multi-session reasoning, temporal reasoning, knowledge updates, preference tracking. The standard benchmark for AI memory systems.</p>
+        </div>
+        <table class="bench-table">
+          <thead><tr><th>System</th><th>Overall</th><th>Single-sess.</th><th>Multi-sess.</th><th>Temporal</th><th>Preference</th></tr></thead>
+          <tbody><tr><td>Central Intelligence · gpt-5.4-mini</td><td class="score">75.0%</td><td>91.9%</td><td>66.2%</td><td>69.9%</td><td>76.7%</td></tr></tbody>
+        </table>
+        <div class="extras">
+          <div class="cell"><h5>Beats full-context baseline</h5><p>Our selective retrieval + ranking outperforms giving the LLM every memory at once (60.2%). Better signal, less noise.</p></div>
+          <div class="cell"><h5>No extraction needed</h5><p>Zero LLM calls during recall. Just vector search, keyword search, cross-encoder reranker. Simple, fast, reliable.</p></div>
+          <div class="cell"><h5>76.7% preference recall</h5><p>Infers preferences from conversational context. "Loved the Ethiopian single origin" becomes a searchable coffee preference.</p></div>
+        </div>
+        <div class="footnote">Paper: <a href="https://arxiv.org/abs/2410.10813">arxiv.org/abs/2410.10813</a> (ICLR 2025). Answer model: gpt-5.4-mini. Judge: gpt-4o.</div>
+      </div>
+
+      <!-- Open source benchmark -->
+      <div class="bench">
+        <div class="top">
+          <div class="eyebrow" style="color: var(--blue)">Open Source</div>
+          <h3>Test it yourself.</h3>
+          <p>Don't take our word for it. We built an open-source benchmark so you can test Central Intelligence against any other memory provider. One command, same tests, comparable results.</p>
+        </div>
+<pre style="padding: 22px 28px; font-family: var(--mono); font-size: 13px; line-height: 1.8; overflow-x: auto; color: var(--fg); border-bottom: 1px solid var(--line);"><span style="color: var(--fg-dimmer); font-style: italic;"># Test Central Intelligence</span>
+<span style="color: var(--fg-dimmer);">$</span> <span>npx agent-memory-benchmark --provider central-intelligence --api-key $CI_API_KEY</span>
+
+<span style="color: var(--fg-dimmer); font-style: italic;"># Test against any MCP server or other providers</span>
+<span style="color: var(--fg-dimmer);">$</span> <span>npx agent-memory-benchmark --provider mem0 --api-key $MEM0_KEY</span>
+<span style="color: var(--fg-dimmer);">$</span> <span>npx agent-memory-benchmark --provider zep --api-key $ZEP_KEY</span>
+<span style="color: var(--fg-dimmer);">$</span> <span>npx agent-memory-benchmark --provider mcp --api-url $MCP_URL</span></pre>
+        <div class="extras">
+          <div class="cell"><h5>56 tests, 8 categories</h5><p>Factual recall, semantic search, temporal reasoning, conflict resolution, forgetting, cross-session, multi-agent, cost.</p></div>
+          <div class="cell"><h5>Deterministic scoring</h5><p>Binary pass/fail on keyword presence. No LLM-as-judge. Same inputs, same scores, every run.</p></div>
+          <div class="cell"><h5>Add your own</h5><p>Implement 5 methods (store, search, delete, init, cleanup). Submit a PR. See where you stand.</p></div>
+        </div>
+        <div class="footnote"><a href="https://github.com/AlekseiMarchenko/agent-memory-benchmark">View on GitHub</a> · <a href="https://www.npmjs.com/package/agent-memory-benchmark">npm: agent-memory-benchmark</a></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== DASHBOARD =================== -->
+<section id="dashboard">
+  <div class="wrap">
+    <p class="sec-eyebrow"><span class="num">08</span> Dashboard</p>
+    <h2 class="sec-title" data-tone="dash-title">See what your AI actually remembers.</h2>
+    <p class="sec-lede" data-tone="dash-lede">Memory dashboard for Claude Code, Cursor, Windsurf, and ChatGPT. Search, clean up duplicates, import from ChatGPT. Free.</p>
+
+    <div class="dash-card">
+      <div class="dash-head">
+        <span>◉ ◉ ◉</span>
+        <span class="url">centralintelligence.online/app</span>
+        <span>v0.9</span>
+      </div>
+      <div class="dash-body">
+        <div class="dash-side">
+          <div class="dash-metric"><div class="k">Health</div><div class="v ok">9/10</div></div>
+          <div class="dash-metric"><div class="k">Total</div><div class="v">142</div></div>
+          <div class="dash-metric"><div class="k">Agents</div><div class="v dim">3</div></div>
+          <div class="dash-metric"><div class="k">Stale</div><div class="v warn">5</div></div>
+          <div class="dash-metric"><div class="k">Duplicates</div><div class="v warn">2</div></div>
+        </div>
+        <div>
+          <div style="margin-bottom: 10px; font-family: var(--mono); font-size: 11px; color: var(--fg-dimmer); text-transform: uppercase; letter-spacing: 0.06em;">Projects: CI Development 30 · Lemon Squeezy 20 · ChatGPT Transfer 39</div>
+          <table class="dash-table">
+            <thead><tr><th>Project</th><th>Source</th><th>Content</th><th>Flags</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><span class="proj">CI Development</span></td>
+                <td><span class="src">claude-code</span></td>
+                <td><span class="content">Phase 1: hosted dashboard. Move from localhost to web app…</span></td>
+                <td><span class="chip fresh">fresh</span></td>
+              </tr>
+              <tr>
+                <td><span class="proj">Lemon Squeezy</span></td>
+                <td><span class="src">chatgpt-transfer</span></td>
+                <td><span class="content">Open-core licensing: MCP server open (trust), CLI closed…</span></td>
+                <td><span class="chip fresh">fresh</span><span class="chip dup">dup</span></td>
+              </tr>
+              <tr>
+                <td><span class="proj">—</span></td>
+                <td><span class="src">cursor</span></td>
+                <td><span class="content">User prefers TypeScript with strict null checks enabled…</span></td>
+                <td><span class="chip aging">aging</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="margin-top: 16px;"><a href="https://centralintelligence.online/dashboard" class="btn sm">Open memory dashboard →</a></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== FINAL CTA =================== -->
+<section id="cta" style="border-bottom: none;">
+  <div class="wrap-tight">
+    <div class="mega-cta">
+      <h3 data-tone="cta-title">Give your agent a memory.</h3>
+      <p data-tone="cta-body">One command. Ten seconds. Permanent memory.</p>
+
+      <div class="term" style="text-align: left; margin-bottom: 32px;">
+        <div class="head">
+          <div class="left">
+            <div class="dots"><span></span><span></span><span></span></div>
+            <span>terminal</span>
+          </div>
+        </div>
+<pre><span class="c-c"># One command — installs and opens the dashboard</span>
+<span class="prompt">$</span> <span class="cmd">npm i -g central-intelligence-local &amp;&amp; ci dashboard</span>
+
+<span class="dim">CI Local Pro — Dashboard</span>
+<span class="ok">→ http://localhost:3141</span>
+<span class="dim">Browser opens automatically</span></pre>
+      </div>
+
+      <div class="cta-row">
+        <a href="https://github.com/AlekseiMarchenko/central-intelligence" class="btn primary">Get started — it's free</a>
+        <a href="/vt220/agent" class="btn">Let my agent do it →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== PRIVACY / TERMS =================== -->
+<section id="privacy" style="border-bottom: none;">
+  <div class="wrap">
+    <p class="sec-eyebrow"><span class="num">09</span> Fine print</p>
+    <div class="legal">
+      <div class="legal-col">
+        <h3>Privacy Policy</h3>
+        <div class="updated">Last updated: March 23, 2026</div>
+        <h4>What we collect</h4>
+        <p>Memories your agents create (content, tags, embeddings), your API key hash, and basic usage metadata. Nothing personal beyond what you provide at signup.</p>
+        <h4>How we use it</h4>
+        <p>Solely to provide the service — storing, searching, and returning memories your agents request. We do not sell, share, or train models on your content. Embeddings are generated via OpenAI's API.</p>
+        <h4>Storage &amp; security</h4>
+        <p>PostgreSQL on Fly.io. API keys hashed. TLS for all communication. Rate limiting, input validation, SQL injection protection.</p>
+        <h4>Deletion</h4>
+        <p>Delete memories with the <code>forget</code> tool. Full-key deletion: contact us. Soft-deleted memories are purged within 30 days.</p>
+      </div>
+      <div class="legal-col">
+        <h3>Terms of Service</h3>
+        <div class="updated">Last updated: March 23, 2026</div>
+        <h4>Acceptable use</h4>
+        <p>Any lawful purpose. You're responsible for what your agents store. No illegal content, malware, or rights violations. No circumventing rate limits or interfering with the service.</p>
+        <h4>API keys</h4>
+        <p>Keep your key secure. Don't share publicly. Revoke a compromised key via <code>DELETE /keys/revoke</code>. We may suspend abused keys.</p>
+        <h4>Availability</h4>
+        <p>We aim for high availability but do not guarantee uptime. The service is "as is." We are not liable for data loss or damages.</p>
+        <h4>Open source</h4>
+        <p>CI is open source under Apache 2.0. You may self-host the entire stack. These terms apply only to the hosted service.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap row">
+    <div>Central Intelligence · Agents forget. CI remembers.</div>
+    <div class="links">
+      <a href="https://github.com/AlekseiMarchenko/central-intelligence">GitHub</a>
+      <a href="https://central-intelligence-api.fly.dev/docs">Docs</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#privacy">Terms</a>
+      <a href="/vt220/agent">/agent</a>
+    </div>
+  </div>
+</footer>
+
+<!-- Tweaks -->
+<div class="tweaks-panel" id="tweaks">
+  <div class="th">
+    <span class="t">Tweaks</span>
+    <span class="x" id="closeTweaks">×</span>
+  </div>
+  <div class="body">
+    <label>Tone of copy</label>
+    <div class="radio" id="toneRadio">
+      <button data-tone="friendly" class="active">Friendly but precise</button>
+      <button data-tone="terse">Technical · terse</button>
+      <button data-tone="playful">Playful</button>
+    </div>
+    <div class="note">Rewrites taglines and section ledes across the page.</div>
+  </div>
+</div>
+
+<script>
+// ============ Main landing JS ============
+
+// --- Integration configs ---
+const INTEGRATIONS = {
+  claude: {
+    name: 'Claude Code',
+    kind: 'MCP config',
+    intro: 'One command — gets your API key and configures everything:',
+    code1: 'npx central-intelligence-local signup',
+    intro2: 'Or add manually to ~/.claude/settings.json:',
+    code2: `{
+  "mcpServers": {
+    "central-intelligence": {
+      "command": "npx",
+      "args": ["central-intelligence-mcp"],
+      "env": { "CI_API_KEY": "YOUR_KEY" }
+    }
+  }
+}`
+  },
+  cursor: {
+    name: 'Cursor',
+    kind: 'MCP config',
+    intro: 'One command — gets your API key and configures everything:',
+    code1: 'npx central-intelligence-local signup',
+    intro2: 'Or add to ~/.cursor/mcp.json:',
+    code2: `{
+  "mcpServers": {
+    "central-intelligence": {
+      "command": "npx",
+      "args": ["central-intelligence-mcp"],
+      "env": { "CI_API_KEY": "YOUR_KEY" }
+    }
+  }
+}`
+  },
+  windsurf: {
+    name: 'Windsurf',
+    kind: 'MCP config',
+    intro: 'One command — gets your API key and configures everything:',
+    code1: 'npx central-intelligence-local signup',
+    intro2: 'Or add to ~/.codeium/windsurf/mcp_config.json:',
+    code2: `{
+  "mcpServers": {
+    "central-intelligence": {
+      "command": "npx",
+      "args": ["central-intelligence-mcp"],
+      "env": { "CI_API_KEY": "YOUR_KEY" }
+    }
+  }
+}`
+  },
+  copilot: {
+    name: 'GitHub Copilot',
+    kind: 'MCP server',
+    intro: 'In VS Code, add to .vscode/mcp.json:',
+    code1: `{
+  "servers": {
+    "central-intelligence": {
+      "command": "npx",
+      "args": ["central-intelligence-mcp"],
+      "env": { "CI_API_KEY": "YOUR_KEY" }
+    }
+  }
+}`,
+    intro2: 'Copilot Agent Mode will automatically discover CI\'s tools — remember, recall, context, forget, and share.',
+    code2: null
+  },
+  openai: {
+    name: 'OpenAI',
+    kind: 'ChatGPT + Codex',
+    intro: 'ChatGPT — Custom GPT Actions. GPT Editor → Configure → Actions → Import from URL:',
+    code1: 'https://central-intelligence-api.fly.dev/docs/openapi.json',
+    intro2: 'Codex CLI — MCP server:',
+    code2: `codex mcp add central-intelligence \\
+  --env CI_API_KEY="ci_sk_..." \\
+  -- npx central-intelligence-mcp`
+  },
+  langchain: {
+    name: 'LangChain',
+    kind: 'pip install',
+    intro: 'Install:',
+    code1: 'pip install central-intelligence[langchain]',
+    intro2: 'Use in your agent:',
+    code2: `from central_intelligence import get_ci_tools
+
+tools = get_ci_tools(api_key="ci_sk_...")
+agent = initialize_agent(tools=tools, llm=llm)`
+  },
+  crewai: {
+    name: 'CrewAI',
+    kind: 'pip install',
+    intro: 'Install:',
+    code1: 'pip install central-intelligence[crewai]',
+    intro2: 'Use in your crew:',
+    code2: `from central_intelligence import get_ci_tools
+
+tools = get_ci_tools(api_key="ci_sk_...")
+agent = Agent(role="researcher", tools=tools)`
+  },
+  lovable: {
+    name: 'Lovable',
+    kind: 'MCP connector',
+    intro: 'Settings → Connectors → Personal connectors → New MCP server. Enter the server URL:',
+    code1: 'https://central-intelligence-api.fly.dev/mcp',
+    intro2: 'Set Auth: Bearer token with your ci_sk_... API key. Your Lovable agent now remembers everything across sessions.',
+    code2: null
+  },
+  antigravity: {
+    name: 'Antigravity',
+    kind: 'MCP server',
+    intro: 'Settings → MCP Servers → Add Server. Add the server config:',
+    code1: `{
+  "central-intelligence": {
+    "command": "npx",
+    "args": ["central-intelligence-mcp"],
+    "env": { "CI_API_KEY": "YOUR_KEY" }
+  }
+}`,
+    intro2: 'Perfect for Antigravity\'s multi-agent mode — all agents share memory so Agent 1\'s decisions are instantly visible to Agents 2 and 3.',
+    code2: null
+  },
+  perplexity: {
+    name: 'Perplexity',
+    kind: 'MCP connector',
+    intro: 'Settings → MCP → Add Custom Connector. Enter the MCP server URL:',
+    code1: 'npx central-intelligence-mcp',
+    intro2: 'Set authentication to API Key and enter your ci_sk_... key. Your Perplexity sessions now have persistent memory.',
+    code2: null
+  },
+  openclaw: {
+    name: 'OpenClaw',
+    kind: 'Skill file',
+    intro: 'Set your API key:',
+    code1: 'export CI_API_KEY=ci_sk_your_key',
+    intro2: 'The skill is available in the OpenClaw skills repo. Agents can use remember, recall, context, forget, and share via REST calls.',
+    code2: null
+  },
+  rest: {
+    name: 'REST API',
+    kind: 'Any language',
+    intro: 'Works with any HTTP client — Python, Node, Go, curl:',
+    code1: `curl -X POST https://central-intelligence-api.fly.dev/memories/recall \\
+  -H "Authorization: Bearer ci_sk_..." \\
+  -H "Content-Type: application/json" \\
+  -d '{"agent_id": "my-agent", "query": "project architecture"}'`,
+    intro2: null,
+    code2: null
+  }
+};
+
+function renderIntegration(key) {
+  const cfg = INTEGRATIONS[key];
+  if (!cfg) return;
+  document.getElementById('integName').textContent = cfg.name;
+  document.getElementById('integKind').textContent = cfg.kind;
+  const body = document.getElementById('integBody');
+  let html = '';
+  if (cfg.intro) html += `<p>${cfg.intro}</p>`;
+  if (cfg.code1) html += `<pre>${escapeHtml(cfg.code1)}</pre>`;
+  if (cfg.intro2) html += `<p style="margin-top: 14px;">${cfg.intro2}</p>`;
+  if (cfg.code2) html += `<pre>${escapeHtml(cfg.code2)}</pre>`;
+  body.innerHTML = html;
+
+  document.querySelectorAll('#integGrid .integ').forEach(b => {
+    b.classList.toggle('active', b.dataset.integ === key);
+  });
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+}
+
+document.querySelectorAll('#integGrid .integ').forEach(b => {
+  b.addEventListener('click', () => renderIntegration(b.dataset.integ));
+});
+renderIntegration('claude');
+
+// --- Tone tweaks ---
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "tone": "friendly"
+}/*EDITMODE-END*/;
+
+const COPY = {
+  friendly: {
+    'title': ['<span class="strike">Agents forget.</span><br />CI <span class="hl">remembers.</span>'],
+    'lede': ['Persistent memory for AI agents. <strong>Store, recall, and share knowledge</strong> across sessions — five MCP tools, any agent, any editor. Set up in 30 seconds.'],
+    'cta-primary': ['Get your API key'],
+    'cta-agent': ['<span style="color: var(--accent)">⎘</span><span>Let my agent set it up →</span>'],
+    'cta-local': ['Run locally'],
+    'meta-1': ['30-second install'],
+    'meta-2': ['500 memories free'],
+    'meta-3': ['Apache 2.0 · self-host'],
+    'meta-4': ['52.2% LifeBench'],
+    'problem-title': ['Every agent session starts from zero.'],
+    'problem-lede': ['Your agent learns your preferences, understands your codebase, figures out your architecture. Then the session ends and it forgets everything. Next session — same questions, same mistakes, same context-building from scratch.'],
+    'stat-1': ['of agent session time is spent re-establishing context.'],
+    'stat-2': ['memories retained between sessions by default.'],
+    'agent-banner-sub': ['A dedicated page with copy-pasteable instructions — point your coding agent at it and walk away.'],
+    'tools-title': ['Five tools. Infinite memory.'],
+    'tools-lede': ['Everything your agent needs to remember, delivered as MCP tools. Each also available as a REST endpoint.'],
+    'scopes-title': ['Memory that scales with your team.'],
+    'scopes-lede': ['Three scopes let you control exactly who knows what.'],
+    'integ-title': ['Works with everything.'],
+    'integ-lede': ['Click any platform for setup instructions. Every path takes about 30 seconds.'],
+    'local-title': ['Your data never leaves your machine — unless you want it to.'],
+    'local-lede': ['CI Local runs entirely on your machine. SQLite database, local embeddings, zero cloud dependencies. No signup, no API key, no trust required.'],
+    'pricing-title': ['Start free. Scale when ready.'],
+    'pricing-lede': ['Generous free tier. No credit card required.'],
+    'bench-title': ['Measured, not marketed.'],
+    'bench-lede': ['Two of the hardest memory benchmarks published. Open-source harness if you want to reproduce.'],
+    'dash-title': ['See what your AI actually remembers.'],
+    'dash-lede': ['Memory dashboard for Claude Code, Cursor, Windsurf, and ChatGPT. Search, clean up duplicates, import from ChatGPT. Free.'],
+    'cta-title': ['Give your agent a memory.'],
+    'cta-body': ['One command. Ten seconds. Permanent memory.']
+  },
+  terse: {
+    'title': ['<span class="strike">Agents forget.</span><br /><span class="hl">CI remembers.</span>'],
+    'lede': ['Persistent memory for AI agents. Five MCP tools. Any editor. 30s install.'],
+    'cta-primary': ['Get API key'],
+    'cta-agent': ['<span style="color: var(--accent)">⎘</span><span>Agent install →</span>'],
+    'cta-local': ['Local install'],
+    'meta-1': ['30s install'],
+    'meta-2': ['500 free'],
+    'meta-3': ['Apache 2.0'],
+    'meta-4': ['52.2% LifeBench'],
+    'problem-title': ['Zero state. Every session.'],
+    'problem-lede': ['Agents relearn your stack every session. 40% of session time wasted. Memory fixes it.'],
+    'stat-1': ['of session time re-establishing context.'],
+    'stat-2': ['memories retained by default.'],
+    'agent-banner-sub': ['Copy-pasteable instructions. Point your agent. Done.'],
+    'tools-title': ['Five tools.'],
+    'tools-lede': ['MCP + REST. Use what you have.'],
+    'scopes-title': ['Three scopes.'],
+    'scopes-lede': ['Agent → user → org. Exact visibility control.'],
+    'integ-title': ['Integrations.'],
+    'integ-lede': ['12 platforms. Same 30s setup.'],
+    'local-title': ['Local or cloud. You choose.'],
+    'local-lede': ['SQLite + local embeddings. Or hosted with sync. Same API.'],
+    'pricing-title': ['Free to start.'],
+    'pricing-lede': ['No credit card.'],
+    'bench-title': ['Benchmarks.'],
+    'bench-lede': ['Two standard harnesses. Reproducible.'],
+    'dash-title': ['Dashboard.'],
+    'dash-lede': ['Search. Dedupe. Import. Free.'],
+    'cta-title': ['Install CI.'],
+    'cta-body': ['One command.']
+  },
+  playful: {
+    'title': ['<span class="strike">Agents forget.</span><br />CI <span class="hl">never does.</span>'],
+    'lede': ['Your agent learns something brilliant. Then the session ends and it forgets. CI is the memory upgrade — five tools, any editor, thirty seconds, zero drama.'],
+    'cta-primary': ['Give me a key'],
+    'cta-agent': ['<span style="color: var(--accent)">⎘</span><span>My agent does it →</span>'],
+    'cta-local': ['Keep it local'],
+    'meta-1': ['30s install (honestly)'],
+    'meta-2': ['500 memories, free'],
+    'meta-3': ['Apache 2.0 forever'],
+    'meta-4': ['52.2% on LifeBench'],
+    'problem-title': ['Goldfish agents. We can do better.'],
+    'problem-lede': ['Every session: "what framework?", "what code style?", "how does auth work?". Your agent isn\'t dumb — it just has no memory. Until now.'],
+    'stat-1': ['of session time: agents re-learning what you already told them.'],
+    'stat-2': ['memories your agent keeps by default. Cool, right?'],
+    'agent-banner-sub': ['Point your agent at /agent and sip a coffee while it installs itself.'],
+    'tools-title': ['Five tools. That\'s it.'],
+    'tools-lede': ['remember, recall, context, share, forget. Ship it.'],
+    'scopes-title': ['Scope: you decide who knows what.'],
+    'scopes-lede': ['Private to one agent. Shared across yours. Or the whole org. Dealer\'s choice.'],
+    'integ-title': ['Works everywhere your agent lives.'],
+    'integ-lede': ['Twelve platforms below. Pick yours.'],
+    'local-title': ['Your data, your machine. Or ours.'],
+    'local-lede': ['Run local with SQLite and zero trust. Or use cloud for cross-device sync. Same API either way.'],
+    'pricing-title': ['Generous free tier, promise.'],
+    'pricing-lede': ['No card. No hassle. Scale when it hurts.'],
+    'bench-title': ['Numbers, not vibes.'],
+    'bench-lede': ['Two hard benchmarks. Open harness. Reproduce away.'],
+    'dash-title': ['Peek inside your agent\'s brain.'],
+    'dash-lede': ['Dashboard for all the major editors. Free. Honestly kind of fun.'],
+    'cta-title': ['Give your agent a memory.'],
+    'cta-body': ['One line. Ten seconds. Permanent.']
+  }
+};
+
+function applyTone(tone) {
+  const copy = COPY[tone];
+  if (!copy) return;
+  for (const key of Object.keys(copy)) {
+    document.querySelectorAll('[data-tone="' + key + '"]').forEach(el => {
+      el.innerHTML = copy[key][0];
+    });
+  }
+  document.querySelectorAll('#toneRadio button').forEach(b => {
+    b.classList.toggle('active', b.dataset.tone === tone);
+  });
+}
+
+applyTone(TWEAK_DEFAULTS.tone || 'friendly');
+
+document.querySelectorAll('#toneRadio button').forEach(b => {
+  b.addEventListener('click', () => {
+    applyTone(b.dataset.tone);
+    try { window.parent.postMessage({type: '__edit_mode_set_keys', edits: {tone: b.dataset.tone}}, '*'); } catch (e) {}
+  });
+});
+
+document.getElementById('closeTweaks').addEventListener('click', () => {
+  document.getElementById('tweaks').classList.remove('on');
+});
+
+window.addEventListener('message', (e) => {
+  const d = e.data || {};
+  if (d.type === '__activate_edit_mode') document.getElementById('tweaks').classList.add('on');
+  else if (d.type === '__deactivate_edit_mode') document.getElementById('tweaks').classList.remove('on');
+});
+try { window.parent.postMessage({type: '__edit_mode_available'}, '*'); } catch (e) {}
+
+</script>
+
+
+</body></html>

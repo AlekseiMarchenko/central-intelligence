@@ -14,7 +14,7 @@ type Env = {
 const app = new Hono<Env>();
 
 // POST /keys — create a new API key (no auth required for signup)
-const createKeySchema = z.object({
+export const createKeySchema = z.object({
   name: z.string().min(1).max(100).default("default"),
   org_id: z.string().max(200).optional(),
 });
