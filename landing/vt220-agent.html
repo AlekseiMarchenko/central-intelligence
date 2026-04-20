@@ -287,6 +287,14 @@
     display: none;
   }
   .tweaks-panel.on { display: block; }
+  /* Mobile: the tweaks panel is a design-tool / demo control, not an end-user
+     feature. At 280x263 fixed on a 390x844 screen it permanently covers ~30%
+     of the viewport and overlaps content below the fold. Hide on mobile so
+     A/B testers see the page content, not the design toggle. Desktop keeps
+     the floating panel for tone exploration. */
+  @media (max-width: 720px) {
+    .tweaks-panel { display: none !important; }
+  }
   .tweaks-panel .th { padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--bg-3); display: flex; justify-content: space-between; align-items: center; }
   .tweaks-panel .th .t { color: var(--fg); font-weight: 600; }
   .tweaks-panel .th .x { cursor: pointer; color: var(--fg-dim); }
