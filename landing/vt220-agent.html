@@ -52,7 +52,7 @@
   }
 
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); font-family: var(--mono); font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased; text-shadow: 0 0 6px rgba(95,230,232,0.45); }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); font-family: var(--mono); font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
   body { background:
     radial-gradient(1200px 600px at 80% -10%, rgba(125,249,181,0.05), transparent 60%),
     radial-gradient(800px 500px at 10% 20%, rgba(125,249,181,0.03), transparent 60%),
@@ -275,8 +275,8 @@
 
 /* ====== VT220 overrides ====== */
 * { font-family: var(--mono) !important; }
-body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index:200; background: repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0, rgba(0,0,0,0) 2px, rgba(0,0,0,0.13) 2px, rgba(0,0,0,0.13) 3px); mix-blend-mode: multiply; }
-body::after { content:''; position:fixed; inset:0; pointer-events:none; z-index:201; background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%); }
+body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index:200; background: repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0, rgba(0,0,0,0) 3px, rgba(0,0,0,0.13) 3px, rgba(0,0,0,0.13) 4px); mix-blend-mode: multiply; }
+body::after { content:''; position:fixed; inset:0; pointer-events:none; z-index:201; background: radial-gradient(ellipse at center, transparent 70%, rgba(0,0,0,0.55) 100%); }
 .pill, .btn, .cardhead .tag, .copy-btn, .see-row .who, .step .ping { border-radius: 2px !important; }
 .btn { background: var(--accent) !important; color: #020a14 !important; border-color: var(--accent) !important; border-width: 2px !important; font-weight: 600; text-shadow: none !important; }
 .btn:hover { background: #020a14 !important; color: var(--accent) !important; text-shadow: 0 0 6px rgba(95,230,232,0.6) !important; }
@@ -297,7 +297,7 @@ a { color: var(--accent) !important; text-decoration: underline; text-underline-
 a.btn { text-decoration: none; }
 h1.title, h3.sec-title { font-family: var(--mono) !important; text-shadow: 0 0 18px rgba(95,230,232,0.45); font-weight: 700; letter-spacing: -0.01em; }
 h1.title .hl { color: var(--accent) !important; text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 8px; }
-.lede, .sec-lede, .step .body p, .panel p { color: var(--fg-dim) !important; text-shadow: 0 0 6px rgba(60,184,191,0.3); }
+.lede, .sec-lede, .step .body p, .panel p { color: var(--fg-dim) !important; }
 .lede strong { color: var(--fg) !important; }
 .step .idx, .step .body h4 { color: var(--accent) !important; }
 .step .body .detail { background: rgba(2,10,20,0.5) !important; border-color: var(--line-2) !important; color: var(--fg) !important; border-radius: 0 !important; }

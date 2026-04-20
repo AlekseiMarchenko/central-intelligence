@@ -57,7 +57,6 @@ html, body {
   font-size: 15px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-  text-shadow: 0 0 6px rgba(95,230,232,0.35);
 }
 body {
   background: radial-gradient(1400px 800px at 50% 20%, rgba(95,230,232,0.07), transparent 70%), var(--bg);
@@ -66,12 +65,12 @@ body {
 /* CRT scanlines */
 body::before {
   content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 200;
-  background: repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0, rgba(0,0,0,0) 2px, rgba(0,0,0,0.13) 2px, rgba(0,0,0,0.13) 3px);
+  background: repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0, rgba(0,0,0,0) 3px, rgba(0,0,0,0.13) 3px, rgba(0,0,0,0.13) 4px);
   mix-blend-mode: multiply;
 }
 body::after {
   content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 201;
-  background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%);
+  background: radial-gradient(ellipse at center, transparent 70%, rgba(0,0,0,0.55) 100%);
 }
 
 a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
