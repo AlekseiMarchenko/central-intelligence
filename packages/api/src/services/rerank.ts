@@ -2,9 +2,11 @@
  * Cross-encoder reranking — local ONNX model with Cohere fallback.
  *
  * Priority chain:
- * 1. Local ONNX cross-encoder (ms-marco-MiniLM-L-6-v2 via @xenova/transformers)
- *    - Zero per-request cost, ~80ms for 100 pairs on CPU
- *    - Model auto-downloaded on first use, cached locally
+ * 1. Local ONNX cross-encoder (bge-reranker-v2-m3 via @xenova/transformers)
+ *    - 568M params, 8K context, quantized int8
+ *    - +14% nDCG@10 over MiniLM-L-6-v2 on BEIR (arxiv 2409.07691)
+ *    - Zero per-request cost, ~1s for 100 pairs on CPU
+ *    - Model pre-cached in Docker build, or auto-downloaded on first use
  * 2. Cohere Rerank API (if COHERE_API_KEY set and ONNX fails)
  *    - ~$0.00002 per rerank call
  * 3. Passthrough (original order with linear score decay)

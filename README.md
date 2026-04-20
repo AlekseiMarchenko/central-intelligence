@@ -342,15 +342,17 @@ central-intelligence/
 │   │   │   ├── middleware/   # Auth, rate limiting, billing, x402 payments
 │   │   │   ├── routes/       # REST endpoints, dashboard, docs, demo
 │   │   │   └── services/     # Core logic:
-│   │   │       ├── memories.ts          # Store + 4-way recall pipeline
-│   │   │       ├── fact-extraction.ts   # GPT-4o-mini fact decomposition
-│   │   │       ├── entity-resolution.ts # Trigram + co-occurrence entity merging
-│   │   │       ├── observations.ts      # Auto-synthesized higher-level facts
-│   │   │       ├── rerank.ts            # ONNX local + Cohere + passthrough
+│   │   │       ├── memories.ts          # Store + v2 hybrid recall (pgvector + BM25 + RRF + reranker)
+│   │   │       ├── rerank.ts            # bge-reranker-v2-m3 (local ONNX), Cohere API fallback
 │   │   │       ├── embeddings.ts        # OpenAI text-embedding-3-small
 │   │   │       ├── encryption.ts        # AES-256-GCM at rest
-│   │   │       └── query-decompose.ts   # Query expansion via GPT-4o-mini
-│   │   └── tests/        # 68 tests (Vitest)
+│   │   │       ├── date-parser.ts       # Temporal extraction from memory content
+│   │   │       ├── auth.ts              # API key validation
+│   │   │       ├── fact-extraction.ts   # [Enterprise] Structured fact decomposition via GPT-4o-mini
+│   │   │       ├── entity-resolution.ts # [Enterprise] Trigram + co-occurrence entity merging
+│   │   │       ├── observations.ts      # [Enterprise] Auto-synthesized higher-level facts
+│   │   │       └── query-decompose.ts   # [Enterprise] Query expansion via GPT-4o-mini
+│   │   └── tests/        # Vitest
 │   ├── mcp-server/     # MCP server (npm: central-intelligence-mcp)
 │   ├── cli/            # Cloud CLI (npm: central-intelligence-cli, legacy)
 │   ├── local/          # Local memory with cross-tool config parsing
@@ -370,9 +372,11 @@ central-intelligence/
 
 | Tier | Price | Memories | Agents |
 |------|-------|----------|--------|
-| Free | $0 | 500 | 1 |
-| Pro | $29/mo | 50,000 | 20 |
+| Free | $0 | 500 | Unlimited |
+| Pro | $29/mo | 50,000 | Unlimited |
 | Team | $99/mo | 500,000 | Unlimited |
+
+See [centralintelligence.online/#pricing](https://centralintelligence.online/#pricing) for the latest.
 
 ## Contributing
 
