@@ -70,13 +70,13 @@ Five MCP tools give your agent a long-term memory:
 
 ### LifeBench (2026) — Long-Term Multi-Source Memory
 
-CI scores **45.9%** on [LifeBench](https://arxiv.org/abs/2603.03781), the hardest published memory benchmark (2,003 questions across 10 users, 51K real-world events including messages, calendar, health records, notes, and calls).
+CI scores **52.2%** on [LifeBench](https://arxiv.org/abs/2603.03781), the hardest published memory benchmark (2,003 questions across 10 users, 51K real-world events including messages, calendar, health records, notes, and calls).
 
-| Overall | Info Extraction | Multi-hop | Temporal |
-|---------|-----------------|-----------|----------|
-| **45.9%** | **52.8%** | **45.6%** | **39.3%** |
+| Overall | Info Extraction | Multi-hop | Temporal | Nondeclarative |
+|---------|-----------------|-----------|----------|----------------|
+| **52.2%** | **47.2%** | **52.9%** | **46.4%** | **64.1%** |
 
-Evaluation harness: [lifebench-eval](https://github.com/AlekseiMarchenko/lifebench-eval)
+Answer model: `gpt-5.4-mini`. Judge: `gpt-4.1-mini`. Evaluation harness: [lifebench-eval](https://github.com/AlekseiMarchenko/lifebench-eval).
 
 ### Agent Memory Benchmark (AMB) — Infrastructure Testing
 
