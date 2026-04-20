@@ -83,16 +83,6 @@
   .navlinks a { color: var(--fg-dim); font-family: var(--mono); }
   .navlinks a:hover { color: var(--fg); text-decoration: none; }
   @media (max-width: 720px) { .navlinks .hide-sm { display: none; } }
-  /* Very narrow phones (≤360px): brand wordmark is ~300px wide and
-     collides with the remaining '← main site' nav link. Swap to CI
-     abbreviation + smaller font so both fit. */
-  @media (max-width: 360px) {
-    .brand .wordmark-full { display: none; }
-    .brand .wordmark-short { display: inline; }
-    .brand { font-size: 12px; gap: 6px; }
-    .navlinks { font-size: 12px; }
-  }
-  .brand .wordmark-short { display: none; }
 
   /* ---------- Hero ---------- */
   .hero { padding: 72px 0 40px; border-bottom: 1px solid var(--line); }
@@ -375,18 +365,16 @@ p, li, td, th, .lede, .sec-lede, .step .body p, .panel p, .panel .kv .v, .see-ro
 
 <nav class="top">
   <div class="wrap inner">
-    <div class="brand">
+    <a href="/vt220" class="brand" style="text-decoration: none;">
       <span class="dot"></span>
-      <span class="wordmark-full">CentralIntelligence</span>
-      <span class="wordmark-short">CI</span>
+      <span>CI</span>
       <span class="slash">/</span>
       <span class="agent">agent</span>
-    </div>
+    </a>
     <div class="navlinks">
       <a href="#instructions" class="hide-sm">instructions</a>
       <a href="#walkthrough" class="hide-sm">walkthrough</a>
       <a href="#verify" class="hide-sm">verify</a>
-      <a href="/vt220">← main site</a>
     </div>
   </div>
 </nav>
