@@ -79,9 +79,10 @@
   .brand .dot { width: 10px; height: 10px; background: var(--accent); border-radius: 2px; box-shadow: 0 0 10px rgba(125,249,181,0.5); }
   .brand .slash { color: var(--fg-dimmer); }
   .brand .agent { color: var(--accent); }
-  .navlinks { display: flex; gap: 22px; font-size: 13px; }
+  .navlinks { display: flex; gap: 22px; font-size: 13px; align-items: center; }
   .navlinks a { color: var(--fg-dim); font-family: var(--mono); }
   .navlinks a:hover { color: var(--fg); text-decoration: none; }
+  @media (max-width: 720px) { .navlinks .hide-sm { display: none; } }
 
   /* ---------- Hero ---------- */
   .hero { padding: 72px 0 40px; border-bottom: 1px solid var(--line); }
@@ -144,6 +145,10 @@
   }
   .copy-btn:hover { color: var(--accent); border-color: var(--accent); }
   .copy-btn.ok { color: var(--accent); border-color: var(--accent); }
+  /* Mobile: bump tap target to 44px minimum (Apple HIG) */
+  @media (max-width: 720px) {
+    .copy-btn { min-height: 44px; min-width: 44px; padding: 10px 14px; font-size: 13px; }
+  }
 
   .agent-card pre.block {
     padding: 20px 22px;
@@ -384,9 +389,9 @@ p, li, td, th, .lede, .sec-lede, .step .body p, .panel p, .panel .kv .v, .see-ro
       <span class="agent">agent</span>
     </div>
     <div class="navlinks">
-      <a href="#instructions">instructions</a>
-      <a href="#walkthrough">walkthrough</a>
-      <a href="#verify">verify</a>
+      <a href="#instructions" class="hide-sm">instructions</a>
+      <a href="#walkthrough" class="hide-sm">walkthrough</a>
+      <a href="#verify" class="hide-sm">verify</a>
       <a href="/vt220">← main site</a>
     </div>
   </div>
