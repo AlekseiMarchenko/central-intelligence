@@ -277,37 +277,6 @@
   footer .row { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 14px; }
   footer a { color: var(--fg-dim); }
 
-  /* ---------- Tweaks panel ---------- */
-  .tweaks-panel {
-    position: fixed; right: 20px; bottom: 20px; z-index: 100;
-    width: 280px; background: var(--bg-2); border: 1px solid var(--line-2);
-    border-radius: 10px; box-shadow: 0 20px 50px -20px rgba(0,0,0,0.7);
-    font-family: var(--mono); font-size: 12px;
-    overflow: hidden;
-    display: none;
-  }
-  .tweaks-panel.on { display: block; }
-  /* Mobile: the tweaks panel is a design-tool / demo control, not an end-user
-     feature. At 280x263 fixed on a 390x844 screen it permanently covers ~30%
-     of the viewport and overlaps content below the fold. Hide on mobile so
-     A/B testers see the page content, not the design toggle. Desktop keeps
-     the floating panel for tone exploration. */
-  @media (max-width: 720px) {
-    .tweaks-panel { display: none !important; }
-  }
-  .tweaks-panel .th { padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--bg-3); display: flex; justify-content: space-between; align-items: center; }
-  .tweaks-panel .th .t { color: var(--fg); font-weight: 600; }
-  .tweaks-panel .th .x { cursor: pointer; color: var(--fg-dim); }
-  .tweaks-panel .body { padding: 12px 14px; }
-  .tweaks-panel label { display: block; color: var(--fg-dim); margin-bottom: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
-  .tweaks-panel .radio { display: grid; gap: 6px; margin-bottom: 4px; }
-  .tweaks-panel .radio button {
-    text-align: left; padding: 8px 10px; border-radius: 6px;
-    background: var(--bg); border: 1px solid var(--line); color: var(--fg-dim);
-    font-family: var(--mono); font-size: 12px; cursor: pointer;
-  }
-  .tweaks-panel .radio button.active { color: var(--accent); border-color: var(--accent); background: rgba(125,249,181,0.06); }
-  .tweaks-panel .note { margin-top: 10px; color: var(--fg-dimmer); font-size: 11px; }
 
   /* ---------- Misc ---------- */
   .small { font-size: 13px; color: var(--fg-dim); }
@@ -358,10 +327,6 @@ section h2 .num { color: var(--accent) !important; }
 .panel .kv .k { color: var(--fg-dim) !important; }
 .panel .kv .v { color: var(--fg) !important; }
 footer { border-top: 1px solid var(--accent) !important; }
-.tweaks-panel { background: rgba(2,10,20,0.95) !important; border-color: var(--accent) !important; border-radius: 0 !important; }
-.tweaks-panel .th { background: var(--accent) !important; color: #020a14 !important; border-radius: 0 !important; }
-.tweaks-panel .th .t, .tweaks-panel .th .x { color: #020a14 !important; text-shadow: none !important; }
-.tweaks-panel .radio button.active { background: var(--accent) !important; color: #020a14 !important; border-color: var(--accent) !important; text-shadow: none !important; }
 .hr-note { color: var(--fg-dim); }
 .hr-note::before { background: var(--accent); }
 
@@ -699,22 +664,6 @@ Tell the user:
   </div>
 </footer>
 
-<!-- =================== TWEAKS PANEL =================== -->
-<div class="tweaks-panel on" id="tweaks">
-  <div class="th">
-    <span class="t">Tweaks</span>
-    <span class="x" id="closeTweaks">×</span>
-  </div>
-  <div class="body">
-    <label>Tone of copy</label>
-    <div class="radio" id="toneRadio">
-      <button data-tone="friendly" class="active">Friendly but precise</button>
-      <button data-tone="terse">Technical · terse</button>
-      <button data-tone="playful">Playful · agents reading this is fun</button>
-    </div>
-    <div class="note">Changes wording across the page. Agent instructions stay precise.</div>
-  </div>
-</div>
 
 <script>
   // --- Prompt the user copies and pastes to their agent ---
@@ -751,11 +700,7 @@ Tell the user:
     doCopy(text, e.currentTarget);
   });
 
-  // --- Tweaks / Edit mode wiring ---
-  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
-    "tone": "friendly"
-  }/*EDITMODE-END*/;
-
+  // --- Copy (tone: friendly — baked in; tweaks panel removed) ---
   const COPY = {
     friendly: {
       'title': ['Your agent is<br />setting up <span class="hl">CI</span>.'],
@@ -774,42 +719,6 @@ Tell the user:
       'troubleshoot-fail-body': ['Paste the failing line back to your agent. It has the full instructions from the top of this page and can self-correct — or ask you one targeted question.'],
       'summary-title': ["That's it. No dashboard to learn, no config to memorize."],
       'summary-lede': ["You asked. Your agent read. It ran. You'll never think about CI again — you'll just notice your agent stops asking the same questions."]
-    },
-    terse: {
-      'title': ['Agent setup.<br /><span class="hl">CI</span> via MCP.'],
-      'lede': ['Instructions block below is for the agent. Copy-pasteable, deterministic. Human commentary alongside. ~90s end-to-end.'],
-      'cta-primary': ['Copy agent prompt'],
-      'cta-secondary': ['Instructions ↓'],
-      'walkthrough-title': ['What runs.'],
-      'walkthrough-lede': ['Four steps. Three automatic. One manual (cloud mode only).'],
-      'see-title': ['Timeline.'],
-      'see-lede': ['Know when the agent blocks on you.'],
-      'verify-title': ['Verify.'],
-      'verify-lede': ['Run these. If output diverges, paste back to the agent.'],
-      'troubleshoot-ok': ['Passed?'],
-      'troubleshoot-ok-body': ['Restart editor. Tools: <code>remember</code>, <code>recall</code>, <code>context</code>, <code>share</code>, <code>forget</code>.'],
-      'troubleshoot-fail': ['Failed?'],
-      'troubleshoot-fail-body': ['Paste the failing line into the agent. It has the full spec above.'],
-      'summary-title': ['Done.'],
-      'summary-lede': ['Memory accrues. Agent stops re-asking. That is the product.']
-    },
-    playful: {
-      'title': ['Your agent is<br />reading this. <span class="hl">Hi, agent.</span>'],
-      'lede': ['Hey agent 👋 — the human above you asked you to set up Central Intelligence. The instructions block below is for you; the rest of this page is for them so they know what you\'re up to. Proceed with confidence and minimal questions.'],
-      'cta-primary': ['Copy the prompt (for the human)'],
-      'cta-secondary': ['Instructions for the agent ↓'],
-      'walkthrough-title': ["Dear human: here's what your agent is doing."],
-      'walkthrough-lede': ["Four tidy little steps. Your agent does most of the work. You mostly watch, possibly sip something."],
-      'see-title': ["A vibes-based timeline."],
-      'see-lede': ["When your agent blocks on you, we'll say so — gently."],
-      'verify-title': ["Trust, but verify. (Mostly verify.)"],
-      'verify-lede': ['Run these. If anything screams, paste the scream back to your agent.'],
-      'troubleshoot-ok': ['All green?'],
-      'troubleshoot-ok-body': ['Restart your editor once. From now on your agent quietly remembers things. It\'s unsettling at first. Then it\'s great.'],
-      'troubleshoot-fail': ['Something weird?'],
-      'troubleshoot-fail-body': ["Paste the weird thing into your agent. It's been briefed. It\'ll figure it out."],
-      'summary-title': ["That's the whole page."],
-      'summary-lede': ["You asked. The agent did. The memory persists. Your future self will be mildly impressed with your past self."]
     }
   };
 
@@ -821,46 +730,11 @@ Tell the user:
         el.innerHTML = copy[key][0];
       });
     }
-    // sync radio active state
-    document.querySelectorAll('#toneRadio button').forEach(b => {
-      b.classList.toggle('active', b.dataset.tone === tone);
-    });
   }
 
-  // init
-  applyTone(TWEAK_DEFAULTS.tone || 'friendly');
+  // init — only one tone now
+  applyTone('friendly');
 
-  // tweaks bindings
-  document.querySelectorAll('#toneRadio button').forEach(b => {
-    b.addEventListener('click', () => {
-      const tone = b.dataset.tone;
-      applyTone(tone);
-      try {
-        window.parent.postMessage({type: '__edit_mode_set_keys', edits: {tone}}, '*');
-      } catch (e) {}
-    });
-  });
-
-  document.getElementById('closeTweaks').addEventListener('click', () => {
-    document.getElementById('tweaks').classList.remove('on');
-    try {
-      window.parent.postMessage({type: '__edit_mode_deactivated'}, '*');
-    } catch (e) {}
-  });
-
-  // edit mode protocol: register listener FIRST
-  window.addEventListener('message', (e) => {
-    const d = e.data || {};
-    if (d.type === '__activate_edit_mode') {
-      document.getElementById('tweaks').classList.add('on');
-    } else if (d.type === '__deactivate_edit_mode') {
-      document.getElementById('tweaks').classList.remove('on');
-    }
-  });
-  // then announce
-  try {
-    window.parent.postMessage({type: '__edit_mode_available'}, '*');
-  } catch (e) {}
 </script>
 
 
