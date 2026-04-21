@@ -361,31 +361,30 @@ p, li, td, th, .lede, .sec-lede, .step .body p, .panel p, .panel .kv .v, .see-ro
 
 /* ============ View toggle (CRT ↔ Classic) ============ */
 .view-toggle {
-  position: fixed; top: 14px; right: 16px; z-index: 300;
+  position: fixed; bottom: 18px; right: 18px; z-index: 300;
   display: inline-flex; align-items: center; gap: 7px;
-  padding: 5px 10px 5px 9px;
-  background: rgba(0,0,0,0.85);
+  padding: 6px 11px 6px 10px;
+  background: rgba(0,0,0,0.92);
   border: 1px solid var(--line-2);
   color: var(--fg-dim);
   font-family: var(--mono) !important;
   font-size: 10px; font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.08em;
   border-radius: 2px; cursor: pointer;
-  opacity: 0.7; transition: all 0.15s ease;
+  opacity: 0.55; transition: all 0.15s ease;
   text-shadow: none;
+  backdrop-filter: blur(4px);
 }
 .view-toggle:hover { opacity: 1; border-color: var(--accent); color: var(--accent); }
 .view-toggle .vt-dot {
-  width: 8px; height: 8px; background: var(--accent);
-  box-shadow: 0 0 8px rgba(95,230,232,0.7);
+  width: 7px; height: 7px; background: var(--accent);
 }
 body.classic .view-toggle .vt-dot {
   background: transparent;
   border: 1px solid var(--fg-dim);
-  box-shadow: none;
 }
 @media (max-width: 720px) {
-  .view-toggle { top: 10px; right: 10px; font-size: 9px; padding: 4px 8px 4px 7px; }
+  .view-toggle { bottom: 14px; right: 14px; font-size: 9px; padding: 5px 9px 5px 8px; }
 }
 
 /* ============ body.classic — neutralize CRT effects ============ */
