@@ -151,7 +151,7 @@ nav.top .inner { display: flex; align-items: center; justify-content: space-betw
 }
 .sec-lede { color: var(--fg-dim); font-size: 17px; max-width: 640px; text-wrap: pretty; margin: 0 0 36px; }
 
-section { padding: 88px 0; border-bottom: 1px solid var(--line); position: relative; }
+section { padding: 112px 0; border-bottom: 1px solid var(--line); position: relative; }
 
 /* ============ Hero ============ */
 .hero { padding: 84px 0 72px; border-bottom: 1px solid var(--line); position: relative; overflow: hidden; }
@@ -306,10 +306,10 @@ h1.hero-title .strike { color: var(--fg-dimmer); text-decoration: line-through; 
 .plan { border: 1px solid var(--line); border-radius: 12px; background: var(--bg-2); padding: 28px; display: flex; flex-direction: column; gap: 14px; position: relative; }
 .plan.featured { border-color: var(--accent); background: linear-gradient(180deg, rgba(125,249,181,0.05), var(--bg-2) 40%); }
 .plan .badge { position: absolute; top: -11px; left: 28px; background: var(--accent); color: #031a10; font-family: var(--mono); font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
-.plan .name { font-family: var(--mono); font-size: 12px; color: var(--fg-dim); text-transform: uppercase; letter-spacing: 0.08em; }
-.plan .price { font-size: 42px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; }
-.plan .price small { font-size: 14px; color: var(--fg-dim); font-weight: 400; margin-left: 4px; }
-.plan .for { color: var(--fg-dim); font-size: 14px; margin: 0; }
+.plan .name { font-family: var(--mono); font-size: 14px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; }
+.plan .price { font-size: 56px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+.plan .price small { font-size: 15px; color: var(--fg-dim); font-weight: 400; margin-left: 6px; }
+.plan .for { color: var(--fg-dim); font-size: 15px; margin: 0; }
 .plan ul { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 8px; }
 .plan ul li { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: var(--fg); }
 .plan ul li::before { content: '✓'; color: var(--accent); font-family: var(--mono); font-size: 12px; line-height: 1.6; }
@@ -598,6 +598,42 @@ footer { border-top: 1px solid var(--accent) !important; }
 .bench-table th { background: rgba(10,34,56,0.6) !important; color: var(--fg-dim) !important; }
 .bench-table td { border-color: var(--line) !important; }
 
+/* ============ View toggle (CRT ↔ Classic) ============ */
+.view-toggle {
+  position: fixed; top: 14px; right: 16px; z-index: 300;
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 10px 5px 9px;
+  background: rgba(0,0,0,0.85);
+  border: 1px solid var(--line-2);
+  color: var(--fg-dim);
+  font-family: var(--mono) !important;
+  font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  border-radius: 2px; cursor: pointer;
+  opacity: 0.7; transition: all 0.15s ease;
+  text-shadow: none;
+}
+.view-toggle:hover { opacity: 1; border-color: var(--accent); color: var(--accent); }
+.view-toggle .vt-dot {
+  width: 8px; height: 8px; background: var(--accent);
+  box-shadow: 0 0 8px rgba(95,230,232,0.7);
+}
+body.classic .view-toggle .vt-dot {
+  background: transparent;
+  border: 1px solid var(--fg-dim);
+  box-shadow: none;
+}
+@media (max-width: 720px) {
+  .view-toggle { top: 10px; right: 10px; font-size: 9px; padding: 4px 8px 4px 7px; }
+}
+
+/* ============ body.classic — neutralize CRT effects (universal) ============ */
+body.classic::before { display: none !important; }  /* scanlines off */
+body.classic::after { display: none !important; }   /* vignette off */
+body.classic * { text-shadow: none !important; }    /* phosphor glow off */
+body.classic .brand .dot,
+body.classic .pill .blink { box-shadow: none !important; }
+
 /* input terminal commands */
 /* terminal .cmd: shadow stripped for crisper small mono (pass 2) */
 .cmd { }
@@ -649,7 +685,8 @@ h1.hero-title { font-size: clamp(56px, 9vw, 104px) !important; letter-spacing: 0
 .brand { font-size: 17px !important; }
 .navlinks a { font-size: 15px !important; }
 .tool .name { font-size: 22px !important; }
-.plan .price { font-size: clamp(36px, 4vw, 48px) !important; }
+.plan .price { font-size: clamp(48px, 6vw, 72px) !important; text-shadow: 0 0 18px rgba(95,230,232,0.5); }
+.plan .name { font-size: 16px !important; text-shadow: 0 0 6px rgba(95,230,232,0.4); }
 .plan .name, .mode h4 { font-size: 22px !important; }
 .cardhead .tag, .copy-btn { font-size: 13px !important; }
 
@@ -661,6 +698,11 @@ p, li, td, th, .hero-lede, .sec-lede, .tool .desc, .mode p, .plan .for, .bench p
 </style>
 </head>
 <body data-screen-label="01 Home" data-cc-id="cc-1" style="font-family: ui-monospace; cursor: crosshair;">
+
+<button class="view-toggle" id="viewToggle" aria-label="Toggle CRT mode" title="Toggle CRT mode">
+  <span class="vt-dot"></span>
+  <span class="vt-label">CRT</span>
+</button>
 
 <nav class="top">
   <div class="wrap inner">
@@ -1495,6 +1537,22 @@ window.addEventListener('message', (e) => {
   else if (d.type === '__deactivate_edit_mode') document.getElementById('tweaks').classList.remove('on');
 });
 try { window.parent.postMessage({type: '__edit_mode_available'}, '*'); } catch (e) {}
+
+// --- CRT view toggle (persists across /vt220/* umbrella via localStorage) ---
+(function () {
+  try {
+    if (localStorage.getItem('ci-vt220-mode') === 'classic') {
+      document.body.classList.add('classic');
+    }
+  } catch (e) {}
+  var vt = document.getElementById('viewToggle');
+  if (!vt) return;
+  vt.addEventListener('click', function () {
+    document.body.classList.toggle('classic');
+    var mode = document.body.classList.contains('classic') ? 'classic' : 'vt220';
+    try { localStorage.setItem('ci-vt220-mode', mode); } catch (e) {}
+  });
+})();
 
 </script>
 
