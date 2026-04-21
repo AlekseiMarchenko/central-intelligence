@@ -85,7 +85,9 @@
   @media (max-width: 720px) { .navlinks .hide-sm { display: none; } }
 
   /* ---------- Hero ---------- */
-  .hero { padding: 72px 0 40px; border-bottom: 1px solid var(--line); }
+  .hero { padding: 72px 0 40px; border-bottom: 1px solid var(--line); position: relative; }
+  .vt-label { position: absolute; top: 28px; right: 28px; font-family: var(--mono); font-size: 13px; color: var(--accent); text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 2px; letter-spacing: 0.05em; }
+  @media (max-width: 720px) { .vt-label { top: 18px; right: 18px; font-size: 12px; } }
   .pill {
     display: inline-flex; align-items: center; gap: 8px;
     padding: 6px 12px; border: 1px solid var(--line-2); border-radius: 999px;
@@ -359,32 +361,28 @@ p, li, td, th, .lede, .sec-lede, .step .body p, .panel p, .panel .kv .v, .see-ro
   font-family: var(--mono) !important;
 }
 
-/* ============ View toggle (CRT ↔ Classic) ============ */
-.view-toggle {
-  position: fixed; bottom: 18px; right: 18px; z-index: 300;
-  display: inline-flex; align-items: center; gap: 7px;
-  padding: 6px 11px 6px 10px;
-  background: rgba(0,0,0,0.92);
-  border: 1px solid var(--line-2);
-  color: var(--fg-dim);
-  font-family: var(--mono) !important;
-  font-size: 10px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.08em;
-  border-radius: 2px; cursor: pointer;
-  opacity: 0.55; transition: all 0.15s ease;
-  text-shadow: none;
-  backdrop-filter: blur(4px);
-}
-.view-toggle:hover { opacity: 1; border-color: var(--accent); color: var(--accent); }
-.view-toggle .vt-dot {
-  width: 7px; height: 7px; background: var(--accent);
-}
-body.classic .view-toggle .vt-dot {
+/* ============ View toggle (inline in hero, absolute top-right) ============ */
+.vt-toggle {
   background: transparent;
-  border: 1px solid var(--fg-dim);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-shadow: 0 0 6px rgba(95,230,232,0.35);
 }
-@media (max-width: 720px) {
-  .view-toggle { bottom: 14px; right: 14px; font-size: 9px; padding: 5px 9px 5px 8px; }
+.vt-toggle:hover { opacity: 0.72; }
+.vt-toggle .vt-dot {
+  width: 11px; height: 11px;
+  background: var(--accent);
+  box-shadow: 0 0 10px rgba(95,230,232,0.6);
+  flex-shrink: 0;
+}
+body.classic .vt-toggle .vt-dot {
+  background: transparent;
+  border: 1px solid var(--accent);
+  box-shadow: none;
 }
 
 /* ============ body.classic — neutralize CRT effects ============ */
@@ -397,11 +395,6 @@ body.classic .pill .blink { box-shadow: none !important; }
 </style>
 </head>
 <body data-screen-label="01 Agent Landing" data-cc-id="cc-1" style="cursor: crosshair; font-family: &quot;JetBrains Mono&quot;;">
-
-<button class="view-toggle" id="viewToggle" aria-label="Toggle CRT mode" title="Toggle CRT mode">
-  <span class="vt-dot"></span>
-  <span class="vt-label">CRT</span>
-</button>
 
 <nav class="top">
   <div class="wrap inner">
@@ -422,6 +415,10 @@ body.classic .pill .blink { box-shadow: none !important; }
 <!-- =================== HERO =================== -->
 <header class="hero">
   <div class="wrap">
+    <button class="vt-label vt-toggle" id="viewToggle" aria-label="Toggle CRT effects" title="Toggle CRT effects">
+      <span class="vt-dot"></span>
+      <span>CRT</span>
+    </button>
     <span class="pill"><span class="blink"></span> This page is written for your agent.</span>
     <h1 class="title" data-tone="title">Your agent is<br>setting up <span class="hl">CI</span>.</h1>
     <p class="lede" data-tone="lede">You told your coding agent to <strong>"set up Central Intelligence for me."</strong> Point it here. The page below is copy-pasteable instructions your agent runs end-to-end — one command, no questions, under 30 seconds — plus a timeline so you know what's happening.</p>

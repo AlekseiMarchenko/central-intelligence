@@ -598,32 +598,28 @@ footer { border-top: 1px solid var(--accent) !important; }
 .bench-table th { background: rgba(10,34,56,0.6) !important; color: var(--fg-dim) !important; }
 .bench-table td { border-color: var(--line) !important; }
 
-/* ============ View toggle (CRT ↔ Classic) ============ */
-.view-toggle {
-  position: fixed; bottom: 18px; right: 18px; z-index: 300;
-  display: inline-flex; align-items: center; gap: 7px;
-  padding: 6px 11px 6px 10px;
-  background: rgba(0,0,0,0.92);
-  border: 1px solid var(--line-2);
-  color: var(--fg-dim);
-  font-family: var(--mono) !important;
-  font-size: 10px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.08em;
-  border-radius: 2px; cursor: pointer;
-  opacity: 0.55; transition: all 0.15s ease;
-  text-shadow: none;
-  backdrop-filter: blur(4px);
-}
-.view-toggle:hover { opacity: 1; border-color: var(--accent); color: var(--accent); }
-.view-toggle .vt-dot {
-  width: 7px; height: 7px; background: var(--accent);
-}
-body.classic .view-toggle .vt-dot {
+/* ============ View toggle (inline in hero, replaces CI v2.0 label) ============ */
+.vt-toggle {
   background: transparent;
-  border: 1px solid var(--fg-dim);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-shadow: 0 0 6px rgba(95,230,232,0.35);
 }
-@media (max-width: 720px) {
-  .view-toggle { bottom: 14px; right: 14px; font-size: 9px; padding: 5px 9px 5px 8px; }
+.vt-toggle:hover { opacity: 0.72; }
+.vt-toggle .vt-dot {
+  width: 11px; height: 11px;
+  background: var(--accent);
+  box-shadow: 0 0 10px rgba(95,230,232,0.6);
+  flex-shrink: 0;
+}
+body.classic .vt-toggle .vt-dot {
+  background: transparent;
+  border: 1px solid var(--accent);
+  box-shadow: none;
 }
 
 /* ============ body.classic — neutralize CRT effects (universal) ============ */
@@ -698,11 +694,6 @@ p, li, td, th, .hero-lede, .sec-lede, .tool .desc, .mode p, .plan .for, .bench p
 </head>
 <body data-screen-label="01 Home" data-cc-id="cc-1" style="font-family: ui-monospace; cursor: crosshair;">
 
-<button class="view-toggle" id="viewToggle" aria-label="Toggle CRT mode" title="Toggle CRT mode">
-  <span class="vt-dot"></span>
-  <span class="vt-label">CRT</span>
-</button>
-
 <nav class="top">
   <div class="wrap inner">
     <div class="brand">
@@ -725,7 +716,10 @@ p, li, td, th, .hero-lede, .sec-lede, .tool .desc, .mode p, .plan .for, .bench p
 <!-- =================== HERO =================== -->
 <header class="hero">
   <div class="wrap inner" style="font-family: ui-monospace;">
-    <a class="vt-label" href="#cta">CI v2.0</a>
+    <button class="vt-label vt-toggle" id="viewToggle" aria-label="Toggle CRT effects" title="Toggle CRT effects">
+      <span class="vt-dot"></span>
+      <span>CRT</span>
+    </button>
     <span class="pill"><span class="blink"></span> Open for early access</span>
     <h1 class="hero-title" data-tone="title"><span class="strike">Agents forget.</span><br>CI <span class="hl">remembers.</span></h1>
     <p class="hero-lede" data-tone="lede">Persistent memory for AI agents. <strong>Store, recall, and share knowledge</strong> across sessions — five MCP tools, any agent, any editor. Set up in 30 seconds.</p>
