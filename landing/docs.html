@@ -387,44 +387,12 @@ footer a { color: var(--accent); }
   0%   { transform: translateY(-220px); }
   100% { transform: translateY(calc(100vh + 40px)); }
 }
-body.classic .crt-sweep { display: none !important; }
 @media (prefers-reduced-motion: reduce) { .crt-sweep { display: none; } }
 
-/* ============ View toggle (inline in hero, replaces CI-API v2.0 label) ============ */
-.vt-toggle {
-  background: transparent;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  text-shadow: 0 0 6px rgba(184,238,240,0.35);
-}
-.vt-toggle:hover { opacity: 0.72; }
-.vt-toggle .vt-dot {
-  width: 11px; height: 11px;
-  background: var(--accent);
-  box-shadow: 0 0 10px rgba(184,238,240,0.6);
-  flex-shrink: 0;
-}
-body.classic .vt-toggle .vt-dot {
-  background: transparent;
-  border: 1px solid var(--accent);
-  box-shadow: none;
-}
-
-/* ============ body.classic — neutralize CRT effects ============ */
-body.classic::before { display: none !important; }
-body.classic::after { display: none !important; }
-body.classic * { text-shadow: none !important; }
-body.classic .brand .dot,
-body.classic .pill .blink { box-shadow: none !important; }
 
 /* Scanline hover shift — hovering any terminal card nudges the global scanlines
    by 1px. "Refresh beam passed over this surface" mental model. Honors
-   prefers-reduced-motion + no-ops under body.classic (scanlines hidden). */
-body::before { transition: background-position 120ms ease-out; }
+   prefers-reduced-motion + no-ops under body::before { transition: background-position 120ms ease-out; }
 body:has(.term:hover, .agent-card:hover, .verify-term:hover, .code-block:hover, .cmd-box:hover, .instruction-card:hover)::before {
   background-position: 0 1px;
 }
@@ -435,6 +403,40 @@ body:has(.term:hover, .agent-card:hover, .verify-term:hover, .code-block:hover, 
   }
 }
 
+
+/* Hamburger — mobile only, replaces "Get API key" button slot on ≤720px */
+.hamburger {
+  display: none;
+  background: transparent;
+  border: 1px solid var(--line-2);
+  width: 38px; height: 38px;
+  flex-direction: column; justify-content: center; align-items: center;
+  gap: 4px; cursor: pointer; border-radius: 2px; padding: 0;
+}
+.hamburger span { display: block; width: 18px; height: 2px; background: var(--accent); transition: all 150ms ease; }
+.hamburger:hover { border-color: var(--accent); }
+.hamburger.open span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.hamburger.open span:nth-child(2) { opacity: 0; }
+.hamburger.open span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+@media (max-width: 720px) { .hamburger { display: flex; } }
+.mobile-menu {
+  display: none;
+  position: fixed; top: 60px; left: 0; right: 0;
+  background: rgba(5,13,24,0.97);
+  border-bottom: 1px solid var(--accent);
+  backdrop-filter: blur(8px);
+  padding: 16px 28px 20px;
+  z-index: 49;
+  flex-direction: column; gap: 0;
+}
+.mobile-menu.open { display: flex; }
+.mobile-menu a {
+  padding: 14px 4px; color: var(--fg);
+  border-bottom: 1px solid var(--line);
+  font-family: var(--mono); font-size: 15px; text-decoration: none;
+}
+.mobile-menu a:last-child { border-bottom: none; }
+.mobile-menu a:hover { color: var(--accent); }
 </style>
 </head>
 <body>
@@ -453,18 +455,19 @@ body:has(.term:hover, .agent-card:hover, .verify-term:hover, .code-block:hover, 
       <a href="/" class="hide-sm">Home</a>
       <a href="/agent" class="hide-sm">/agent</a>
       <a href="#endpoints" class="current">Endpoints</a>
-      <a href="https://central-intelligence-api.fly.dev/docs/json" class="hide-sm">JSON spec</a>
+      <a href="https://central-intelligence-api.fly.dev/docs/json" class="hide-sm">JSON spec</a>      <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+
     </div>
   </div>
 </nav>
+<div class="mobile-menu" id="mobileMenu" aria-hidden="true"></div>
+
 
 <!-- ============ HERO ============ -->
 <section class="hero">
   <div class="wrap">
-    <button class="vt-label vt-toggle" id="viewToggle" aria-label="Toggle CRT effects" title="Toggle CRT effects">
-      <span class="vt-dot"></span>
-      <span>CRT</span>
-    </button>
     <span class="pill"><span class="blink"></span> v1 · stable</span>
     <h1 class="title">API Docs</h1>
     <p class="lede">Persistent memory for AI agents. Seven endpoints. Bearer auth. JSON in, JSON out. <a href="https://central-intelligence-api.fly.dev/docs/json">Machine-readable spec →</a></p>
@@ -759,21 +762,31 @@ body:has(.term:hover, .agent-card:hover, .verify-term:hover, .code-block:hover, 
     renderSpec();
   }
 
-  // --- CRT view toggle (persists across /vt220/* umbrella via localStorage) ---
-  (function () {
-    try {
-      if (localStorage.getItem('ci-vt220-mode') === 'classic') {
-        document.body.classList.add('classic');
-      }
-    } catch (e) {}
-    var vt = document.getElementById('viewToggle');
-    if (!vt) return;
-    vt.addEventListener('click', function () {
-      document.body.classList.toggle('classic');
-      var mode = document.body.classList.contains('classic') ? 'classic' : 'vt220';
-      try { localStorage.setItem('ci-vt220-mode', mode); } catch (e) {}
-    });
-  })();
 </script>
 
+<script>
+// Hamburger ↔ mobile menu (clones navlinks into mobile menu — one source of truth)
+(function () {
+  var ham = document.getElementById('hamburger');
+  var menu = document.getElementById('mobileMenu');
+  if (!ham || !menu) return;
+  var links = document.querySelectorAll('nav.top .navlinks a');
+  links.forEach(function (a) {
+    var clone = a.cloneNode(true);
+    clone.classList.remove('hide-sm');
+    menu.appendChild(clone);
+  });
+  function close() { menu.classList.remove('open'); ham.classList.remove('open'); menu.setAttribute('aria-hidden', 'true'); ham.setAttribute('aria-expanded', 'false'); }
+  ham.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var open = menu.classList.toggle('open');
+    ham.classList.toggle('open', open);
+    menu.setAttribute('aria-hidden', String(!open));
+    ham.setAttribute('aria-expanded', String(open));
+  });
+  menu.addEventListener('click', function (e) { if (e.target.tagName === 'A') close(); });
+  document.addEventListener('click', function (e) { if (!menu.contains(e.target) && !ham.contains(e.target)) close(); });
+  window.addEventListener('resize', function () { if (window.innerWidth > 720) close(); });
+})();
+</script>
 </body></html>
