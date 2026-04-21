@@ -10,7 +10,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="/brand/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/brand/favicon-180.png">
 <link rel="manifest" href="/site.webmanifest">
-<meta name="theme-color" content="#020a14">
+<meta name="theme-color" content="#050d18">
 <!-- SEO -->
 <meta name="description" content="Agent-readable setup instructions. Copy-paste prompt to your coding agent and it provisions Central Intelligence for you.">
 <link rel="canonical" href="https://centralintelligence.online/vt220/agent">
@@ -32,19 +32,19 @@
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&amp;family=Inter:wght@400;450;500;600;700&amp;family=VT323&amp;display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #000000;
-    --bg-2: #031220;
+    --bg: #050d18;
+    --bg-2: #081523;
     --bg-3: #06192b;
     --line: #0e3252;
     --line-2: #144568;
-    --fg: #c8dcf5;
-    --fg-dim: #8aa4c4;
-    --fg-dimmer: #5c7494;
-    --accent: #c8dcf5;        /* VT220 cyan */
-    --accent-2: #e8f1ff;
+    --fg: #b8eef0;
+    --fg-dim: #7bbec0;
+    --fg-dimmer: #4a8587;
+    --accent: #b8eef0;        /* VT220 cyan */
+    --accent-2: #dff6f7;
     --accent-soft: #0a1424;
-    --amber: #c8dcf5;
-    --danger: #c8dcf5;
+    --amber: #b8eef0;
+    --danger: #b8eef0;
     --radius: 10px;
     --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     --crt: 'VT323', 'JetBrains Mono', ui-monospace, monospace;
@@ -54,8 +54,8 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); font-family: var(--mono); font-size: 15px; line-height: 1.65; -webkit-font-smoothing: subpixel-antialiased; }
   body { background:
-    radial-gradient(1200px 600px at 80% -10%, rgba(200,220,245,0.05), transparent 60%),
-    radial-gradient(800px 500px at 10% 20%, rgba(200,220,245,0.03), transparent 60%),
+    radial-gradient(1200px 600px at 80% -10%, rgba(184,238,240,0.05), transparent 60%),
+    radial-gradient(800px 500px at 10% 20%, rgba(184,238,240,0.03), transparent 60%),
     var(--bg);
     min-height: 100vh;
   }
@@ -76,7 +76,7 @@
   }
   nav.top .inner { display: flex; align-items: center; justify-content: space-between; height: 56px; }
   .brand { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-weight: 600; letter-spacing: -0.01em; font-size: 14px; }
-  .brand .dot { width: 10px; height: 10px; background: var(--accent); border-radius: 2px; box-shadow: 0 0 10px rgba(200,220,245,0.5); }
+  .brand .dot { width: 10px; height: 10px; background: var(--accent); border-radius: 2px; box-shadow: 0 0 10px rgba(184,238,240,0.5); }
   .brand .slash { color: var(--fg-dimmer); }
   .brand .agent { color: var(--accent); }
   .navlinks { display: flex; gap: 22px; font-size: 13px; align-items: center; }
@@ -129,7 +129,7 @@
     border-radius: 12px;
     overflow: hidden;
     background: var(--bg-2);
-    box-shadow: 0 0 0 1px rgba(200,220,245,0.05), 0 30px 60px -30px rgba(0,0,0,0.5);
+    box-shadow: 0 0 0 1px rgba(184,238,240,0.05), 0 30px 60px -30px rgba(0,0,0,0.5);
   }
   .agent-card .cardhead {
     display: flex; align-items: center; justify-content: space-between;
@@ -138,7 +138,7 @@
     font-family: var(--mono); font-size: 12px;
   }
   .cardhead .left { display: flex; align-items: center; gap: 10px; color: var(--fg-dim); }
-  .cardhead .tag { color: var(--accent); border: 1px solid var(--accent-soft); background: rgba(200,220,245,0.08); padding: 2px 7px; border-radius: 4px; font-size: 11px; }
+  .cardhead .tag { color: var(--accent); border: 1px solid var(--accent-soft); background: rgba(184,238,240,0.08); padding: 2px 7px; border-radius: 4px; font-size: 11px; }
   .cardhead .tty { color: var(--fg-dimmer); }
   .copy-btn {
     background: transparent; border: 1px solid var(--line-2); color: var(--fg-dim);
@@ -262,7 +262,7 @@
     color: var(--fg-dim);
   }
   .see-row .who.you { color: var(--amber); border-color: rgba(255,184,107,0.3); background: rgba(255,184,107,0.06); }
-  .see-row .who.agent { color: var(--accent); border-color: var(--accent-soft); background: rgba(200,220,245,0.06); }
+  .see-row .who.agent { color: var(--accent); border-color: var(--accent-soft); background: rgba(184,238,240,0.06); }
 
   /* ---------- Footer ---------- */
   footer { padding: 40px 0 60px; color: var(--fg-dimmer); font-family: var(--mono); font-size: 12px; }
@@ -281,7 +281,7 @@ body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index
 body::after { content:''; position:fixed; inset:0; pointer-events:none; z-index:201; background: radial-gradient(ellipse at center, transparent 70%, rgba(0,0,0,0.55) 100%); }
 .pill, .btn, .cardhead .tag, .copy-btn, .see-row .who, .step .ping { border-radius: 2px !important; }
 .btn { background: var(--accent) !important; color: #020a14 !important; border-color: var(--accent) !important; border-width: 2px !important; font-weight: 600; text-shadow: none !important; }
-.btn:hover { background: #020a14 !important; color: var(--accent) !important; text-shadow: 0 0 6px rgba(200,220,245,0.6) !important; }
+.btn:hover { background: #020a14 !important; color: var(--accent) !important; text-shadow: 0 0 6px rgba(184,238,240,0.6) !important; }
 .btn.primary { background: var(--accent) !important; color: #020a14 !important; }
 .btn.primary:hover { background: #020a14 !important; color: var(--accent) !important; }
 .btn span { color: inherit !important; }
@@ -293,11 +293,11 @@ body::after { content:''; position:fixed; inset:0; pointer-events:none; z-index:
 .step, .panel, .agent-card, .verify-term, .see-list { border: 1px solid var(--line-2) !important; border-radius: 2px !important; background: rgba(6,25,43,0.4) !important; box-shadow: none !important; }
 .cardhead, .verify-term .head { background: rgba(10,34,56,0.6) !important; border-bottom: 1px solid var(--line-2) !important; border-radius: 0 !important; }
 nav.top { background: rgba(0,0,0,0.9) !important; border-bottom: 1px solid var(--accent) !important; }
-.brand .dot { background: var(--accent) !important; border-radius: 0 !important; box-shadow: 0 0 12px rgba(200,220,245,0.9) !important; }
+.brand .dot { background: var(--accent) !important; border-radius: 0 !important; box-shadow: 0 0 12px rgba(184,238,240,0.9) !important; }
 .brand .agent { color: var(--accent) !important; text-decoration: underline; text-underline-offset: 3px; }
 a { color: var(--accent) !important; text-decoration: underline; text-underline-offset: 3px; }
 a.btn { text-decoration: none; }
-h1.title, h3.sec-title { font-family: var(--mono) !important; text-shadow: 0 0 18px rgba(200,220,245,0.45); font-weight: 700; letter-spacing: -0.01em; }
+h1.title, h3.sec-title { font-family: var(--mono) !important; text-shadow: 0 0 18px rgba(184,238,240,0.45); font-weight: 700; letter-spacing: -0.01em; }
 h1.title .hl { color: var(--accent) !important; text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 8px; }
 .lede, .sec-lede, .step .body p, .panel p { color: var(--fg-dim) !important; }
 .lede strong { color: var(--fg) !important; }
@@ -373,9 +373,9 @@ p, li, td, th, .lede, .sec-lede, .step .body p, .panel p, .panel .kv .v, .see-ro
   background: linear-gradient(
     to bottom,
     transparent 0%,
-    rgba(200,220,245,0.05) 30%,
-    rgba(200,220,245,0.13) 50%,
-    rgba(200,220,245,0.05) 70%,
+    rgba(184,238,240,0.05) 30%,
+    rgba(184,238,240,0.13) 50%,
+    rgba(184,238,240,0.05) 70%,
     transparent 100%
   );
   animation: crt-sweep 8.7s linear infinite;
@@ -397,13 +397,13 @@ body.classic .crt-sweep { display: none !important; }
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  text-shadow: 0 0 6px rgba(200,220,245,0.35);
+  text-shadow: 0 0 6px rgba(184,238,240,0.35);
 }
 .vt-toggle:hover { opacity: 0.72; }
 .vt-toggle .vt-dot {
   width: 11px; height: 11px;
   background: var(--accent);
-  box-shadow: 0 0 10px rgba(200,220,245,0.6);
+  box-shadow: 0 0 10px rgba(184,238,240,0.6);
   flex-shrink: 0;
 }
 body.classic .vt-toggle .vt-dot {
