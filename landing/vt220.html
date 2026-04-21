@@ -598,6 +598,63 @@ footer { border-top: 1px solid var(--accent) !important; }
 .bench-table th { background: rgba(10,34,56,0.6) !important; color: var(--fg-dim) !important; }
 .bench-table td { border-color: var(--line) !important; }
 
+/* ============ Subtle moving CRT refresh line ============ */
+.crt-sweep {
+  position: fixed; inset: 0; pointer-events: none; z-index: 202;
+  overflow: hidden;
+}
+.crt-sweep::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 180px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(95,230,232,0.02) 30%,
+    rgba(95,230,232,0.055) 50%,
+    rgba(95,230,232,0.02) 70%,
+    transparent 100%
+  );
+  animation: crt-sweep 8.7s linear infinite;
+  will-change: transform;
+}
+@keyframes crt-sweep {
+  0%   { transform: translateY(-220px); }
+  100% { transform: translateY(calc(100vh + 40px)); }
+}
+body.classic .crt-sweep { display: none !important; }
+@media (prefers-reduced-motion: reduce) { .crt-sweep { display: none; } }
+
+/* ============ Phosphor pulse (occasional glow flare) ============ */
+.phosphor-pulse {
+  animation: phosphor-pulse 8.3s ease-in-out infinite;
+  animation-delay: 2.4s;
+}
+@keyframes phosphor-pulse {
+  0%, 62%, 100% {
+    color: var(--fg);
+    text-shadow: 0 0 6px rgba(95,230,232,0.35);
+  }
+  72% {
+    color: var(--accent-2);
+    text-shadow: 0 0 14px rgba(95,230,232,0.85), 0 0 28px rgba(95,230,232,0.4);
+  }
+  76% {
+    color: var(--fg);
+    text-shadow: 0 0 8px rgba(95,230,232,0.45);
+  }
+  82% {
+    color: var(--accent-2);
+    text-shadow: 0 0 18px rgba(95,230,232,0.9), 0 0 36px rgba(95,230,232,0.45);
+  }
+  88% {
+    color: var(--fg);
+    text-shadow: 0 0 6px rgba(95,230,232,0.35);
+  }
+}
+body.classic .phosphor-pulse { animation: none !important; color: inherit !important; }
+@media (prefers-reduced-motion: reduce) { .phosphor-pulse { animation: none; } }
+
 /* ============ View toggle (inline in hero, replaces CI v2.0 label) ============ */
 .vt-toggle {
   background: transparent;
@@ -694,6 +751,8 @@ p, li, td, th, .hero-lede, .sec-lede, .tool .desc, .mode p, .plan .for, .bench p
 </head>
 <body data-screen-label="01 Home" data-cc-id="cc-1" style="font-family: ui-monospace; cursor: crosshair;">
 
+<div class="crt-sweep" aria-hidden="true"></div>
+
 <nav class="top">
   <div class="wrap inner">
     <div class="brand">
@@ -734,7 +793,7 @@ p, li, td, th, .hero-lede, .sec-lede, .tool .desc, .mode p, .plan .for, .bench p
       <span data-tone="meta-1">30-second install</span>
       <span data-tone="meta-2">500 memories free</span>
       <span data-tone="meta-3">Apache 2.0 · self-host</span>
-      <span data-tone="meta-4">52.2% LifeBench</span>
+      <span data-tone="meta-4" class="phosphor-pulse">52.2% LifeBench</span>
     </div>
 
     <!-- terminal preview -->
