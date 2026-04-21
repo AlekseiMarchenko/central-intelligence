@@ -2,8 +2,8 @@
   "name": "Central Intelligence",
   "short_name": "CI",
   "icons": [
-    { "src": "/brand/favicon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/brand/favicon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "/brand/favicon-192.png?v=brandv2", "sizes": "192x192", "type": "image/png" },
+    { "src": "/brand/favicon-512.png?v=brandv2", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ],
   "theme_color": "#050d18",
   "background_color": "#050d18",
