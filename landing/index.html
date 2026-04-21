@@ -1,994 +1,972 @@
-<!DOCTYPE html>
-<html lang="en" style="color-scheme: dark;">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Central Intelligence — Persistent Memory for AI Agents</title>
-  <meta name="description" content="Give your AI agents long-term memory. Store, recall, and share knowledge across sessions. Works with Claude, GPT, LangChain, and any MCP-compatible agent.">
-  <meta property="og:title" content="Central Intelligence — Agents forget. CI remembers.">
-  <meta property="og:description" content="Persistent memory for AI agents. Set up in 30 seconds.">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://centralintelligence.online">
-  <meta property="og:image" content="https://centralintelligence.online/brand/og-home.png">
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="630">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Central Intelligence — Agents forget. CI remembers.">
-  <meta name="twitter:description" content="Persistent memory for AI agents. Set up in 30 seconds.">
-  <meta name="twitter:image" content="https://centralintelligence.online/brand/og-home.png">
-  <link rel="icon" type="image/svg+xml" href="/brand/logomark-static.svg">
-  <link rel="icon" type="image/png" sizes="32x32" href="/brand/favicon-32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/brand/favicon-16.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="/brand/favicon-180.png">
-  <link rel="manifest" href="/site.webmanifest">
-  <meta name="theme-color" content="#09090b">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg: #09090b;
-      --bg-subtle: #111114;
-      --bg-card: #16161a;
-      --border: #27272a;
-      --text: #fafafa;
-      --text-muted: #a1a1aa;
-      --text-dim: #71717a;
-      --accent: #6d5aff;
-      --accent-glow: rgba(109, 90, 255, 0.15);
-      --green: #22c55e;
-      --green-dim: rgba(34, 197, 94, 0.15);
-      --amber: #f59e0b;
-      --cyan: #06b6d4;
-      --radius: 12px;
-      --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      --mono: 'JetBrains Mono', 'Fira Code', monospace;
-    }
-
-    html { scroll-behavior: smooth; }
-
-    h1, h2, h3 { text-wrap: balance; }
-
-    body {
-      font-family: var(--font);
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    /* --- Layout --- */
-    .container {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 0 24px;
-    }
-
-    section {
-      padding: 100px 0;
-    }
-
-    /* --- Nav --- */
-    nav {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 100;
-      background: rgba(9, 9, 11, 0.8);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-    }
-
-    nav .container {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      height: 64px;
-    }
-
-    .logo {
-      font-weight: 800;
-      font-size: 18px;
-      letter-spacing: -0.5px;
-      color: var(--text);
-      text-decoration: none;
-    }
-
-    .logo span { color: var(--accent); }
-
-    nav .links {
-      display: flex;
-      align-items: center;
-      gap: 32px;
-    }
-
-    nav .links a {
-      color: var(--text-muted);
-      text-decoration: none;
-      font-size: 14px;
-      font-weight: 500;
-      transition: color 0.2s;
-      padding: 12px 4px;
-    }
-
-    nav .links a:hover { color: var(--text); }
-
-    .hamburger {
-      display: none;
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 8px;
-      z-index: 101;
-    }
-    .hamburger svg { display: block; }
-
-    .mobile-menu {
-      display: none;
-      position: fixed;
-      top: 64px;
-      left: 0;
-      right: 0;
-      background: rgba(9, 9, 11, 0.95);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-      padding: 16px 24px;
-      z-index: 99;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .mobile-menu.open { display: flex; }
-    .mobile-menu a {
-      color: var(--text-muted);
-      text-decoration: none;
-      font-size: 16px;
-      font-weight: 500;
-      padding: 12px 0;
-      border-bottom: 1px solid var(--border);
-      transition: color 0.2s;
-    }
-    .mobile-menu a:last-child { border-bottom: none; }
-    .mobile-menu a:hover { color: var(--text); }
-
-    :focus-visible {
-      outline: 2px solid var(--accent);
-      outline-offset: 2px;
-      border-radius: 4px;
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 12px 20px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      text-decoration: none;
-      transition: all 0.2s;
-      cursor: pointer;
-      border: none;
-    }
-
-    .btn-primary {
-      background: var(--accent);
-      color: white;
-    }
-
-    .btn-primary:hover {
-      background: #5a46ef;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 20px rgba(109, 90, 255, 0.4);
-    }
-
-    .btn-secondary {
-      background: var(--bg-card);
-      color: var(--text);
-      border: 1px solid var(--border);
-    }
-
-    .btn-secondary:hover {
-      background: var(--bg-subtle);
-      border-color: var(--text-dim);
-    }
-
-    /* --- Hero --- */
-    .hero {
-      padding: 160px 0 100px;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .hero::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 800px;
-      height: 600px;
-      background: radial-gradient(ellipse, var(--accent-glow) 0%, transparent 70%);
-      pointer-events: none;
-    }
-
-    .hero-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 16px;
-      background: var(--green-dim);
-      border: 1px solid rgba(34, 197, 94, 0.3);
-      border-radius: 100px;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--green);
-      margin-bottom: 32px;
-    }
-
-    .hero-badge::before {
-      content: '';
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--green);
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-
-    h1 {
-      font-size: clamp(40px, 6vw, 72px);
-      font-weight: 800;
-      letter-spacing: -2px;
-      line-height: 1.05;
-      margin-bottom: 24px;
-      position: relative;
-    }
-
-    h1 .highlight {
-      background: linear-gradient(135deg, var(--accent), var(--cyan));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .hero-sub {
-      font-size: 20px;
-      color: var(--text-muted);
-      max-width: 560px;
-      margin: 0 auto 48px;
-      line-height: 1.7;
-    }
-
-    .hero-actions {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      margin-bottom: 64px;
-    }
-
-    /* --- Terminal --- */
-    .terminal {
-      max-width: 620px;
-      margin: 0 auto;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
-      text-align: left;
-    }
-
-    .terminal-bar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 12px 16px;
-      background: var(--bg-subtle);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .terminal-dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: var(--border);
-    }
-
-    .terminal-dot:nth-child(1) { background: #ef4444; }
-    .terminal-dot:nth-child(2) { background: #f59e0b; }
-    .terminal-dot:nth-child(3) { background: #22c55e; }
-
-    .terminal-title {
-      font-size: 12px;
-      color: var(--text-dim);
-      margin-left: auto;
-      margin-right: auto;
-      font-family: var(--mono);
-    }
-
-    .terminal-body {
-      padding: 20px 24px;
-      font-family: var(--mono);
-      font-size: 14px;
-      line-height: 1.8;
-    }
-
-    .terminal-body .comment { color: var(--text-dim); }
-    .terminal-body .cmd { color: var(--green); }
-    .terminal-body .prompt { color: var(--text-dim); }
-    .terminal-body .output { color: var(--text-muted); }
-    .terminal-body .flag { color: var(--cyan); }
-
-    /* --- Problem --- */
-    .problem {
-      background: var(--bg-subtle);
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .problem-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 60px;
-      align-items: center;
-    }
-
-    .problem h2 {
-      font-size: 36px;
-      font-weight: 700;
-      letter-spacing: -1px;
-      margin-bottom: 20px;
-    }
-
-    .problem p {
-      color: var(--text-muted);
-      font-size: 17px;
-      line-height: 1.8;
-      margin-bottom: 16px;
-    }
-
-    .problem .stat {
-      display: flex;
-      gap: 40px;
-      margin-top: 32px;
-    }
-
-    .stat-item h3 {
-      font-size: 32px;
-      font-weight: 800;
-      color: var(--accent);
-    }
-
-    .stat-item p {
-      font-size: 14px;
-      color: var(--text-dim);
-      margin-bottom: 0;
-    }
-
-    .comparison {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .comparison-card {
-      padding: 20px 24px;
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-    }
-
-    .comparison-card.before {
-      background: rgba(239, 68, 68, 0.05);
-      border-color: rgba(239, 68, 68, 0.2);
-    }
-
-    .comparison-card.after {
-      background: rgba(34, 197, 94, 0.05);
-      border-color: rgba(34, 197, 94, 0.2);
-    }
-
-    .comparison-card .label {
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 8px;
-    }
-
-    .comparison-card.before .label { color: #ef4444; }
-    .comparison-card.after .label { color: var(--green); }
-
-    .comparison-card p {
-      font-size: 15px;
-      margin-bottom: 0;
-    }
-
-    /* --- Features --- */
-    .features h2 {
-      font-size: 36px;
-      font-weight: 700;
-      letter-spacing: -1px;
-      text-align: center;
-      margin-bottom: 12px;
-    }
-
-    .features .subtitle {
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 17px;
-      margin-bottom: 60px;
-    }
-
-    .tools-grid {
-      display: grid;
-      grid-template-columns: 1.2fr 0.8fr;
-      gap: 20px;
-      margin-bottom: 20px;
-    }
-
-    .tool-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 28px;
-      transition: border-color 0.2s, transform 0.2s;
-    }
-
-    .tool-card:hover {
-      border-color: var(--accent);
-      transform: translateY(-2px);
-    }
-
-    .tool-card.featured-tool {
-      grid-row: span 2;
-      padding: 36px;
-      border-color: rgba(109, 90, 255, 0.3);
-    }
-
-    .tool-card.featured-tool .tool-name {
-      font-size: 20px;
-      margin-bottom: 12px;
-    }
-
-    .tool-card.featured-tool .tool-desc {
-      font-size: 15px;
-      line-height: 1.7;
-    }
-
-    .tool-card.featured-tool .tool-example {
-      font-size: 13px;
-      padding: 14px 18px;
-    }
-
-    .tool-name {
-      font-family: var(--mono);
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--accent);
-      margin-bottom: 8px;
-    }
-
-    .tool-desc {
-      color: var(--text-muted);
-      font-size: 14px;
-      line-height: 1.6;
-      margin-bottom: 16px;
-    }
-
-    .tool-example {
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--text-dim);
-      background: var(--bg);
-      padding: 10px 14px;
-      border-radius: 8px;
-      overflow-x: auto;
-    }
-
-    .tools-bottom {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-    }
-
-    /* --- Scopes --- */
-    .scopes {
-      background: var(--bg-subtle);
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .scopes h2 {
-      font-size: 36px;
-      font-weight: 700;
-      letter-spacing: -1px;
-      text-align: center;
-      margin-bottom: 12px;
-    }
-
-    .scopes .subtitle {
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 17px;
-      margin-bottom: 60px;
-    }
-
-    .scope-cards {
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
-    }
-
-    .scope-card {
-      background: var(--bg-card);
-      padding: 28px 32px;
-      display: grid;
-      grid-template-columns: 140px 1fr;
-      gap: 16px;
-      align-items: center;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .scope-card:last-child { border-bottom: none; }
-
-    .scope-label {
-      font-family: var(--mono);
-      font-size: 14px;
-      color: var(--accent);
-      font-weight: 500;
-    }
-
-    .scope-card h3 {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-
-    .scope-card p {
-      color: var(--text-muted);
-      font-size: 14px;
-      line-height: 1.5;
-    }
-
-    /* --- Works With --- */
-    .integrations h2 {
-      font-size: 36px;
-      font-weight: 700;
-      letter-spacing: -1px;
-      text-align: center;
-      margin-bottom: 12px;
-    }
-
-    .integrations .subtitle {
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 17px;
-      margin-bottom: 60px;
-    }
-
-    .integration-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-    }
-
-    .integration-item {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 24px;
-      text-align: center;
-      transition: border-color 0.2s;
-    }
-
-    .integration-item:hover { border-color: var(--text-dim); }
-
-    .integration-item .name {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-
-    .integration-item .how {
-      font-size: 12px;
-      color: var(--text-dim);
-      font-family: var(--mono);
-    }
-
-    /* --- Pricing --- */
-    .pricing h2 {
-      font-size: 36px;
-      font-weight: 700;
-      letter-spacing: -1px;
-      text-align: center;
-      margin-bottom: 12px;
-    }
-
-    .pricing .subtitle {
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 17px;
-      margin-bottom: 60px;
-    }
-
-    .pricing-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-    }
-
-    .pricing-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 36px;
-      position: relative;
-    }
-
-    .pricing-card.featured {
-      border-color: var(--accent);
-      box-shadow: 0 0 40px var(--accent-glow);
-    }
-
-    .pricing-card .popular {
-      position: absolute;
-      top: -12px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--accent);
-      color: white;
-      font-size: 12px;
-      font-weight: 600;
-      padding: 4px 16px;
-      border-radius: 100px;
-    }
-
-    .pricing-card .tier {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 8px;
-    }
-
-    .pricing-card .price {
-      font-size: 48px;
-      font-weight: 800;
-      letter-spacing: -2px;
-      margin-bottom: 4px;
-    }
-
-    .pricing-card .price span {
-      font-size: 16px;
-      font-weight: 500;
-      color: var(--text-muted);
-      letter-spacing: 0;
-    }
-
-    .pricing-card .price-desc {
-      font-size: 14px;
-      color: var(--text-dim);
-      margin-bottom: 28px;
-    }
-
-    .pricing-card ul {
-      list-style: none;
-      margin-bottom: 32px;
-    }
-
-    .pricing-card ul li {
-      font-size: 14px;
-      color: var(--text-muted);
-      padding: 8px 0;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .pricing-card ul li::before {
-      content: '✓';
-      color: var(--green);
-      font-weight: 700;
-    }
-
-    .pricing-card .btn {
-      width: 100%;
-      justify-content: center;
-    }
-
-    /* --- CTA --- */
-    .cta {
-      text-align: center;
-      background: var(--bg-subtle);
-      border-top: 1px solid var(--border);
-    }
-
-    .cta h2 {
-      font-size: 40px;
-      font-weight: 800;
-      letter-spacing: -1.5px;
-      margin-bottom: 16px;
-    }
-
-    .cta p {
-      font-size: 18px;
-      color: var(--text-muted);
-      margin-bottom: 40px;
-    }
-
-    .cta .terminal {
-      margin-bottom: 32px;
-    }
-
-    /* --- Footer --- */
-    footer {
-      padding: 40px 0;
-      border-top: 1px solid var(--border);
-    }
-
-    footer .container {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    footer .copy {
-      font-size: 13px;
-      color: var(--text-dim);
-    }
-
-    footer .footer-links {
-      display: flex;
-      gap: 24px;
-    }
-
-    footer .footer-links a {
-      font-size: 13px;
-      color: var(--text-dim);
-      text-decoration: none;
-      transition: color 0.2s;
-      padding: 12px 4px;
-    }
-
-    footer .footer-links a:hover { color: var(--text-muted); }
-
-    /* --- Reduced Motion --- */
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        animation-duration: 0.01ms !important;
-        transition-duration: 0.01ms !important;
-      }
-    }
-
-    /* --- Responsive --- */
-    @media (max-width: 768px) {
-      .problem-grid { grid-template-columns: 1fr; gap: 40px; }
-      .tools-grid { grid-template-columns: 1fr; }
-      .tools-bottom { grid-template-columns: 1fr; }
-      .scope-card { grid-template-columns: 1fr; }
-      .integration-grid { grid-template-columns: repeat(2, 1fr); }
-      .pricing-grid { grid-template-columns: 1fr; }
-      .hero-actions { flex-direction: column; }
-      nav .links { display: none; }
-      .hamburger { display: block; }
-      .problem .stat { flex-direction: column; gap: 16px; }
-      footer .container { flex-direction: column; gap: 16px; }
-      #local .container > div:last-of-type { grid-template-columns: 1fr !important; }
-    }
-  </style>
-  <link rel="mcp-manifest" href="https://central-intelligence-api.fly.dev/.well-known/mcp-manifest.json">
+<!DOCTYPE html><html lang="en"><head>
+
+
+
+
+
+
+
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CI · VT220 v2.0</title>
+<!-- Brand: favicons + theme + manifest -->
+<link rel="icon" type="image/svg+xml" href="/brand/logomark-static.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/brand/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/brand/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/brand/favicon-180.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="theme-color" content="#050d18">
+<!-- SEO -->
+<meta name="description" content="Open-source memory infrastructure for AI agents. Hybrid retrieval (pgvector + BM25 + cross-encoder). 75% LongMemEval, 52% LifeBench.">
+<link rel="canonical" href="https://centralintelligence.online">
+<!-- Open Graph -->
+<meta property="og:title" content="Central Intelligence — Persistent memory for AI agents">
+<meta property="og:description" content="Open-source memory infrastructure for AI agents. Hybrid retrieval (pgvector + BM25 + cross-encoder). 75% LongMemEval, 52% LifeBench.">
+<meta property="og:url" content="https://centralintelligence.online">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://centralintelligence.online/brand/og-home.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Central Intelligence — Persistent memory for AI agents">
+<meta name="twitter:description" content="Open-source memory infrastructure for AI agents. Hybrid retrieval (pgvector + BM25 + cross-encoder). 75% LongMemEval, 52% LifeBench.">
+<meta name="twitter:image" content="https://centralintelligence.online/brand/og-home.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&amp;family=Inter:wght@400;450;500;600;700&amp;family=VT323&amp;display=swap" rel="stylesheet">
+<style>
+/* ============ CI design system ============ */
+:root {
+  --bg: #050d18;
+  --bg-2: #081523;
+  --bg-3: #06192b;
+  --bg-4: #0a2238;
+  --line: #0e3252;
+  --line-2: #144568;
+  --line-3: #1d5a85;
+  --fg: #b8eef0;
+  --fg-dim: #7bbec0;
+  --fg-dimmer: #4a8587;
+  --accent: #b8eef0;
+  --accent-2: #dff6f7;
+  --accent-soft: #0a1424;
+  --amber: #b8eef0;
+  --blue: #b8eef0;
+  --rose: #b8eef0;
+  --danger: #ff8a8a;
+  --radius: 10px;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --crt: 'VT323', 'JetBrains Mono', ui-monospace, monospace;
+  --sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); font-family: var(--mono); font-size: 15px; line-height: 1.65; -webkit-font-smoothing: subpixel-antialiased; }
+body {
+  background:
+    radial-gradient(1400px 800px at 50% 30%, rgba(184,238,240,0.07), transparent 70%),
+    var(--bg);
+  min-height: 100vh;
+  overflow-x: hidden;
+  font-family: var(--mono);
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 200;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0,0,0,0) 0,
+    rgba(0,0,0,0) 3px,
+    rgba(0,0,0,0.13) 3px,
+    rgba(0,0,0,0.13) 4px
+  );
+  mix-blend-mode: multiply;
+}
+body::after {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 201;
+  background: radial-gradient(ellipse at center, transparent 70%, rgba(0,0,0,0.55) 100%);
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 3px; }
+code, pre, .mono { font-family: var(--mono); }
+pre { margin: 0; }
+
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+.wrap-tight { max-width: 960px; margin: 0 auto; padding: 0 28px; }
+
+/* ============ Nav ============ */
+nav.top {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(11,13,12,0.8);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+nav.top .inner { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+.brand { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-weight: 600; letter-spacing: -0.01em; font-size: 14px; }
+.brand .dot { width: 10px; height: 10px; background: var(--accent); border-radius: 2px; box-shadow: 0 0 12px rgba(184,238,240,0.6); }
+.navlinks { display: flex; gap: 22px; font-size: 13px; align-items: center; }
+.navlinks a { color: var(--fg-dim); font-family: var(--mono); }
+.navlinks a:hover { color: var(--fg); text-decoration: none; }
+.navlinks .divider { width: 1px; height: 16px; background: var(--line-2); }
+@media (max-width: 720px) { .navlinks .hide-sm { display: none; } }
+
+/* ============ Generic UI ============ */
+.pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 12px; border: 1px solid var(--line-2); border-radius: 999px;
+  font-family: var(--mono); font-size: 12px; color: var(--fg-dim);
+  background: var(--bg-2);
+}
+.pill .blink { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: blink 1.6s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 16px;
+  font-family: var(--mono); font-size: 13px; font-weight: 500;
+  border-radius: 8px; border: 1px solid var(--line-2);
+  background: var(--bg-2); color: var(--fg);
+  cursor: pointer; transition: all 150ms ease; text-decoration: none;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+.btn.primary { background: var(--accent); color: #020a14; border-color: var(--accent); font-weight: 600; }
+.btn.primary:hover { background: var(--accent-2); color: #020a14; border-color: var(--accent-2); }
+.btn.ghost { background: transparent; }
+.btn.sm { padding: 8px 12px; font-size: 12px; }
+
+.sec-eyebrow {
+  font-family: var(--mono); font-size: 12px; font-weight: 500;
+  color: var(--fg-dim); letter-spacing: 0.08em; text-transform: uppercase;
+  margin: 0 0 10px;
+}
+.sec-eyebrow .num { color: var(--accent); margin-right: 8px; }
+.sec-title {
+  font-size: clamp(28px, 3.6vw, 40px);
+  line-height: 1.08; letter-spacing: -0.022em;
+  font-weight: 600; margin: 0 0 18px; max-width: 760px;
+  text-wrap: balance;
+}
+.sec-lede { color: var(--fg-dim); font-size: 17px; max-width: 640px; text-wrap: pretty; margin: 0 0 36px; }
+
+section { padding: 112px 0; border-bottom: 1px solid var(--line); position: relative; }
+
+/* ============ Hero ============ */
+.hero { padding: 84px 0 72px; border-bottom: 1px solid var(--line); position: relative; overflow: hidden; }
+.hero::before {
+  content: ''; position: absolute; inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(184,238,240,0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(184,238,240,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 30%, transparent 75%);
+  pointer-events: none;
+}
+.hero .inner { position: relative; z-index: 1; }
+h1.hero-title {
+  font-size: clamp(48px, 8vw, 96px);
+  line-height: 0.98; letter-spacing: -0.035em;
+  margin: 22px 0 20px; font-weight: 600;
+}
+h1.hero-title .hl { color: var(--accent); }
+h1.hero-title .strike { color: var(--fg-dimmer); text-decoration: line-through; text-decoration-color: var(--line-3); text-decoration-thickness: 2px; }
+.hero-lede { font-size: 20px; color: var(--fg-dim); max-width: 600px; text-wrap: pretty; margin: 0 0 32px; }
+.hero-lede strong { color: var(--fg); font-weight: 500; }
+.cta-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.hero-meta { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 40px; font-family: var(--mono); font-size: 12px; color: var(--fg-dimmer); }
+.hero-meta span { display: inline-flex; align-items: center; gap: 6px; }
+.hero-meta span::before { content: '→'; color: var(--accent); }
+
+/* ============ Terminal card (hero) ============ */
+.term {
+  border: 1px solid var(--line-2);
+  border-radius: 12px; overflow: hidden;
+  background: var(--bg-2);
+  box-shadow: 0 0 0 1px rgba(184,238,240,0.04), 0 30px 80px -30px rgba(0,0,0,0.6);
+}
+.term .head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; border-bottom: 1px solid var(--line);
+  background: var(--bg-3); font-family: var(--mono); font-size: 12px; color: var(--fg-dim);
+}
+.term .head .left { display: flex; align-items: center; gap: 10px; }
+.term .head .dots { display: flex; gap: 6px; }
+.term .head .dots span { width: 10px; height: 10px; border-radius: 50%; background: #2a3a33; }
+.term .head .tag { color: var(--accent); border: 1px solid var(--accent-soft); background: rgba(184,238,240,0.08); padding: 2px 7px; border-radius: 4px; font-size: 11px; }
+.term pre { padding: 20px 22px; font-size: 13px; line-height: 1.7; overflow-x: auto; }
+.term .prompt { color: var(--fg-dimmer); user-select: none; }
+.term .cmd { color: var(--fg); }
+.term .ok { color: var(--accent); }
+.term .dim { color: var(--fg-dim); }
+.term .warn { color: var(--amber); }
+.term .c-c { color: var(--fg-dimmer); font-style: italic; }
+.term .c-k { color: var(--blue); }
+.term .c-s { color: #d8c27a; }
+.term .c-h { color: var(--accent); font-weight: 600; }
+.term .c-n { color: var(--amber); }
+.term .c-p { color: var(--fg-dim); }
+
+/* ============ Problem: without/with ============ */
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+@media (max-width: 820px) { .compare { grid-template-columns: 1fr; } }
+.compare .col { padding: 26px; background: var(--bg-2); }
+.compare .col + .col { border-left: 1px solid var(--line); }
+@media (max-width: 820px) { .compare .col + .col { border-left: none; border-top: 1px solid var(--line); } }
+.compare .col h4 { margin: 0 0 16px; font-size: 13px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.08em; }
+.compare .col.bad h4 { color: var(--rose); }
+.compare .col.good h4 { color: var(--accent); }
+.compare .col .q { padding: 12px 14px; border: 1px dashed var(--line-2); border-radius: 8px; margin-bottom: 10px; font-size: 14px; color: var(--fg-dim); font-family: var(--mono); }
+.compare .col.bad .q { opacity: 0.85; }
+.compare .col.good .q { border-style: solid; border-color: var(--accent-soft); background: rgba(184,238,240,0.04); color: var(--fg); font-family: var(--sans); }
+.compare .tail { color: var(--fg-dimmer); font-family: var(--mono); font-size: 12px; margin-top: 14px; }
+
+.stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 36px; }
+@media (max-width: 620px) { .stats { grid-template-columns: 1fr; } }
+.stat { padding: 22px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-2); }
+.stat .big { font-size: clamp(40px, 6vw, 64px); font-family: var(--mono); font-weight: 600; letter-spacing: -0.02em; color: var(--fg); line-height: 1; }
+.stat .big .accent { color: var(--accent); }
+.stat .label { margin-top: 12px; color: var(--fg-dim); font-size: 14px; }
+
+/* ============ Tools grid ============ */
+.tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media (max-width: 960px) { .tools { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 620px) { .tools { grid-template-columns: 1fr; } }
+.tool {
+  border: 1px solid var(--line); border-radius: 12px; background: var(--bg-2);
+  padding: 24px; display: flex; flex-direction: column; gap: 14px;
+  transition: all 200ms ease;
+  position: relative; overflow: hidden;
+}
+.tool:hover { border-color: var(--line-3); transform: translateY(-2px); }
+.tool .name {
+  font-family: var(--mono); font-size: 18px; font-weight: 600;
+  color: var(--accent); letter-spacing: -0.01em;
+}
+.tool .desc { color: var(--fg-dim); font-size: 14px; margin: 0; flex-grow: 1; }
+.tool .ex { font-family: var(--mono); font-size: 12px; color: var(--fg-dimmer); padding: 10px 12px; border-left: 2px solid var(--accent); background: var(--bg-3); border-radius: 0 6px 6px 0; line-height: 1.6; }
+.tool.rest { background: linear-gradient(135deg, var(--bg-2), var(--bg-3)); border-style: dashed; }
+.tool.rest .name { color: var(--blue); }
+
+/* ============ Scopes ============ */
+.scopes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media (max-width: 820px) { .scopes { grid-template-columns: 1fr; } }
+.scope {
+  border: 1px solid var(--line); border-radius: 12px; background: var(--bg-2);
+  padding: 24px; position: relative;
+}
+.scope .tag { font-family: var(--mono); font-size: 12px; color: var(--accent); margin-bottom: 16px; display: inline-block; padding: 4px 10px; background: rgba(184,238,240,0.07); border: 1px solid var(--accent-soft); border-radius: 4px; }
+.scope h4 { margin: 0 0 8px; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+.scope p { color: var(--fg-dim); margin: 0; font-size: 14px; }
+.scope .ring { position: absolute; right: 24px; top: 24px; display: flex; gap: 2px; }
+.scope .ring span { width: 6px; height: 6px; border-radius: 50%; background: var(--line-3); }
+.scope .ring span.on { background: var(--accent); }
+
+/* ============ Integrations grid ============ */
+.integrations { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+@media (max-width: 960px) { .integrations { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 720px) { .integrations { grid-template-columns: repeat(2, 1fr); } }
+.integ {
+  border: 1px solid var(--line); border-radius: 10px; background: var(--bg-2);
+  padding: 20px; cursor: pointer; transition: all 180ms ease;
+  display: flex; flex-direction: column; gap: 6px; min-height: 120px;
+  text-align: left;
+  font-family: inherit; color: inherit;
+}
+.integ:hover, .integ.active { border-color: var(--accent); background: var(--bg-3); }
+.integ .ic { width: 28px; height: 28px; border-radius: 6px; background: var(--bg-4); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--accent); margin-bottom: 6px; border: 1px solid var(--line-2); }
+.integ .n { font-size: 14px; font-weight: 500; color: var(--fg); }
+.integ .s { font-size: 11px; font-family: var(--mono); color: var(--fg-dimmer); text-transform: uppercase; letter-spacing: 0.06em; }
+.integ.active .s { color: var(--accent); }
+
+.integ-panel {
+  margin-top: 20px; border: 1px solid var(--line-2); border-radius: 12px; overflow: hidden;
+  background: var(--bg-2);
+}
+.integ-panel .head { padding: 14px 18px; border-bottom: 1px solid var(--line); background: var(--bg-3); font-family: var(--mono); font-size: 12px; color: var(--fg-dim); display: flex; justify-content: space-between; align-items: center; }
+.integ-panel .head .nm { color: var(--accent); font-weight: 600; }
+.integ-panel .body { padding: 22px; }
+.integ-panel .body p { margin: 0 0 12px; color: var(--fg-dim); font-size: 14px; }
+.integ-panel pre { padding: 14px 16px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; font-size: 12.5px; line-height: 1.65; overflow-x: auto; color: var(--fg); }
+
+/* ============ Local vs Cloud ============ */
+.twomode { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 820px) { .twomode { grid-template-columns: 1fr; } }
+.mode { border: 1px solid var(--line); border-radius: 12px; background: var(--bg-2); padding: 26px; display: flex; flex-direction: column; gap: 14px; }
+.mode .icon { font-family: var(--mono); font-size: 20px; color: var(--accent); }
+.mode h4 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+.mode p { margin: 0; color: var(--fg-dim); font-size: 14px; }
+.mode .cmd { font-family: var(--mono); font-size: 12.5px; padding: 12px 14px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; color: var(--fg); }
+.mode .foot { font-family: var(--mono); font-size: 12px; color: var(--fg-dimmer); margin-top: auto; }
+
+/* ============ Pricing ============ */
+.pricing { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media (max-width: 900px) { .pricing { grid-template-columns: 1fr; } }
+.plan { border: 1px solid var(--line); border-radius: 12px; background: var(--bg-2); padding: 28px; display: flex; flex-direction: column; gap: 14px; position: relative; }
+.plan.featured { border-color: var(--accent); background: linear-gradient(180deg, rgba(184,238,240,0.05), var(--bg-2) 40%); }
+.plan .badge { position: absolute; top: -11px; left: 28px; background: var(--accent); color: #020a14; font-family: var(--mono); font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
+.plan .name { font-family: var(--mono); font-size: 14px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; }
+.plan .price { font-size: 56px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+.plan .price small { font-size: 15px; color: var(--fg-dim); font-weight: 400; margin-left: 6px; }
+.plan .for { color: var(--fg-dim); font-size: 15px; margin: 0; }
+.plan ul { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 8px; }
+.plan ul li { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: var(--fg); }
+.plan ul li::before { content: '✓'; color: var(--accent); font-family: var(--mono); font-size: 12px; line-height: 1.6; }
+.plan .btn { margin-top: auto; justify-content: center; }
+
+/* ============ Benchmarks ============ */
+.bench-wrap { display: grid; gap: 40px; }
+.bench { border: 1px solid var(--line); border-radius: 12px; background: var(--bg-2); overflow: hidden; }
+.bench .top { padding: 28px; border-bottom: 1px solid var(--line); }
+.bench .eyebrow { font-family: var(--mono); font-size: 12px; color: var(--accent); margin-bottom: 6px; }
+.bench h3 { margin: 0 0 10px; font-size: 28px; font-weight: 600; letter-spacing: -0.02em; }
+.bench p { color: var(--fg-dim); font-size: 15px; margin: 0; max-width: 680px; }
+.bench-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 13px; }
+.bench-table th, .bench-table td { padding: 14px 20px; text-align: left; border-bottom: 1px solid var(--line); }
+.bench-table th { color: var(--fg-dim); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; background: var(--bg-3); }
+.bench-table td { color: var(--fg); }
+.bench-table td.score { color: var(--accent); font-weight: 600; }
+.bench-table tr:last-child td { border-bottom: none; }
+.bench .extras { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border-top: 1px solid var(--line); }
+@media (max-width: 820px) { .bench .extras { grid-template-columns: 1fr; } }
+.bench .extras .cell { padding: 20px 24px; border-right: 1px solid var(--line); }
+.bench .extras .cell:last-child { border-right: none; }
+@media (max-width: 820px) { .bench .extras .cell { border-right: none; border-bottom: 1px solid var(--line); } }
+.bench .extras h5 { margin: 0 0 6px; font-size: 14px; font-weight: 600; }
+.bench .extras p { font-size: 13px; color: var(--fg-dim); }
+.bench .footnote { padding: 16px 28px; font-family: var(--mono); font-size: 12px; color: var(--fg-dimmer); border-top: 1px solid var(--line); }
+
+/* ============ Dashboard preview ============ */
+.dash-card {
+  border: 1px solid var(--line-2); border-radius: 14px; overflow: hidden;
+  background: var(--bg-2);
+  box-shadow: 0 30px 80px -30px rgba(0,0,0,0.6);
+}
+.dash-head { padding: 12px 18px; background: var(--bg-3); border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; font-family: var(--mono); font-size: 12px; color: var(--fg-dim); }
+.dash-head .url { color: var(--accent); }
+.dash-body { padding: 22px; display: grid; grid-template-columns: 220px 1fr; gap: 22px; }
+@media (max-width: 820px) { .dash-body { grid-template-columns: 1fr; } }
+.dash-side { display: grid; gap: 8px; }
+.dash-metric { padding: 14px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.dash-metric .k { font-family: var(--mono); font-size: 11px; color: var(--fg-dimmer); text-transform: uppercase; letter-spacing: 0.06em; }
+.dash-metric .v { font-family: var(--mono); font-size: 20px; font-weight: 600; margin-top: 4px; color: var(--fg); }
+.dash-metric .v.ok { color: var(--accent); }
+.dash-metric .v.warn { color: var(--amber); }
+.dash-metric .v.dim { color: var(--fg-dim); }
+
+.dash-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.dash-table th { text-align: left; padding: 10px 12px; font-family: var(--mono); font-size: 11px; color: var(--fg-dimmer); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--line); font-weight: 500; }
+.dash-table td { padding: 12px; border-bottom: 1px solid var(--line); color: var(--fg); vertical-align: top; }
+.dash-table td .proj { font-family: var(--mono); font-size: 12px; color: var(--blue); }
+.dash-table td .src { font-family: var(--mono); font-size: 11px; color: var(--fg-dimmer); }
+.dash-table td .content { color: var(--fg-dim); font-size: 13px; }
+.dash-table td .chip { display: inline-block; font-family: var(--mono); font-size: 10px; padding: 2px 6px; border-radius: 3px; margin-left: 4px; }
+.dash-table td .chip.fresh { color: var(--accent); background: rgba(184,238,240,0.1); }
+.dash-table td .chip.aging { color: var(--amber); background: rgba(255,184,107,0.1); }
+.dash-table td .chip.dup { color: var(--rose); background: rgba(255,138,168,0.1); }
+
+/* ============ Final CTA ============ */
+.mega-cta {
+  border: 1px solid var(--line-2); border-radius: 16px;
+  padding: 60px 40px;
+  background:
+    radial-gradient(600px 300px at 50% 100%, rgba(184,238,240,0.1), transparent 70%),
+    var(--bg-2);
+  text-align: center;
+}
+.mega-cta h3 { font-size: clamp(32px, 4.5vw, 52px); margin: 0 0 12px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.05; }
+.mega-cta p { color: var(--fg-dim); font-size: 17px; max-width: 520px; margin: 0 auto 30px; }
+.mega-cta .cta-row { justify-content: center; }
+
+/* ============ Privacy / Terms ============ */
+.legal { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+@media (max-width: 820px) { .legal { grid-template-columns: 1fr; } }
+.legal-col { border: 1px solid var(--line); border-radius: 12px; background: var(--bg-2); padding: 28px; }
+.legal-col h3 { margin: 0 0 6px; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+.legal-col .updated { font-family: var(--mono); font-size: 11px; color: var(--fg-dimmer); margin-bottom: 16px; }
+.legal-col h4 { margin: 18px 0 6px; font-size: 14px; font-weight: 600; color: var(--fg); }
+.legal-col p { margin: 0; color: var(--fg-dim); font-size: 13.5px; line-height: 1.6; }
+
+/* ============ Agent banner ============ */
+.agent-banner {
+  border: 1px solid var(--accent-soft);
+  background: linear-gradient(90deg, rgba(184,238,240,0.08), rgba(184,238,240,0.02));
+  border-radius: 12px;
+  padding: 22px 26px;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px;
+}
+.agent-banner .left { display: flex; align-items: center; gap: 16px; }
+.agent-banner .glyph {
+  width: 42px; height: 42px; border-radius: 8px;
+  background: var(--bg); border: 1px solid var(--accent-soft);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); color: var(--accent); font-weight: 600;
+}
+.agent-banner .txt { font-size: 15px; color: var(--fg); }
+.agent-banner .txt strong { color: var(--accent); font-weight: 600; font-family: var(--mono); font-size: 14px; }
+.agent-banner .txt .sub { color: var(--fg-dim); font-size: 13px; margin-top: 2px; }
+
+/* ============ Footer ============ */
+footer { padding: 48px 0 72px; color: var(--fg-dimmer); font-family: var(--mono); font-size: 12px; border-top: 1px solid var(--line); }
+footer .row { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 14px; align-items: center; }
+footer a { color: var(--fg-dim); }
+footer .links { display: flex; gap: 18px; }
+
+/* ============ Tweaks ============ */
+.tweaks-panel {
+  position: fixed; right: 20px; bottom: 20px; z-index: 100;
+  width: 280px; background: var(--bg-2); border: 1px solid var(--line-2);
+  border-radius: 10px; box-shadow: 0 20px 50px -20px rgba(0,0,0,0.7);
+  font-family: var(--mono); font-size: 12px;
+  overflow: hidden; display: none;
+}
+.tweaks-panel.on { display: block; }
+.tweaks-panel .th { padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--bg-3); display: flex; justify-content: space-between; align-items: center; }
+.tweaks-panel .th .t { color: var(--fg); font-weight: 600; }
+.tweaks-panel .th .x { cursor: pointer; color: var(--fg-dim); }
+.tweaks-panel .body { padding: 12px 14px; }
+.tweaks-panel label { display: block; color: var(--fg-dim); margin-bottom: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+.tweaks-panel .radio { display: grid; gap: 6px; margin-bottom: 4px; }
+.tweaks-panel .radio button {
+  text-align: left; padding: 8px 10px; border-radius: 6px;
+  background: var(--bg); border: 1px solid var(--line); color: var(--fg-dim);
+  font-family: var(--mono); font-size: 12px; cursor: pointer;
+}
+.tweaks-panel .radio button.active { color: var(--accent); border-color: var(--accent); background: rgba(184,238,240,0.06); }
+.tweaks-panel .note { margin-top: 10px; color: var(--fg-dimmer); font-size: 11px; }
+
+.hr-note { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12px; color: var(--fg-dimmer); }
+.hr-note::before { content: ''; width: 18px; height: 1px; background: var(--line-2); }
+
+
+/* ========== VT220 overrides ========== */
+* { font-family: var(--mono) !important; }
+.strike { text-decoration: line-through; text-decoration-color: var(--accent); opacity: 0.55; }
+
+/* everything readable needs to be cyan or reverse-cyan */
+h1, h2, h3, h4, h5, p, li, td, th { color: var(--fg); }
+.btn span, .btn.primary span { color: inherit !important; }
+.btn span[style*="color"] { color: inherit !important; }
+
+/* Reverse-video blocks: button/pill/tag/chip — filled cyan bg with near-black text */
+.pill, .btn, .integ .s, .scope .tag, .dash-table td .chip, .plan .badge, .bench .eyebrow, .tool .name, .dash-metric .k, .term .head .tag {
+  background: var(--accent) !important;
+  color: #020a14 !important;
+  text-shadow: none !important;
+  border-color: var(--accent) !important;
+  border-radius: 2px !important;
+}
+.integ .s, .scope .tag, .dash-table td .chip, .plan .badge, .bench .eyebrow, .dash-metric .k, .term .head .tag {
+  display: inline-block;
+  padding: 2px 7px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.btn { border-radius: 2px !important; padding: 9px 16px; font-weight: 600; border-width: 2px !important; }
+.btn:hover { background: #020a14 !important; color: var(--accent) !important; text-shadow: 0 0 6px rgba(184,238,240,0.7) !important; }
+.btn.primary { background: var(--accent) !important; color: #020a14 !important; }
+.btn.primary:hover { background: #020a14 !important; color: var(--accent) !important; }
+.btn.ghost { background: transparent !important; color: var(--accent) !important; text-shadow: 0 0 6px rgba(184,238,240,0.5) !important; }
+.btn.ghost:hover { background: var(--accent) !important; color: #020a14 !important; text-shadow: none !important; }
+
+.pill { padding: 3px 10px; border-radius: 2px !important; font-weight: 600; }
+.pill .blink { background: #020a14 !important; }
+
+/* tool name — swap to underlined heading */
+.tool .name { background: transparent !important; color: var(--accent) !important; text-shadow: 0 0 8px rgba(184,238,240,0.6) !important; text-decoration: underline; text-underline-offset: 4px; padding: 0 !important; font-size: 18px; }
+
+/* bench eyebrow: reverse-video */
+.bench .eyebrow { font-size: 11px; }
+
+/* dash metric key: reverse-video */
+.dash-metric .k { font-size: 10px; }
+.dash-metric .v { text-shadow: 0 0 8px rgba(184,238,240,0.5); }
+
+/* scope tag on top corner */
+.scope .tag { font-size: 11px; }
+
+/* benchmark score cells stay bold cyan */
+.bench-table td.score { color: var(--accent) !important; background: transparent !important; font-weight: 700; text-shadow: 0 0 8px rgba(184,238,240,0.6); }
+
+/* borders are thin cyan lines */
+.term, .tool, .scope, .compare, .mode, .plan, .bench, .dash-card, .legal-col, .integ, .integ-panel, .stat, .agent-banner, .mega-cta, .dash-metric {
+  border: 1px solid var(--line-2) !important;
+  border-radius: 2px !important;
+  background: rgba(6,25,43,0.4) !important;
+  box-shadow: none !important;
+}
+.plan.featured { border-color: var(--accent) !important; background: rgba(184,238,240,0.04) !important; }
+.plan.featured .btn.primary { background: var(--accent) !important; color: #020a14 !important; }
+
+/* underlined "links" — classic VT style */
+a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+a:hover { background: var(--accent); color: #020a14; text-shadow: none; text-decoration: none; }
+
+/* inputs/command prompts */
+.term pre, pre { background: transparent !important; border: none !important; color: var(--fg) !important; }
+.term .head { background: rgba(10,34,56,0.6) !important; border-bottom: 1px solid var(--line-2) !important; }
+.term .head .dots span { background: var(--accent); opacity: 0.35; border-radius: 0; }
+
+/* nav */
+nav.top { background: rgba(0,0,0,0.9) !important; border-bottom: 1px solid var(--accent) !important; }
+.brand .dot { background: var(--accent) !important; border-radius: 0 !important; box-shadow: 0 0 12px rgba(184,238,240,0.9) !important; }
+.brand { text-transform: uppercase; letter-spacing: 0.08em; }
+
+/* headings: stronger, underlined accent */
+h1.hero-title { font-family: var(--mono) !important; font-weight: 700; letter-spacing: -0.01em; font-size: clamp(42px, 7vw, 80px) !important; text-shadow: 0 0 20px rgba(184,238,240,0.5); }
+h1.hero-title .hl { color: var(--accent); text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 8px; }
+.sec-title { font-family: var(--mono) !important; font-weight: 700; letter-spacing: -0.01em; text-shadow: 0 0 12px rgba(184,238,240,0.35); }
+.sec-eyebrow { color: var(--fg-dim); text-shadow: none; }
+.sec-eyebrow .num { color: var(--accent); }
+
+/* hero lede + section ledes: dim phosphor (shadow stripped for readability; color retains the dim feel) */
+.hero-lede, .sec-lede, .tool .desc, .scope p, .mode p, .plan .for, .bench p, .legal-col p, .dash-metric .v.dim, .compare .col .q, .tail {
+  color: var(--fg-dim) !important;
+}
+.hero-lede strong, .plan ul li { color: var(--fg) !important; }
+
+/* compare: without CI goes dim, with CI goes reverse */
+.compare .col.bad h4 { color: var(--fg-dim) !important; }
+.compare .col.good h4 { color: var(--accent) !important; }
+.compare .col.good .q { background: rgba(184,238,240,0.08) !important; border-color: var(--accent) !important; color: var(--fg) !important; }
+
+/* stats */
+.stat .big { color: var(--accent); text-shadow: 0 0 18px rgba(184,238,240,0.6); font-family: var(--mono); font-weight: 700; }
+.stat .big .accent { color: var(--accent); }
+.stat .label { color: var(--fg-dim); text-shadow: none; }
+
+/* dashboard */
+.dash-head { background: rgba(10,34,56,0.6) !important; border-bottom: 1px solid var(--line-2) !important; }
+.dash-table { font-family: var(--mono); }
+.dash-table td .proj, .dash-table td .src, .dash-table td .content { color: var(--fg-dim); text-shadow: none; }
+.dash-table td .proj { color: var(--accent); }
+.dash-metric.v.ok, .dash-metric .v.ok { color: var(--accent) !important; }
+
+/* mega cta */
+.mega-cta { background: rgba(6,25,43,0.5) !important; }
+.mega-cta h3 { color: var(--accent); text-shadow: 0 0 20px rgba(184,238,240,0.5); }
+
+/* agent banner */
+.agent-banner { background: rgba(184,238,240,0.05) !important; border-color: var(--accent) !important; }
+.agent-banner .glyph { background: var(--accent) !important; color: #020a14 !important; border: none !important; border-radius: 0 !important; }
+.agent-banner .txt strong { color: var(--accent) !important; }
+
+/* hero grid lines */
+.hero::before { background-image: linear-gradient(to right, rgba(184,238,240,0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(184,238,240,0.08) 1px, transparent 1px) !important; }
+
+/* VT220 directory label top-right of hero */
+.vt-label {
+  position: absolute; top: 28px; right: 28px;
+  font-family: var(--mono); font-size: 13px;
+  color: var(--accent); text-decoration: underline;
+  text-underline-offset: 4px; text-decoration-thickness: 2px;
+  letter-spacing: 0.05em;
+}
+
+/* tweak radio active */
+.tweaks-panel { background: rgba(0,0,0,0.95) !important; border-color: var(--accent) !important; border-radius: 0 !important; }
+.tweaks-panel .radio button.active { background: var(--accent); color: #020a14; border-color: var(--accent); text-shadow: none; }
+.tweaks-panel .th { background: var(--accent); color: #020a14; border-radius: 0; }
+.tweaks-panel .th .t, .tweaks-panel .th .x { color: #020a14 !important; text-shadow: none; }
+
+/* footer */
+footer { border-top: 1px solid var(--accent) !important; }
+
+/* integration panel */
+.integ-panel .head { background: rgba(10,34,56,0.6) !important; border-bottom: 1px solid var(--line-2) !important; }
+.integ-panel .head .nm { color: var(--accent) !important; background: transparent !important; }
+.integ.active { background: rgba(184,238,240,0.08) !important; border-color: var(--accent) !important; }
+.integ .ic { background: var(--accent) !important; color: #020a14 !important; border-radius: 0 !important; text-shadow: none; }
+
+/* hero meta arrows */
+.hero-meta span::before { color: var(--accent); }
+
+/* mode icon cyan */
+.mode .icon, .mode h4, .plan .price, .plan .name, .mode .foot { color: var(--accent) !important; }
+.mode .foot { color: var(--fg-dim) !important; }
+.mode .cmd { background: rgba(0,0,0,0.5) !important; border-color: var(--line-2) !important; color: var(--fg) !important; }
+
+/* plan */
+.plan .price small { color: var(--fg-dim) !important; }
+.plan ul li::before { color: var(--accent); }
+
+/* pill blink */
+.pill .blink { animation: blink 1.2s steps(2) infinite; }
+
+/* bench table zebra */
+.bench-table th { background: rgba(10,34,56,0.6) !important; color: var(--fg-dim) !important; }
+.bench-table td { border-color: var(--line) !important; }
+
+/* ============ Subtle moving CRT refresh line ============ */
+.crt-sweep {
+  position: fixed; inset: 0; pointer-events: none; z-index: 202;
+  overflow: hidden;
+}
+.crt-sweep::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 180px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(184,238,240,0.05) 30%,
+    rgba(184,238,240,0.13) 50%,
+    rgba(184,238,240,0.05) 70%,
+    transparent 100%
+  );
+  animation: crt-sweep 8.7s linear infinite;
+  will-change: transform;
+}
+@keyframes crt-sweep {
+  0%   { transform: translateY(-220px); }
+  100% { transform: translateY(calc(100vh + 40px)); }
+}
+body.classic .crt-sweep { display: none !important; }
+@media (prefers-reduced-motion: reduce) { .crt-sweep { display: none; } }
+
+/* ============ Phosphor pulse (occasional glow flare) ============ */
+.phosphor-pulse {
+  animation: phosphor-pulse 8.3s ease-in-out infinite;
+  animation-delay: 2.4s;
+}
+@keyframes phosphor-pulse {
+  0%, 62%, 100% {
+    color: var(--fg);
+    text-shadow: 0 0 6px rgba(184,238,240,0.35);
+  }
+  72% {
+    color: var(--accent-2);
+    text-shadow: 0 0 14px rgba(184,238,240,0.85), 0 0 28px rgba(184,238,240,0.4);
+  }
+  76% {
+    color: var(--fg);
+    text-shadow: 0 0 8px rgba(184,238,240,0.45);
+  }
+  82% {
+    color: var(--accent-2);
+    text-shadow: 0 0 18px rgba(184,238,240,0.9), 0 0 36px rgba(184,238,240,0.45);
+  }
+  88% {
+    color: var(--fg);
+    text-shadow: 0 0 6px rgba(184,238,240,0.35);
+  }
+}
+body.classic .phosphor-pulse { animation: none !important; color: inherit !important; }
+@media (prefers-reduced-motion: reduce) { .phosphor-pulse { animation: none; } }
+
+/* ============ View toggle (inline in hero, replaces CI v2.0 label) ============ */
+.vt-toggle {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-shadow: 0 0 6px rgba(184,238,240,0.35);
+}
+.vt-toggle:hover { opacity: 0.72; }
+.vt-toggle .vt-dot {
+  width: 11px; height: 11px;
+  background: var(--accent);
+  box-shadow: 0 0 10px rgba(184,238,240,0.6);
+  flex-shrink: 0;
+}
+body.classic .vt-toggle .vt-dot {
+  background: transparent;
+  border: 1px solid var(--accent);
+  box-shadow: none;
+}
+
+/* ============ body.classic — neutralize CRT effects (universal) ============ */
+body.classic::before { display: none !important; }  /* scanlines off */
+body.classic::after { display: none !important; }   /* vignette off */
+body.classic * { text-shadow: none !important; }    /* phosphor glow off */
+body.classic .brand .dot,
+body.classic .pill .blink { box-shadow: none !important; }
+
+/* input terminal commands */
+/* terminal .cmd: shadow stripped for crisper small mono (pass 2) */
+.cmd { }
+.ok { color: var(--accent) !important; }
+.c-h { color: var(--accent) !important; }
+.c-k { color: var(--accent) !important; text-decoration: underline; text-underline-offset: 3px; }
+.c-c, .dim { color: var(--fg-dim) !important; }
+.c-s, .c-n, .warn { color: var(--fg) !important; }
+.prompt { color: var(--accent) !important; }
+
+/* legal small caps */
+.legal-col h3, .legal-col h4 { color: var(--accent) !important; }
+
+/* ring dots square, cyan */
+.scope .ring span { border-radius: 0; background: var(--line-2); }
+.scope .ring span.on { background: var(--accent); }
+
+/* ========== end VT220 overrides ========== */
+
+
+
+/* ====== VT323 display pairing ====== */
+h1.hero-title, .sec-title, .sec-eyebrow, .vt-label, .hero-sys,
+.term, .term pre, .term .head, .term .head .tag, .term .prompt, .term .c-h, .term .c-k, .term .c-c, .term .dim, .term .ok, .term .warn,
+.mode .cmd, .mode .icon,
+.pill, .btn, .brand, .navlinks a,
+.dash-metric .k, .bench .eyebrow, .scope .tag, .plan .badge, .dash-metric .v,
+.stat .big, .stat .label,
+.tool .name, .plan .price, .mode h4, .plan .name,
+kbd, .kbd, .cardhead .tag, .copy-btn {
+  font-family: var(--crt) !important;
+  letter-spacing: 0.02em;
+}
+
+/* VT323 renders small — bump sizes on the elements we switched */
+h1.hero-title { font-size: clamp(56px, 9vw, 104px) !important; letter-spacing: 0 !important; }
+.sec-title { font-size: clamp(34px, 4.5vw, 52px) !important; letter-spacing: 0 !important; }
+.sec-eyebrow { font-size: 15px !important; }
+.stat .big { font-size: clamp(52px, 7vw, 84px) !important; }
+.term pre { font-size: 18px !important; line-height: 1.25 !important; }
+.term .head { font-size: 14px !important; }
+.mode .cmd { font-size: 17px !important; }
+.pill { font-size: 14px !important; padding: 5px 12px !important; }
+.btn { font-size: 15px !important; padding: 10px 18px !important; }
+.vt-label { font-size: 16px !important; }
+.hero-sys { font-size: 14px !important; }
+.dash-metric .k, .bench .eyebrow, .scope .tag, .plan .badge { font-size: 13px !important; padding: 1px 7px !important; }
+.dash-metric .v { font-size: 20px !important; }
+.brand { font-size: 17px !important; }
+.navlinks a { font-size: 15px !important; }
+.tool .name { font-size: 22px !important; }
+.plan .price { font-size: clamp(48px, 6vw, 72px) !important; text-shadow: 0 0 18px rgba(184,238,240,0.5); }
+.plan .name { font-size: 16px !important; text-shadow: 0 0 6px rgba(184,238,240,0.4); }
+.plan .name, .mode h4 { font-size: 22px !important; }
+.cardhead .tag, .copy-btn { font-size: 13px !important; }
+
+/* Body copy and prose stays on JetBrains Mono for legibility */
+p, li, td, th, .hero-lede, .sec-lede, .tool .desc, .mode p, .plan .for, .bench p, .legal-col p, .scope p, .tail, .compare .col .q, .mode .foot, .plan ul li {
+  font-family: var(--mono) !important;
+}
+
+</style>
 </head>
-<body>
+<body data-screen-label="01 Home" data-cc-id="cc-1" style="font-family: ui-monospace; cursor: crosshair;">
 
-<!-- Nav -->
-<nav>
-  <div class="container">
-    <a href="#" class="logo">Central<span>Intelligence</span></a>
-    <div class="links">
-      <a href="#features">Features</a>
-      <a href="#pricing">Pricing</a>
-      <a href="#lifebench">Benchmark</a>
-      <a href="#dashboard" style="color: var(--accent);">Dashboard</a>
-      <a href="/docs">Docs</a>
-      <a href="/agent" class="btn btn-primary"><span>⎘</span> Let my agent set it up →</a>
+<div class="crt-sweep" aria-hidden="true"></div>
+
+<nav class="top">
+  <div class="wrap inner">
+    <div class="brand">
+      <span class="dot"></span>
+      <span>CentralIntelligence</span>
     </div>
-    <button class="hamburger" onclick="document.getElementById('mobileMenu').classList.toggle('open'); this.setAttribute('aria-expanded', this.getAttribute('aria-expanded') === 'true' ? 'false' : 'true')" aria-label="Menu" aria-expanded="false">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fafafa" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-    </button>
+    <div class="navlinks">
+      <a href="#features" class="hide-sm">Tools</a>
+      <a href="#integrations" class="hide-sm">Integrations</a>
+      <a href="#pricing" class="hide-sm">Pricing</a>
+      <a href="#benchmarks" class="hide-sm">Benchmarks</a>
+      <a href="/agent" class="hide-sm">/agent</a>
+      <a href="/docs" class="hide-sm">/docs</a>
+      <span class="divider hide-sm"></span>
+      <a href="#cta" class="btn sm">Get API key</a>
+    </div>
   </div>
 </nav>
-<div id="mobileMenu" class="mobile-menu">
-  <a href="#features" onclick="document.getElementById('mobileMenu').classList.remove('open')">Features</a>
-  <a href="#pricing" onclick="document.getElementById('mobileMenu').classList.remove('open')">Pricing</a>
-  <a href="#lifebench" onclick="document.getElementById('mobileMenu').classList.remove('open')">Benchmark</a>
-  <a href="#dashboard" onclick="document.getElementById('mobileMenu').classList.remove('open')">Dashboard</a>
-  <a href="/docs">Docs</a>
-  <a href="/agent">⎘ Let my agent set it up →</a>
-  <a href="#cta" onclick="document.getElementById('mobileMenu').classList.remove('open')">Get Started</a>
-</div>
 
-<!-- Hero -->
-<section class="hero">
-  <div class="container">
-    <div class="hero-badge">Open for early access</div>
-    <h1>Agents forget.<br><span class="highlight">CI remembers.</span></h1>
-    <p class="hero-sub">
-      Persistent memory for AI agents. Store, recall, and share knowledge
-      across sessions. Set up in 30 seconds.
-    </p>
-    <div class="hero-actions">
-      <a href="/agent" class="btn btn-primary"><span>⎘</span> Let my agent set it up →</a>
-      <a href="#integrations" class="btn btn-secondary">Get Your API Key</a>
-      <a href="#local" class="btn btn-secondary" style="border-color: #10b981; color: #10b981;">Run Locally</a>
-      <a href="https://github.com/AlekseiMarchenko/central-intelligence" class="btn btn-secondary">View on GitHub</a>
+<!-- =================== HERO =================== -->
+<header class="hero">
+  <div class="wrap inner" style="font-family: ui-monospace;">
+    <button class="vt-label vt-toggle" id="viewToggle" aria-label="Toggle CRT effects" title="Toggle CRT effects">
+      <span class="vt-dot"></span>
+      <span>CRT</span>
+    </button>
+    <span class="pill"><span class="blink"></span> Open for early access</span>
+    <h1 class="hero-title" data-tone="title"><span class="strike">Agents forget.</span><br>CI <span class="hl">remembers.</span></h1>
+    <p class="hero-lede" data-tone="lede">Persistent memory for AI agents. <strong>Store, recall, and share knowledge</strong> across sessions — five MCP tools, any agent, any editor. Set up in 30 seconds.</p>
+
+    <div class="cta-row">
+      <a href="#cta" class="btn primary" data-tone="cta-primary">Get your API key</a>
+      <a href="/agent" class="btn" data-tone="cta-agent"><span style="color: var(--accent)">⎘</span><span>Let my agent set it up →</span></a>
+      <a href="#local" class="btn ghost" data-tone="cta-local">Run locally</a>
     </div>
 
-    <div class="terminal">
-      <div class="terminal-bar">
-        <div class="terminal-dot"></div>
-        <div class="terminal-dot"></div>
-        <div class="terminal-dot"></div>
-        <span class="terminal-title">terminal</span>
+    <div class="hero-meta">
+      <span data-tone="meta-1">30-second install</span>
+      <span data-tone="meta-2">500 memories free</span>
+      <span data-tone="meta-3">Apache 2.0 · self-host</span>
+      <span data-tone="meta-4" class="phosphor-pulse">52.2% LifeBench</span>
+    </div>
+
+    <!-- terminal preview -->
+    <div class="term" style="margin-top: 56px;">
+      <div class="head">
+        <div class="left">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span>terminal</span>
+        </div>
+        <span class="tag">LOCAL MODE</span>
       </div>
-      <div class="terminal-body">
-        <span class="comment"># Local mode — no cloud, no signup, no API key</span><br>
-        <span class="prompt">$</span> <span class="cmd">npx central-intelligence-local</span><br>
-        <span class="output">Central Intelligence Local — MCP server running</span><br>
-        <span class="output">Tools: remember, recall, forget, context, share</span><br><br>
-        <span class="comment"># Or use cloud mode for cross-device sync</span><br>
-        <span class="prompt">$</span> <span class="cmd">npx central-intelligence-local sync --key ci_sk_xxx</span><br>
-        <span class="output">130 memories synced. AI tools configured.</span>
+<pre><span class="c-c"># Local mode — no cloud, no signup, no API key</span>
+<span class="prompt">$</span> <span class="cmd">npx central-intelligence-local</span>
+<span class="dim">Central Intelligence Local — MCP server running</span>
+<span class="dim">Tools: </span><span class="c-k">remember, recall, forget, context, share</span>
+
+<span class="c-c"># Or use cloud mode for cross-device sync</span>
+<span class="prompt">$</span> <span class="cmd">npx central-intelligence-local sync --key ci_sk_xxx</span>
+<span class="ok">130 memories synced.</span> <span class="dim">AI tools configured.</span></pre>
+    </div>
+  </div>
+</header>
+
+<!-- =================== PROBLEM =================== -->
+<section id="problem">
+  <div class="wrap">
+    <p class="sec-eyebrow"><span class="num">01</span> The problem</p>
+    <h2 class="sec-title" data-tone="problem-title">Every agent session starts from zero.</h2>
+    <p class="sec-lede" data-tone="problem-lede">Your agent learns your preferences, understands your codebase, figures out your architecture. Then the session ends and it forgets everything. Next session — same questions, same mistakes, same context-building from scratch.</p>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="big"><span class="accent">40%</span></div>
+        <div class="label" data-tone="stat-1">of agent session time is spent re-establishing context.</div>
+      </div>
+      <div class="stat">
+        <div class="big"><span class="accent">0</span></div>
+        <div class="label" data-tone="stat-2">memories retained between sessions by default.</div>
+      </div>
+    </div>
+
+    <div class="compare">
+      <div class="col bad">
+        <h4>// without CI</h4>
+        <div class="q">"What framework is this project using?"</div>
+        <div class="q">"What's your preferred code style?"</div>
+        <div class="q">"How does the auth system work here?"</div>
+        <div class="tail">…asked every session.</div>
+      </div>
+      <div class="col good">
+        <h4>// with CI</h4>
+        <div class="q">"I recall this is a Next.js project with Tailwind. You prefer functional components and the auth uses JWT tokens stored in httpOnly cookies. Let me pick up where we left off."</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Problem -->
-<section class="problem">
-  <div class="container">
-    <div class="problem-grid">
-      <div>
-        <h2>Every agent session starts from zero</h2>
-        <p>
-          Your AI agent learns your preferences, understands your codebase,
-          figures out your architecture. Then the session ends and it
-          forgets everything.
-        </p>
-        <p>
-          Next session? Same questions. Same mistakes. Same context-building
-          from scratch. Every. Single. Time.
-        </p>
-        <div class="stat">
-          <div class="stat-item">
-            <h3>40%</h3>
-            <p>of agent session time<br>is spent re-establishing context</p>
-          </div>
-          <div class="stat-item">
-            <h3>0</h3>
-            <p>memories retained<br>between sessions by default</p>
-          </div>
+<!-- =================== AGENT BANNER =================== -->
+<section style="padding: 40px 0;">
+  <div class="wrap">
+    <div class="agent-banner">
+      <div class="left">
+        <div class="glyph">⎘</div>
+        <div class="txt">
+          <strong>/agent</strong>&nbsp;&nbsp;Your agent can install this for you.
+          <div class="sub" data-tone="agent-banner-sub">A dedicated page with copy-pasteable instructions — point your coding agent at it and walk away.</div>
         </div>
       </div>
-      <div class="comparison">
-        <div class="comparison-card before">
-          <div class="label">Without CI</div>
-          <p>"What framework is this project using?"</p>
-          <p>"What's your preferred code style?"</p>
-          <p>"How does the auth system work here?"</p>
-          <p style="color: var(--text-dim); font-style: italic; margin-top: 8px;">...asked every session</p>
-        </div>
-        <div class="comparison-card after">
-          <div class="label">With CI</div>
-          <p>"I recall this is a Next.js project with Tailwind. You prefer functional components and the auth uses JWT tokens stored in httpOnly cookies. Let me pick up where we left off."</p>
-        </div>
+      <a href="/agent" class="btn primary">Open /agent →</a>
+    </div>
+  </div>
+</section>
+
+<!-- =================== FIVE TOOLS =================== -->
+<section id="features">
+  <div class="wrap">
+    <p class="sec-eyebrow"><span class="num">02</span> Five tools</p>
+    <h2 class="sec-title" data-tone="tools-title">Five tools. Infinite memory.</h2>
+    <p class="sec-lede" data-tone="tools-lede">Everything your agent needs to remember, delivered as MCP tools. Each also available as a REST endpoint.</p>
+
+    <div class="tools">
+      <div class="tool">
+        <div class="name">remember</div>
+        <p class="desc">The core primitive. Store anything for later recall — preferences, decisions, architecture, debugging insight. Institutional knowledge accrues over time.</p>
+        <div class="ex">"User prefers TypeScript, uses Hono for APIs, deploys to Fly.io. Auth is JWT in httpOnly cookies."</div>
+      </div>
+      <div class="tool">
+        <div class="name">recall</div>
+        <p class="desc">Semantic search across all stored memories. Not keyword matching — actual understanding of intent.</p>
+        <div class="ex">recall("what language does the user prefer?")</div>
+      </div>
+      <div class="tool">
+        <div class="name">context</div>
+        <p class="desc">Auto-load relevant memories for the current task. Describe what you're working on, get back everything you knew before.</p>
+        <div class="ex">context("refactoring the auth system")</div>
+      </div>
+      <div class="tool">
+        <div class="name">share</div>
+        <p class="desc">Make memories available to other agents. Your coding agent learns something, your testing agent uses it.</p>
+        <div class="ex">share(memory_id, scope: "agent" → "org")</div>
+      </div>
+      <div class="tool">
+        <div class="name">forget</div>
+        <p class="desc">Delete outdated or incorrect memories. Keep your agent's knowledge accurate and current.</p>
+        <div class="ex">forget("memory_abc123")</div>
+      </div>
+      <div class="tool rest">
+        <div class="name">+ REST API</div>
+        <p class="desc">Not using MCP? Every tool is also a REST endpoint. Works with any HTTP client, any language, any framework.</p>
+        <div class="ex">POST /memories/remember</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Features -->
-<section class="features" id="features">
-  <div class="container">
-    <h2 style="text-align: left;">Five tools. Infinite memory.</h2>
-    <p class="subtitle" style="text-align: left; margin-left: 0;">Everything your agent needs to remember, delivered as MCP tools.</p>
+<!-- =================== SCOPES =================== -->
+<section id="scopes">
+  <div class="wrap">
+    <p class="sec-eyebrow"><span class="num">03</span> Scopes</p>
+    <h2 class="sec-title" data-tone="scopes-title">Memory that scales with your team.</h2>
+    <p class="sec-lede" data-tone="scopes-lede">Three scopes let you control exactly who knows what.</p>
 
-    <div class="tools-grid">
-      <div class="tool-card featured-tool">
-        <div class="tool-name">remember</div>
-        <div class="tool-desc">The core primitive. Store any information for later recall — user preferences, project decisions, architecture notes, debugging insights. Your agent builds institutional knowledge over time, not just within a single session.</div>
-        <div class="tool-example">"User prefers TypeScript, uses Hono for APIs, deploys to Fly.io. Auth is JWT in httpOnly cookies. Dark mode everywhere."</div>
+    <div class="scopes">
+      <div class="scope">
+        <span class="tag">scope: "agent"</span>
+        <div class="ring"><span class="on"></span><span></span><span></span></div>
+        <h4>Agent Scope</h4>
+        <p>Private to one agent. Session continuity, personal context, learned patterns.</p>
       </div>
-      <div class="tool-card">
-        <div class="tool-name">recall</div>
-        <div class="tool-desc">Semantic search across all stored memories. Not keyword matching — actual understanding of what you're looking for.</div>
-        <div class="tool-example">"What language does the user prefer?"</div>
+      <div class="scope">
+        <span class="tag">scope: "user"</span>
+        <div class="ring"><span class="on"></span><span class="on"></span><span></span></div>
+        <h4>User Scope</h4>
+        <p>Shared across all agents serving one user. Preferences, history, consistent experience.</p>
       </div>
-      <div class="tool-card">
-        <div class="tool-name">context</div>
-        <div class="tool-desc">Auto-load relevant memories for the current task. Describe what you're working on, get back everything you knew before.</div>
-        <div class="tool-example">"Working on the auth system refactor"</div>
-      </div>
-    </div>
-    <div class="tools-bottom">
-      <div class="tool-card">
-        <div class="tool-name">share</div>
-        <div class="tool-desc">Make memories available to other agents. Your coding agent learns something? Your testing agent can use it too.</div>
-        <div class="tool-example">scope: "agent" → "org"</div>
-      </div>
-      <div class="tool-card">
-        <div class="tool-name">forget</div>
-        <div class="tool-desc">Delete outdated or incorrect memories. Keep your agent's knowledge accurate and current.</div>
-        <div class="tool-example">forget("memory_abc123")</div>
-      </div>
-      <div class="tool-card">
-        <div class="tool-name">+ REST API</div>
-        <div class="tool-desc">Not using MCP? Every tool is also a REST endpoint. Works with any HTTP client, any language, any framework.</div>
-        <div class="tool-example">POST /memories/remember</div>
+      <div class="scope">
+        <span class="tag">scope: "org"</span>
+        <div class="ring"><span class="on"></span><span class="on"></span><span class="on"></span></div>
+        <h4>Org Scope</h4>
+        <p>Organization-wide knowledge. Architecture decisions, team conventions, shared context.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Scopes -->
-<section class="scopes">
-  <div class="container">
-    <h2>Memory that scales with your team</h2>
-    <p class="subtitle">Three scopes let you control exactly who knows what.</p>
+<!-- =================== INTEGRATIONS =================== -->
+<section id="integrations">
+  <div class="wrap">
+    <p class="sec-eyebrow"><span class="num">04</span> Integrations</p>
+    <h2 class="sec-title" data-tone="integ-title">Works with everything.</h2>
+    <p class="sec-lede" data-tone="integ-lede">Click any platform for setup instructions. Every path takes about 30 seconds.</p>
 
-    <div class="scope-cards">
-      <div class="scope-card">
-        <div class="scope-label">scope: "agent"</div>
-        <div>
-          <h3>Agent Scope</h3>
-          <p>Private to one agent. Session continuity, personal context, learned patterns.</p>
-        </div>
-      </div>
-      <div class="scope-card">
-        <div class="scope-label">scope: "user"</div>
-        <div>
-          <h3>User Scope</h3>
-          <p>Shared across all agents serving one user. Preferences, history, consistent experience.</p>
-        </div>
-      </div>
-      <div class="scope-card">
-        <div class="scope-label">scope: "org"</div>
-        <div>
-          <h3>Org Scope</h3>
-          <p>Organization-wide knowledge. Architecture decisions, team conventions, shared context.</p>
-        </div>
-      </div>
+    <div class="integrations" id="integGrid">
+      <button class="integ active" data-integ="claude"><div class="ic">CC</div><div class="n">Claude Code</div><div class="s">MCP config</div></button>
+      <button class="integ" data-integ="cursor"><div class="ic">Cu</div><div class="n">Cursor</div><div class="s">MCP config</div></button>
+      <button class="integ" data-integ="windsurf"><div class="ic">Wi</div><div class="n">Windsurf</div><div class="s">MCP config</div></button>
+      <button class="integ" data-integ="copilot"><div class="ic">Co</div><div class="n">GitHub Copilot</div><div class="s">MCP server</div></button>
+      <button class="integ" data-integ="openai"><div class="ic">Ai</div><div class="n">OpenAI</div><div class="s">ChatGPT + Codex</div></button>
+      <button class="integ" data-integ="langchain"><div class="ic">Lc</div><div class="n">LangChain</div><div class="s">pip install</div></button>
+      <button class="integ" data-integ="crewai"><div class="ic">Cr</div><div class="n">CrewAI</div><div class="s">pip install</div></button>
+      <button class="integ" data-integ="lovable"><div class="ic">Lo</div><div class="n">Lovable</div><div class="s">MCP connector</div></button>
+      <button class="integ" data-integ="antigravity"><div class="ic">Ag</div><div class="n">Antigravity</div><div class="s">MCP server</div></button>
+      <button class="integ" data-integ="perplexity"><div class="ic">Px</div><div class="n">Perplexity</div><div class="s">MCP connector</div></button>
+      <button class="integ" data-integ="openclaw"><div class="ic">Oc</div><div class="n">OpenClaw</div><div class="s">Skill file</div></button>
+      <button class="integ" data-integ="rest"><div class="ic">{ }</div><div class="n">REST API</div><div class="s">Any language</div></button>
     </div>
-  </div>
-</section>
 
-<!-- Integrations -->
-<section class="integrations" id="integrations">
-  <div class="container">
-    <h2>Works with everything</h2>
-    <p class="subtitle">Click any platform for setup instructions.</p>
-
-    <div class="integration-grid">
-      <div class="integration-item" onclick="toggleSetup(this)" data-platform="claude">
-        <div class="name">Claude Code</div>
-        <div class="how">MCP config</div>
-        <div class="setup-panel">
-          <div class="setup-step">One command — gets your API key and configures everything:</div>
-          <pre class="setup-code">npx central-intelligence-local signup</pre>
-          <div class="setup-step" style="margin-top:12px;">Or add manually to <code>~/.claude/settings.json</code>:</div>
-          <pre class="setup-code">{
+    <div class="integ-panel">
+      <div class="head">
+        <span class="nm" id="integName">Claude Code</span>
+        <span id="integKind">MCP config</span>
+      </div>
+      <div class="body" id="integBody"><p>One command — gets your API key and configures everything:</p><pre>npx central-intelligence-local signup</pre><p style="margin-top: 14px;">Or add manually to ~/.claude/settings.json:</p><pre>{
   "mcpServers": {
     "central-intelligence": {
       "command": "npx",
@@ -996,336 +974,49 @@
       "env": { "CI_API_KEY": "YOUR_KEY" }
     }
   }
-}</pre>
-          <button class="btn-copy" onclick="event.stopPropagation();downloadConfig('claude')">Download config</button>
-        </div>
+}</pre></div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== LOCAL vs CLOUD =================== -->
+<section id="local">
+  <div class="wrap">
+    <p class="sec-eyebrow"><span class="num">05</span> Deployment</p>
+    <h2 class="sec-title" data-tone="local-title">Your data never leaves your machine — unless you want it to.</h2>
+    <p class="sec-lede" data-tone="local-lede">CI Local runs entirely on your machine. SQLite database, local embeddings, zero cloud dependencies. No signup, no API key, no trust required.</p>
+
+    <div class="twomode">
+      <div class="mode">
+        <div class="icon">⚲ local</div>
+        <h4>Local Mode</h4>
+        <p>Everything stays on your machine. SQLite + local AI embeddings. Unlimited memories. Free forever.</p>
+        <div class="cmd">npm i -g central-intelligence-local &amp;&amp; ci dashboard</div>
+        <div class="foot">→ http://localhost:3141 · health scoring · duplicate detection</div>
       </div>
-
-      <div class="integration-item" onclick="toggleSetup(this)" data-platform="cursor">
-        <div class="name">Cursor</div>
-        <div class="how">MCP config</div>
-        <div class="setup-panel">
-          <div class="setup-step">One command — gets your API key and configures everything:</div>
-          <pre class="setup-code">npx central-intelligence-local signup</pre>
-          <div class="setup-step" style="margin-top:12px;">Or add to <code>~/.cursor/mcp.json</code>:</div>
-          <pre class="setup-code">{
-  "mcpServers": {
-    "central-intelligence": {
-      "command": "npx",
-      "args": ["central-intelligence-mcp"],
-      "env": { "CI_API_KEY": "YOUR_KEY" }
-    }
-  }
-}</pre>
-          <button class="btn-copy" onclick="event.stopPropagation();downloadConfig('cursor')">Download config</button>
-        </div>
-      </div>
-
-      <div class="integration-item" onclick="toggleSetup(this)" data-platform="langchain">
-        <div class="name">LangChain</div>
-        <div class="how">pip install</div>
-        <div class="setup-panel">
-          <div class="setup-step">Install:</div>
-          <pre class="setup-code">pip install central-intelligence[langchain]</pre>
-          <div class="setup-step" style="margin-top:12px;">Use in your agent:</div>
-          <pre class="setup-code">from central_intelligence import get_ci_tools
-
-tools = get_ci_tools(api_key="ci_sk_...")
-agent = initialize_agent(tools=tools, llm=llm)</pre>
-          <a href="https://pypi.org/project/central-intelligence/" class="btn-copy" onclick="event.stopPropagation()" target="_blank">View on PyPI</a>
-        </div>
-      </div>
-
-      <div class="integration-item" onclick="toggleSetup(this)" data-platform="crewai">
-        <div class="name">CrewAI</div>
-        <div class="how">pip install</div>
-        <div class="setup-panel">
-          <div class="setup-step">Install:</div>
-          <pre class="setup-code">pip install central-intelligence[crewai]</pre>
-          <div class="setup-step" style="margin-top:12px;">Use in your crew:</div>
-          <pre class="setup-code">from central_intelligence import get_ci_tools
-
-tools = get_ci_tools(api_key="ci_sk_...")
-agent = Agent(role="researcher", tools=tools)</pre>
-          <a href="https://pypi.org/project/central-intelligence/" class="btn-copy" onclick="event.stopPropagation()" target="_blank">View on PyPI</a>
-        </div>
-      </div>
-
-      <div class="integration-item" onclick="toggleSetup(this)" data-platform="copilot">
-        <div class="name">GitHub Copilot</div>
-        <div class="how">MCP server</div>
-        <div class="setup-panel">
-          <div class="setup-step">In VS Code, add to <code>.vscode/mcp.json</code>:</div>
-          <pre class="setup-code">{
-  "servers": {
-    "central-intelligence": {
-      "command": "npx",
-      "args": ["central-intelligence-mcp"],
-      "env": { "CI_API_KEY": "YOUR_KEY" }
-    }
-  }
-}</pre>
-          <div class="setup-step" style="margin-top:12px;">Copilot Agent Mode will automatically discover CI's tools — remember, recall, context, forget, and share.</div>
-          <button class="btn-copy" onclick="event.stopPropagation();downloadConfig('copilot')">Download config</button>
-        </div>
-      </div>
-
-      <div class="integration-item" onclick="toggleSetup(this)" data-platform="openai">
-        <div class="name">OpenAI</div>
-        <div class="how">ChatGPT + Codex</div>
-        <div class="setup-panel">
-          <div class="setup-step"><strong>ChatGPT — Custom GPT Actions:</strong></div>
-          <div class="setup-step">1. GPT Editor → Configure → Actions → Import from URL:</div>
-          <pre class="setup-code">https://central-intelligence-api.fly.dev/docs/openapi.json</pre>
-          <div class="setup-step" style="margin-top:8px;">2. Set Auth: API Key (Bearer) with your <code>ci_sk_...</code> key</div>
-          <div class="setup-step" style="margin-top:16px;"><strong>Codex CLI — MCP server:</strong></div>
-          <pre class="setup-code">codex mcp add central-intelligence \
-  --env CI_API_KEY="ci_sk_..." \
-  -- npx central-intelligence-mcp</pre>
-          <a href="https://central-intelligence-api.fly.dev/docs/openapi.json" class="btn-copy" onclick="event.stopPropagation()" target="_blank">View OpenAPI spec</a>
-        </div>
-      </div>
-
-      <div class="integration-item" onclick="toggleSetup(this)" data-platform="lovable">
-        <div class="name">Lovable</div>
-        <div class="how">MCP connector</div>
-        <div class="setup-panel">
-          <div class="setup-step">1. In Lovable, go to <strong>Settings → Connectors → Personal connectors</strong></div>
-          <div class="setup-step">2. Click <strong>"New MCP server"</strong></div>
-          <div class="setup-step">3. Enter the server URL:</div>
-          <pre class="setup-code">https://central-intelligence-api.fly.dev/mcp</pre>
-          <div class="setup-step" style="margin-top:8px;">4. Set Auth: <strong>Bearer token</strong> with your <code>ci_sk_...</code> API key</div>
-          <div class="setup-step" style="margin-top:12px;">Your Lovable Agent now remembers everything across sessions — what framework you chose, what architecture decisions were made, what bugs were fixed.</div>
-          <a href="https://docs.lovable.dev/integrations/mcp-servers" class="btn-copy" onclick="event.stopPropagation()" target="_blank">Lovable MCP docs</a>
-        </div>
-      </div>
-
-      <div class="integration-item" onclick="toggleSetup(this)" data-platform="antigravity">
-        <div class="name">Antigravity</div>
-        <div class="how">MCP server</div>
-        <div class="setup-panel">
-          <div class="setup-step">1. Open Antigravity → <strong>Settings → MCP Servers → Add Server</strong></div>
-          <div class="setup-step">2. Add the server config:</div>
-          <pre class="setup-code">{
-  "central-intelligence": {
-    "command": "npx",
-    "args": ["central-intelligence-mcp"],
-    "env": { "CI_API_KEY": "YOUR_KEY" }
-  }
-}</pre>
-          <div class="setup-step" style="margin-top:12px;">Perfect for Antigravity's multi-agent mode — all agents share memory so Agent 1's decisions are instantly visible to Agent 2 and Agent 3.</div>
-          <a href="https://antigravity.codes/blog/antigravity-mcp-tutorial" class="btn-copy" onclick="event.stopPropagation()" target="_blank">Antigravity MCP guide</a>
-        </div>
-      </div>
-
-      <div class="integration-item" onclick="toggleSetup(this)" data-platform="openclaw">
-        <div class="name">OpenClaw</div>
-        <div class="how">Skill file</div>
-        <div class="setup-panel">
-          <div class="setup-step">Set your API key:</div>
-          <pre class="setup-code">export CI_API_KEY=ci_sk_your_key</pre>
-          <div class="setup-step" style="margin-top:12px;">The skill is available in the OpenClaw skills repo. Agents can use remember, recall, context, forget, and share via REST calls.</div>
-          <a href="https://github.com/AlekseiMarchenko/central-intelligence/tree/main/packages/openclaw-skill" class="btn-copy" onclick="event.stopPropagation()" target="_blank">View skill file</a>
-        </div>
-      </div>
-
-      <div class="integration-item" onclick="toggleSetup(this)" data-platform="windsurf">
-        <div class="name">Windsurf</div>
-        <div class="how">MCP config</div>
-        <div class="setup-panel">
-          <div class="setup-step">One command — gets your API key and configures everything:</div>
-          <pre class="setup-code">npx central-intelligence-local signup</pre>
-          <div class="setup-step" style="margin-top:12px;">Or add to <code>~/.codeium/windsurf/mcp_config.json</code>:</div>
-          <pre class="setup-code">{
-  "mcpServers": {
-    "central-intelligence": {
-      "command": "npx",
-      "args": ["central-intelligence-mcp"],
-      "env": { "CI_API_KEY": "YOUR_KEY" }
-    }
-  }
-}</pre>
-          <button class="btn-copy" onclick="event.stopPropagation();downloadConfig('windsurf')">Download config</button>
-        </div>
-      </div>
-
-      <div class="integration-item" onclick="toggleSetup(this)" data-platform="perplexity">
-        <div class="name">Perplexity</div>
-        <div class="how">MCP connector</div>
-        <div class="setup-panel">
-          <div class="setup-step">1. Open Perplexity → <strong>Settings → MCP → Add Custom Connector</strong></div>
-          <div class="setup-step">2. Enter the MCP server URL:</div>
-          <pre class="setup-code">npx central-intelligence-mcp</pre>
-          <div class="setup-step">3. Set authentication to <strong>API Key</strong> and enter your <code>ci_sk_...</code> key</div>
-          <div class="setup-step" style="margin-top:12px;">Your Perplexity sessions now have persistent memory — context carries over across conversations.</div>
-          <a href="https://www.perplexity.ai/help-center/en/articles/11502712-local-and-remote-mcps-for-perplexity" class="btn-copy" onclick="event.stopPropagation()" target="_blank">Perplexity MCP docs</a>
-        </div>
-      </div>
-
-      <div class="integration-item" onclick="toggleSetup(this)" data-platform="rest">
-        <div class="name">REST API</div>
-        <div class="how">Any language</div>
-        <div class="setup-panel">
-          <div class="setup-step">Works with any HTTP client — Python, Node, Go, curl:</div>
-          <pre class="setup-code">curl -X POST https://central-intelligence-api.fly.dev/memories/recall \
-  -H "Authorization: Bearer ci_sk_..." \
-  -H "Content-Type: application/json" \
-  -d '{"agent_id": "my-agent", "query": "project architecture"}'</pre>
-          <a href="https://central-intelligence-api.fly.dev/docs" class="btn-copy" onclick="event.stopPropagation()" target="_blank">API docs</a>
-        </div>
+      <div class="mode">
+        <div class="icon">☁ cloud</div>
+        <h4>Cloud + Dashboard</h4>
+        <p>Sync memories across devices. View from any browser. Auto-configures Claude Code, Cursor, and Windsurf.</p>
+        <div class="cmd">ci signup &amp;&amp; ci sync</div>
+        <div class="foot">→ <a href="/dashboard">Open Memory Dashboard</a> · Free tier: 500 ops/mo</div>
       </div>
     </div>
   </div>
 </section>
 
-<style>
-  .integration-item { cursor: pointer; position: relative; }
-  .setup-panel {
-    display: none;
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid var(--border);
-    text-align: left;
-  }
-  .integration-item.active .setup-panel { display: block; }
-  .integration-item.active {
-    grid-column: span 2;
-    border-color: var(--accent);
-    background: var(--bg-subtle);
-  }
-  .setup-step {
-    font-size: 13px;
-    color: var(--text-muted);
-    margin-bottom: 8px;
-  }
-  .setup-step code {
-    font-family: var(--mono);
-    background: var(--bg-card);
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 12px;
-  }
-  .setup-code {
-    font-family: var(--mono);
-    font-size: 12px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px 16px;
-    color: var(--green);
-    overflow-x: auto;
-    white-space: pre;
-    margin: 0;
-  }
-  .btn-copy {
-    display: inline-block;
-    margin-top: 12px;
-    padding: 8px 16px;
-    background: var(--accent);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    text-decoration: none;
-    font-family: var(--font);
-    transition: background 0.2s;
-  }
-  .btn-copy:hover { background: #5a46ef; }
-  @media (max-width: 768px) {
-    .integration-item.active { grid-column: span 1; }
-  }
-</style>
+<!-- =================== PRICING =================== -->
+<section id="pricing">
+  <div class="wrap">
+    <p class="sec-eyebrow"><span class="num">06</span> Pricing</p>
+    <h2 class="sec-title" data-tone="pricing-title">Start free. Scale when ready.</h2>
+    <p class="sec-lede" data-tone="pricing-lede">Generous free tier. No credit card required.</p>
 
-<script>
-function toggleSetup(el) {
-  const wasActive = el.classList.contains('active');
-  document.querySelectorAll('.integration-item').forEach(item => item.classList.remove('active'));
-  if (!wasActive) el.classList.add('active');
-}
-
-function downloadConfig(platform) {
-  const configs = {
-    claude: {
-      filename: 'settings.json',
-      content: JSON.stringify({ mcpServers: { "central-intelligence": { command: "npx", args: ["central-intelligence-mcp"], env: { CI_API_KEY: "YOUR_KEY_HERE" } } } }, null, 2),
-    },
-    cursor: {
-      filename: 'mcp.json',
-      content: JSON.stringify({ mcpServers: { "central-intelligence": { command: "npx", args: ["central-intelligence-mcp"], env: { CI_API_KEY: "YOUR_KEY_HERE" } } } }, null, 2),
-    },
-    windsurf: {
-      filename: 'mcp_config.json',
-      content: JSON.stringify({ mcpServers: { "central-intelligence": { command: "npx", args: ["central-intelligence-mcp"], env: { CI_API_KEY: "YOUR_KEY_HERE" } } } }, null, 2),
-    },
-  };
-  const cfg = configs[platform];
-  if (!cfg) return;
-  const blob = new Blob([cfg.content], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = cfg.filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-</script>
-
-<!-- Local First -->
-<section id="local" style="padding: 80px 0; background: linear-gradient(180deg, rgba(16,185,129,0.05) 0%, transparent 100%);">
-  <div class="container" style="text-align: center;">
-    <h2 style="font-size: 42px; font-weight: 700; letter-spacing: -2px; margin-bottom: 16px;">Your data never leaves your machine</h2>
-    <p style="color: var(--text-muted); font-size: 18px; max-width: 600px; margin: 0 auto 48px;">
-      CI Local runs entirely on your machine. SQLite database, local embeddings, zero cloud dependencies. No signup, no API key, no trust required.
-    </p>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; max-width: 800px; margin: 0 auto;">
-      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 32px; text-align: left;">
-        <div style="font-size: 24px; margin-bottom: 8px;">🔒</div>
-        <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 8px;">Local Mode</h3>
-        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">Everything stays on your machine. SQLite + local AI embeddings. Unlimited memories. Free forever.</p>
-        <div id="localCopyBtn" onclick="copyLocal(this)" style="width: 100%; background: #0a0a0a; border: 1px solid var(--border); padding: 14px 16px; border-radius: 8px; font-size: 13px; color: #10b981; font-family: 'SF Mono', Monaco, monospace; cursor: pointer; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;" onmouseover="this.style.borderColor='#10b981'" onmouseout="this.style.borderColor=''">
-          <span class="copy-text">npm i -g central-intelligence-local && ci dashboard</span>
-          <span style="font-size: 11px; color: #6b7280; flex-shrink: 0; margin-left: 12px;" class="copy-hint">copy</span>
-        </div>
-        <p style="color: var(--text-dim); font-size: 12px;">Installs and opens the dashboard at localhost:3141. Health scoring, duplicate detection, and ChatGPT import.</p>
-        <script>
-        function copyLocal(el) {
-          navigator.clipboard.writeText('npm i -g central-intelligence-local && ci dashboard');
-          el.querySelector('.copy-hint').textContent = 'copied!';
-          el.querySelector('.copy-hint').style.color = '#10b981';
-          setTimeout(function() {
-            el.querySelector('.copy-hint').textContent = 'copy';
-            el.querySelector('.copy-hint').style.color = '#6b7280';
-          }, 3000);
-        }
-        </script>
-      </div>
-      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 32px; text-align: left;">
-        <div style="font-size: 24px; margin-bottom: 8px;">☁️</div>
-        <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 8px;">Cloud + Dashboard</h3>
-        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">Sync memories across devices. View from any browser. Auto-configures Claude Code, Cursor, and Windsurf.</p>
-        <pre style="background: #0a0a0a; padding: 12px 16px; border-radius: 8px; font-size: 13px; color: var(--accent); overflow-x: auto; margin-bottom: 6px;">ci signup</pre>
-        <pre style="background: #0a0a0a; padding: 12px 16px; border-radius: 8px; font-size: 13px; color: var(--accent); overflow-x: auto; margin-bottom: 10px;">ci sync</pre>
-        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 12px;">Signup gets your API key. Sync uploads local memories to cloud.</p>
-        <a href="/dashboard" style="display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; background: var(--accent); color: white; border-radius: 8px; font-size: 13px; font-weight: 600; text-decoration: none;">Open Memory Dashboard &rarr;</a>
-        <p style="color: var(--text-dim); font-size: 12px; margin-top: 12px;">Free tier: 500 ops/month. Open source. Apache 2.0.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Pricing -->
-<section class="pricing" id="pricing">
-  <div class="container">
-    <h2>Start free. Scale when ready.</h2>
-    <p class="subtitle">Generous free tier. No credit card required.</p>
-
-    <div class="pricing-grid">
-      <div class="pricing-card">
-        <div class="tier">Free</div>
+    <div class="pricing">
+      <div class="plan">
+        <div class="name">Free</div>
         <div class="price">$0</div>
-        <div class="price-desc">For solo developers</div>
+        <p class="for">For solo developers.</p>
         <ul>
           <li>500 memories</li>
           <li>Unlimited agents</li>
@@ -1333,14 +1024,13 @@ function downloadConfig(platform) {
           <li>Semantic search</li>
           <li>Community support</li>
         </ul>
-        <a href="#cta" class="btn btn-secondary">Get Started</a>
+        <a href="#cta" class="btn">Get started</a>
       </div>
-
-      <div class="pricing-card featured">
-        <div class="popular">Most Popular</div>
-        <div class="tier">Pro</div>
-        <div class="price">$29<span>/mo</span></div>
-        <div class="price-desc">For power users</div>
+      <div class="plan featured">
+        <span class="badge">Most Popular</span>
+        <div class="name">Pro</div>
+        <div class="price">$29<small>/mo</small></div>
+        <p class="for">For power users.</p>
         <ul>
           <li>50,000 memories</li>
           <li>Unlimited agents</li>
@@ -1348,13 +1038,12 @@ function downloadConfig(platform) {
           <li>Priority support</li>
           <li>Dashboard analytics</li>
         </ul>
-        <a href="#cta" class="btn btn-primary">Start Pro Trial</a>
+        <a href="#cta" class="btn primary">Start Pro trial</a>
       </div>
-
-      <div class="pricing-card">
-        <div class="tier">Team <span style="font-size:12px; opacity:0.6;">coming soon</span></div>
-        <div class="price">$99<span>/mo</span></div>
-        <div class="price-desc">For teams & orgs</div>
+      <div class="plan">
+        <div class="name">Team <span style="color: var(--fg-dimmer); text-transform: none; letter-spacing: 0; font-size: 11px;">(coming soon)</span></div>
+        <div class="price">$99<small>/mo</small></div>
+        <p class="for">For teams &amp; orgs.</p>
         <ul>
           <li>500,000 memories</li>
           <li>Unlimited agents</li>
@@ -1362,357 +1051,562 @@ function downloadConfig(platform) {
           <li>600 requests/min</li>
           <li>Dedicated support</li>
         </ul>
-        <a href="mailto:hello@centralintelligence.online" class="btn btn-secondary">Contact Sales</a>
+        <a href="mailto:hello@centralintelligence.online" class="btn">Contact sales</a>
       </div>
     </div>
   </div>
 </section>
 
-<!-- CTA -->
-<section class="cta" id="cta">
-  <div class="container">
-    <h2>Give your agent a memory</h2>
-    <p>One command. Ten seconds. Permanent memory.</p>
-    <div class="terminal">
-      <div class="terminal-bar">
-        <div class="terminal-dot"></div>
-        <div class="terminal-dot"></div>
-        <div class="terminal-dot"></div>
-        <span class="terminal-title">terminal</span>
-      </div>
-      <div class="terminal-body">
-        <span class="comment"># One command — installs and opens the dashboard</span><br>
-        <span class="prompt">$</span> <span class="cmd">npm i -g central-intelligence-local && ci dashboard</span><br><br>
-        <span class="output">CI Local Pro — Dashboard</span><br>
-        <span class="output">→ http://localhost:3141</span><br>
-        <span class="output" style="color: #6b7280;">  Browser opens automatically</span>
-      </div>
-    </div>
-    <a href="https://github.com/AlekseiMarchenko/central-intelligence" class="btn btn-primary" style="font-size: 16px; padding: 14px 32px;">Get Started — It's Free</a>
-  </div>
-</section>
+<!-- =================== BENCHMARKS =================== -->
+<section id="benchmarks">
+  <div class="wrap">
+    <p class="sec-eyebrow"><span class="num">07</span> Benchmarks</p>
+    <h2 class="sec-title" data-tone="bench-title">Measured, not marketed.</h2>
+    <p class="sec-lede" data-tone="bench-lede">Two of the hardest memory benchmarks published. Open-source harness if you want to reproduce.</p>
 
-<!-- LifeBench Results -->
-<section id="lifebench" style="padding: 100px 0; border-bottom: 1px solid var(--border);">
-  <div class="container" style="max-width: 900px;">
-    <p style="color: var(--accent); font-weight: 600; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px;"><a href="https://arxiv.org/abs/2603.03781" style="color: var(--accent); text-decoration: none;">LifeBench (2026)</a></p>
-    <h2 style="font-size: 42px; font-weight: 700; letter-spacing: -2px; margin-bottom: 16px;">52.2% on <a href="https://arxiv.org/abs/2603.03781" style="color: var(--accent); text-decoration: none;">LifeBench</a></h2>
-    <p style="color: var(--text-muted); font-size: 18px; line-height: 1.7; margin-bottom: 48px;"><a href="https://arxiv.org/abs/2603.03781" style="color: var(--text-muted); text-decoration: underline;">LifeBench</a> is a 2026 academic benchmark testing long-term memory across real-world data: messages, calendar, health records, notes, and calls. 2,003 questions, 10 users, 51K events. The hardest memory benchmark published to date.</p>
-
-    <!-- Results table — CI only -->
-    <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 32px;">
-      <table style="width: 100%; border-collapse: collapse; font-size: 15px;">
-        <thead>
-          <tr style="border-bottom: 1px solid var(--border);">
-            <th style="text-align: left; padding: 14px 20px; color: var(--text-muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">System</th>
-            <th style="text-align: right; padding: 14px 20px; color: var(--text-muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Overall</th>
-            <th style="text-align: right; padding: 14px 20px; color: var(--text-muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Info Extraction</th>
-            <th style="text-align: right; padding: 14px 20px; color: var(--text-muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Multi-hop</th>
-            <th style="text-align: right; padding: 14px 20px; color: var(--text-muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Temporal</th>
-            <th style="text-align: right; padding: 14px 20px; color: var(--text-muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Nondecl.</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr style="background: rgba(109, 90, 255, 0.05);">
-            <td style="padding: 14px 20px; font-weight: 700; color: var(--accent);">Central Intelligence<br><span style="font-size: 11px; font-weight: 400; color: var(--text-muted);">gpt-5.4-mini</span></td>
-            <td style="text-align: right; padding: 14px 20px; font-weight: 700; color: var(--accent);">52.2%</td>
-            <td style="text-align: right; padding: 14px 20px; font-weight: 600; color: var(--text);">47.2%</td>
-            <td style="text-align: right; padding: 14px 20px; font-weight: 600; color: var(--text);">52.9%</td>
-            <td style="text-align: right; padding: 14px 20px; font-weight: 600; color: var(--text);">46.4%</td>
-            <td style="text-align: right; padding: 14px 20px; font-weight: 600; color: var(--text);">64.1%</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- What makes it hard -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 32px;">
-      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
-        <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px;">Multi-source, not just chat</div>
-        <div style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">SMS, calendar, health records, notes, photos, calls. Real-world signals, not synthetic conversations.</div>
+    <div class="bench-wrap">
+      <!-- LifeBench -->
+      <div class="bench">
+        <div class="top">
+          <div class="eyebrow">LifeBench (2026)</div>
+          <h3>52.2% on LifeBench</h3>
+          <p>A 2026 academic benchmark testing long-term memory across real-world data: messages, calendar, health records, notes, calls. 2,003 questions, 10 users, 51K events. The hardest memory benchmark published to date.</p>
+        </div>
+        <table class="bench-table">
+          <thead><tr><th>System</th><th>Overall</th><th>Info Extraction</th><th>Multi-hop</th><th>Temporal</th><th>Nondecl.</th></tr></thead>
+          <tbody><tr><td>Central Intelligence · gpt-5.4-mini</td><td class="score">52.2%</td><td>47.2%</td><td>52.9%</td><td>46.4%</td><td>64.1%</td></tr></tbody>
+        </table>
+        <div class="extras">
+          <div class="cell"><h5>Multi-source, not just chat</h5><p>SMS, calendar, health records, notes, photos, calls. Real-world signals, not synthetic conversations.</p></div>
+          <div class="cell"><h5>15K memories per user</h5><p>A full year of behavioral data. Retrieval at real scale, not toy examples.</p></div>
+          <div class="cell"><h5>SOTA is 55%, we're at 52%</h5><p>Top system (MemOS) barely clears half. We close the gap with no fact extraction — just better retrieval and ranking.</p></div>
+        </div>
+        <div class="footnote">Paper: <a href="https://arxiv.org/abs/2603.03781">arxiv.org/abs/2603.03781</a> (March 2026, Nanjing University + Huawei). Answer model: gpt-5.4-mini. Judge: gpt-4.1-mini.</div>
       </div>
-      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
-        <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px;">15K memories per user</div>
-        <div style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">A full year of behavioral data. Tests retrieval at real scale, not toy examples.</div>
-      </div>
-      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
-        <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px;">SOTA is 55%, we're at 52%</div>
-        <div style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">The top system (MemOS) barely passes half. We're closing the gap with no fact extraction, just better retrieval and ranking.</div>
-      </div>
-    </div>
 
-    <p style="color: var(--text-dim); font-size: 13px; line-height: 1.6; margin-bottom: 0;">
-      Paper: <a href="https://arxiv.org/abs/2603.03781" style="color: var(--accent);">arxiv.org/abs/2603.03781</a> (March 2026, Nanjing University + Huawei). Answer model: gpt-5.4-mini. Judge: gpt-4.1-mini. Evaluation harness: <a href="https://github.com/AlekseiMarchenko/lifebench-eval" style="color: var(--accent);">lifebench-eval</a>.
-    </p>
-  </div>
-</section>
-
-<!-- LongMemEval -->
-<section id="longmemeval" style="padding: 100px 0; border-bottom: 1px solid var(--border);">
-  <div class="container" style="max-width: 900px;">
-    <p style="color: var(--accent); font-weight: 600; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px;"><a href="https://arxiv.org/abs/2410.10813" style="color: var(--accent); text-decoration: none;">LongMemEval (ICLR 2025)</a></p>
-    <h2 style="font-size: 42px; font-weight: 700; letter-spacing: -2px; margin-bottom: 16px;">75.0% on <a href="https://arxiv.org/abs/2410.10813" style="color: var(--accent); text-decoration: none;">LongMemEval</a></h2>
-    <p style="color: var(--text-muted); font-size: 18px; line-height: 1.7; margin-bottom: 48px;"><a href="https://arxiv.org/abs/2410.10813" style="color: var(--text-muted); text-decoration: underline;">LongMemEval</a> tests conversational memory across 500 questions spanning single-session recall, multi-session reasoning, temporal reasoning, knowledge updates, and preference tracking. The standard benchmark for AI memory systems.</p>
-
-    <!-- Results table -->
-    <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 32px;">
-      <table style="width: 100%; border-collapse: collapse; font-size: 15px;">
-        <thead>
-          <tr style="border-bottom: 1px solid var(--border);">
-            <th style="text-align: left; padding: 14px 20px; color: var(--text-muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">System</th>
-            <th style="text-align: right; padding: 14px 20px; color: var(--text-muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Overall</th>
-            <th style="text-align: right; padding: 14px 20px; color: var(--text-muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Single-sess.</th>
-            <th style="text-align: right; padding: 14px 20px; color: var(--text-muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Multi-sess.</th>
-            <th style="text-align: right; padding: 14px 20px; color: var(--text-muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Temporal</th>
-            <th style="text-align: right; padding: 14px 20px; color: var(--text-muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Preference</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr style="background: rgba(109, 90, 255, 0.05);">
-            <td style="padding: 14px 20px; font-weight: 700; color: var(--accent);">Central Intelligence<br><span style="font-size: 11px; font-weight: 400; color: var(--text-muted);">gpt-5.4-mini</span></td>
-            <td style="text-align: right; padding: 14px 20px; font-weight: 700; color: var(--accent);">75.0%</td>
-            <td style="text-align: right; padding: 14px 20px; font-weight: 600; color: var(--text);">91.9%</td>
-            <td style="text-align: right; padding: 14px 20px; font-weight: 600; color: var(--text);">66.2%</td>
-            <td style="text-align: right; padding: 14px 20px; font-weight: 600; color: var(--text);">69.9%</td>
-            <td style="text-align: right; padding: 14px 20px; font-weight: 600; color: var(--text);">76.7%</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Key highlights -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 32px;">
-      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
-        <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px;">Beats full-context baseline</div>
-        <div style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">Our selective retrieval + ranking outperforms giving the LLM every memory at once (60.2%). Better signal, less noise.</div>
+      <!-- LongMemEval -->
+      <div class="bench">
+        <div class="top">
+          <div class="eyebrow">LongMemEval (ICLR 2025)</div>
+          <h3>75.0% on LongMemEval</h3>
+          <p>Tests conversational memory across 500 questions: single-session recall, multi-session reasoning, temporal reasoning, knowledge updates, preference tracking. The standard benchmark for AI memory systems.</p>
+        </div>
+        <table class="bench-table">
+          <thead><tr><th>System</th><th>Overall</th><th>Single-sess.</th><th>Multi-sess.</th><th>Temporal</th><th>Preference</th></tr></thead>
+          <tbody><tr><td>Central Intelligence · gpt-5.4-mini</td><td class="score">75.0%</td><td>91.9%</td><td>66.2%</td><td>69.9%</td><td>76.7%</td></tr></tbody>
+        </table>
+        <div class="extras">
+          <div class="cell"><h5>Beats full-context baseline</h5><p>Our selective retrieval + ranking outperforms giving the LLM every memory at once (60.2%). Better signal, less noise.</p></div>
+          <div class="cell"><h5>No extraction needed</h5><p>Zero LLM calls during recall. Just vector search, keyword search, cross-encoder reranker. Simple, fast, reliable.</p></div>
+          <div class="cell"><h5>76.7% preference recall</h5><p>Infers preferences from conversational context. "Loved the Ethiopian single origin" becomes a searchable coffee preference.</p></div>
+        </div>
+        <div class="footnote">Paper: <a href="https://arxiv.org/abs/2410.10813">arxiv.org/abs/2410.10813</a> (ICLR 2025). Answer model: gpt-5.4-mini. Judge: gpt-4o.</div>
       </div>
-      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
-        <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px;">No extraction needed</div>
-        <div style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">Zero LLM calls during recall. Just vector search, keyword search, and a cross-encoder reranker. Simple, fast, reliable.</div>
-      </div>
-      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
-        <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px;">76.7% preference recall</div>
-        <div style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">Infers user preferences from conversational context. "Loved the Ethiopian single origin" becomes a searchable coffee preference.</div>
-      </div>
-    </div>
 
-    <p style="color: var(--text-dim); font-size: 13px; line-height: 1.6; margin-bottom: 0;">
-      Paper: <a href="https://arxiv.org/abs/2410.10813" style="color: var(--accent);">arxiv.org/abs/2410.10813</a> (ICLR 2025). Answer model: gpt-5.4-mini. Judge: gpt-4o.
-    </p>
-  </div>
-</section>
+      <!-- Open source benchmark -->
+      <div class="bench">
+        <div class="top">
+          <div class="eyebrow" style="color: var(--blue)">Open Source</div>
+          <h3>Test it yourself.</h3>
+          <p>Don't take our word for it. We built an open-source benchmark so you can test Central Intelligence against any other memory provider. One command, same tests, comparable results.</p>
+        </div>
+<pre style="padding: 22px 28px; font-family: var(--mono); font-size: 13px; line-height: 1.8; overflow-x: auto; color: var(--fg); border-bottom: 1px solid var(--line);"><span style="color: var(--fg-dimmer); font-style: italic;"># Test Central Intelligence</span>
+<span style="color: var(--fg-dimmer);">$</span> <span>npx agent-memory-benchmark --provider central-intelligence --api-key $CI_API_KEY</span>
 
-<!-- Benchmark -->
-<section id="benchmark" style="padding: 100px 0; background: linear-gradient(180deg, rgba(109,90,255,0.05) 0%, transparent 100%);">
-  <div class="container" style="max-width: 900px;">
-    <p style="color: var(--accent); font-weight: 600; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px;">Open Source</p>
-    <h2 style="font-size: 42px; font-weight: 700; letter-spacing: -2px; margin-bottom: 16px;">Test it yourself</h2>
-    <p style="color: var(--text-muted); font-size: 18px; line-height: 1.7; margin-bottom: 48px;">Don't take our word for it. We built an open-source benchmark so you can test Central Intelligence against any other memory provider. One command, same tests, comparable results.</p>
-
-    <!-- Terminal -->
-    <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 40px;">
-      <div style="padding: 10px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px;">
-        <div style="width: 12px; height: 12px; border-radius: 50%; background: #ff5f57;"></div>
-        <div style="width: 12px; height: 12px; border-radius: 50%; background: #febc2e;"></div>
-        <div style="width: 12px; height: 12px; border-radius: 50%; background: #28c840;"></div>
-        <span style="color: var(--text-dim); font-size: 12px; margin-left: 8px;">terminal</span>
+<span style="color: var(--fg-dimmer); font-style: italic;"># Test against any MCP server or other providers</span>
+<span style="color: var(--fg-dimmer);">$</span> <span>npx agent-memory-benchmark --provider mem0 --api-key $MEM0_KEY</span>
+<span style="color: var(--fg-dimmer);">$</span> <span>npx agent-memory-benchmark --provider zep --api-key $ZEP_KEY</span>
+<span style="color: var(--fg-dimmer);">$</span> <span>npx agent-memory-benchmark --provider mcp --api-url $MCP_URL</span></pre>
+        <div class="extras">
+          <div class="cell"><h5>56 tests, 8 categories</h5><p>Factual recall, semantic search, temporal reasoning, conflict resolution, forgetting, cross-session, multi-agent, cost.</p></div>
+          <div class="cell"><h5>Deterministic scoring</h5><p>Binary pass/fail on keyword presence. No LLM-as-judge. Same inputs, same scores, every run.</p></div>
+          <div class="cell"><h5>Add your own</h5><p>Implement 5 methods (store, search, delete, init, cleanup). Submit a PR. See where you stand.</p></div>
+        </div>
+        <div class="footnote"><a href="https://github.com/AlekseiMarchenko/agent-memory-benchmark">View on GitHub</a> · <a href="https://www.npmjs.com/package/agent-memory-benchmark">npm: agent-memory-benchmark</a></div>
       </div>
-      <div style="padding: 20px 24px; font-family: var(--mono); font-size: 14px; line-height: 2;">
-        <div style="color: var(--text-dim);"># Test Central Intelligence</div>
-        <div><span style="color: var(--green);">$</span> <span style="color: var(--text);">npx agent-memory-benchmark --provider central-intelligence --api-key $CI_API_KEY</span></div>
-        <br>
-        <div style="color: var(--text-dim);"># Test against Mem0, Zep, or any MCP server</div>
-        <div><span style="color: var(--green);">$</span> <span style="color: var(--text);">npx agent-memory-benchmark --provider mem0 --api-key $MEM0_KEY</span></div>
-        <div><span style="color: var(--green);">$</span> <span style="color: var(--text);">npx agent-memory-benchmark --provider zep --api-key $ZEP_KEY</span></div>
-        <div><span style="color: var(--green);">$</span> <span style="color: var(--text);">npx agent-memory-benchmark --provider mcp --api-url $MCP_URL</span></div>
-      </div>
-    </div>
-
-    <!-- What it tests -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 40px;">
-      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
-        <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px;">56 tests, 8 categories</div>
-        <div style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">Factual recall, semantic search, temporal reasoning, conflict resolution, forgetting, cross-session, multi-agent, cost efficiency</div>
-      </div>
-      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
-        <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px;">Deterministic scoring</div>
-        <div style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">Binary pass/fail on keyword presence. No LLM-as-judge. Same inputs, same scores, every run.</div>
-      </div>
-      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
-        <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px;">Add your own provider</div>
-        <div style="color: var(--text-muted); font-size: 13px; line-height: 1.6;">Implement 5 methods (store, search, delete, init, cleanup). Submit a PR. See where you stand.</div>
-      </div>
-    </div>
-
-    <div style="display: flex; gap: 16px; flex-wrap: wrap;">
-      <a href="https://github.com/AlekseiMarchenko/agent-memory-benchmark" class="btn btn-primary" style="font-size: 14px; padding: 12px 24px;">View on GitHub</a>
-      <a href="https://www.npmjs.com/package/agent-memory-benchmark" class="btn btn-secondary" style="font-size: 14px; padding: 12px 24px;">npm: agent-memory-benchmark</a>
     </div>
   </div>
 </section>
 
-<!-- Memory Dashboard -->
-<section id="dashboard" style="padding: 100px 0; border-bottom: 1px solid var(--border);">
-  <div class="container" style="text-align: center;">
-    <div style="display: inline-block; background: rgba(109, 90, 255, 0.1); border: 1px solid rgba(109, 90, 255, 0.3); border-radius: 20px; padding: 4px 14px; font-size: 13px; color: var(--accent); margin-bottom: 16px;">New</div>
-    <h2 style="font-size: 36px; font-weight: 800; letter-spacing: -1px; margin-bottom: 12px;">See what your AI actually remembers</h2>
-    <p style="color: var(--text-muted); max-width: 520px; margin: 0 auto 32px; font-size: 17px; line-height: 1.6;">
-      Memory dashboard for Claude Code, Cursor, Windsurf, and ChatGPT.
-      Search, clean up duplicates, import from ChatGPT. Free.
-    </p>
+<!-- =================== DASHBOARD =================== -->
+<section id="dashboard">
+  <div class="wrap">
+    <p class="sec-eyebrow"><span class="num">08</span> Dashboard</p>
+    <h2 class="sec-title" data-tone="dash-title">See what your AI actually remembers.</h2>
+    <p class="sec-lede" data-tone="dash-lede">Memory dashboard for Claude Code, Cursor, Windsurf, and ChatGPT. Search, clean up duplicates, import from ChatGPT. Free.</p>
 
-    <a href="/dashboard" style="display:inline-flex;align-items:center;gap:8px;padding:14px 32px;background:var(--accent);color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;text-decoration:none;margin-bottom:40px;transition:background 0.15s;" onmouseover="this.style.background='#5a47e6'" onmouseout="this.style.background='var(--accent)'">Open Memory Dashboard &rarr;</a>
-
-    <!-- Dashboard preview -->
-    <a href="/dashboard" style="display:block;max-width:900px;margin:0 auto;text-decoration:none;transition:transform 0.2s;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:#0d1117;" onmouseover="this.style.transform='translateY(-4px)';this.style.borderColor='var(--accent)'" onmouseout="this.style.transform='';this.style.borderColor='var(--border)'">
-      <div style="background:#21262d;padding:8px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #30363d;">
-        <div style="width:10px;height:10px;border-radius:50%;background:#f85149"></div>
-        <div style="width:10px;height:10px;border-radius:50%;background:#d29922"></div>
-        <div style="width:10px;height:10px;border-radius:50%;background:#3fb950"></div>
-        <span style="color:#8b949e;font-size:12px;margin-left:8px;font-family:var(--mono)">centralintelligence.online/app</span>
+    <div class="dash-card">
+      <div class="dash-head">
+        <span>◉ ◉ ◉</span>
+        <span class="url">centralintelligence.online/app</span>
+        <span>v0.9</span>
       </div>
-      <div style="padding:20px 24px;">
-        <div style="display:flex;gap:16px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
-          <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 18px;text-align:center;">
-            <div style="font-size:32px;font-weight:800;color:#3fb950;">9/10</div>
-            <div style="font-size:11px;color:#8b949e;">Health</div>
-          </div>
-          <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 14px;">
-            <div style="font-size:20px;font-weight:700;color:#58a6ff;">142</div>
-            <div style="font-size:11px;color:#8b949e;">Total</div>
-          </div>
-          <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 14px;">
-            <div style="font-size:20px;font-weight:700;color:#58a6ff;">3</div>
-            <div style="font-size:11px;color:#8b949e;">Agents</div>
-          </div>
-          <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 14px;">
-            <div style="font-size:20px;font-weight:700;color:#d29922;">5</div>
-            <div style="font-size:11px;color:#8b949e;">Stale</div>
-          </div>
-          <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 14px;">
-            <div style="font-size:20px;font-weight:700;color:#f85149;">2</div>
-            <div style="font-size:11px;color:#8b949e;">Duplicates</div>
+      <div class="dash-body">
+        <div class="dash-side">
+          <div class="dash-metric"><div class="k">Health</div><div class="v ok">9/10</div></div>
+          <div class="dash-metric"><div class="k">Total</div><div class="v">142</div></div>
+          <div class="dash-metric"><div class="k">Agents</div><div class="v dim">3</div></div>
+          <div class="dash-metric"><div class="k">Stale</div><div class="v warn">5</div></div>
+          <div class="dash-metric"><div class="k">Duplicates</div><div class="v warn">2</div></div>
+        </div>
+        <div>
+          <div style="margin-bottom: 10px; font-family: var(--mono); font-size: 11px; color: var(--fg-dimmer); text-transform: uppercase; letter-spacing: 0.06em;">Projects: CI Development 30 · Lemon Squeezy 20 · ChatGPT Transfer 39</div>
+          <table class="dash-table">
+            <thead><tr><th>Project</th><th>Source</th><th>Content</th><th>Flags</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><span class="proj">CI Development</span></td>
+                <td><span class="src">claude-code</span></td>
+                <td><span class="content">Phase 1: hosted dashboard. Move from localhost to web app…</span></td>
+                <td><span class="chip fresh">fresh</span></td>
+              </tr>
+              <tr>
+                <td><span class="proj">Lemon Squeezy</span></td>
+                <td><span class="src">chatgpt-transfer</span></td>
+                <td><span class="content">Open-core licensing: MCP server open (trust), CLI closed…</span></td>
+                <td><span class="chip fresh">fresh</span><span class="chip dup">dup</span></td>
+              </tr>
+              <tr>
+                <td><span class="proj">—</span></td>
+                <td><span class="src">cursor</span></td>
+                <td><span class="content">User prefers TypeScript with strict null checks enabled…</span></td>
+                <td><span class="chip aging">aging</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="margin-top: 16px;"><a href="/dashboard" class="btn sm">Open memory dashboard →</a></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== FINAL CTA =================== -->
+<section id="cta" style="border-bottom: none;">
+  <div class="wrap-tight">
+    <div class="mega-cta">
+      <h3 data-tone="cta-title">Give your agent a memory.</h3>
+      <p data-tone="cta-body">One command. Ten seconds. Permanent memory.</p>
+
+      <div class="term" style="text-align: left; margin-bottom: 32px;">
+        <div class="head">
+          <div class="left">
+            <div class="dots"><span></span><span></span><span></span></div>
+            <span>terminal</span>
           </div>
         </div>
-        <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
-          <span style="font-size:11px;color:#8b949e;padding:3px 0;">Projects:</span>
-          <span style="background:#a371f722;color:#a371f7;padding:3px 10px;border-radius:12px;font-size:11px;">CI Development 30</span>
-          <span style="background:#a371f722;color:#a371f7;padding:3px 10px;border-radius:12px;font-size:11px;">Lemon Squeezy 20</span>
-          <span style="background:#a371f722;color:#a371f7;padding:3px 10px;border-radius:12px;font-size:11px;">ChatGPT Transfer 39</span>
-        </div>
-        <div style="border-radius:8px;overflow:hidden;border:1px solid #21262d;">
-          <div style="display:grid;grid-template-columns:30px 140px 100px 1fr 80px 60px;padding:6px 10px;background:#21262d;font-size:11px;color:#8b949e;font-weight:600;text-transform:uppercase;gap:8px;">
-            <span></span><span>Project</span><span>Source</span><span>Content</span><span>Freshness</span><span>Flags</span>
-          </div>
-          <div style="display:grid;grid-template-columns:30px 140px 100px 1fr 80px 60px;padding:8px 10px;font-size:13px;gap:8px;border-top:1px solid #21262d;align-items:center;">
-            <span style="width:14px;height:14px;border:2px solid #30363d;border-radius:3px;display:block;"></span>
-            <span style="background:#a371f722;color:#a371f7;padding:2px 8px;border-radius:4px;font-size:11px;width:fit-content;">CI Development</span>
-            <span style="background:#58a6ff22;color:#58a6ff;padding:2px 6px;border-radius:4px;font-size:11px;width:fit-content;">claude-code</span>
-            <span style="color:#c9d1d9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Phase 1: hosted dashboard. Move from localhost to web app...</span>
-            <span style="color:#3fb950;font-size:12px;">fresh</span>
-            <span></span>
-          </div>
-          <div style="display:grid;grid-template-columns:30px 140px 100px 1fr 80px 60px;padding:8px 10px;font-size:13px;gap:8px;border-top:1px solid #21262d;align-items:center;">
-            <span style="width:14px;height:14px;border:2px solid #30363d;border-radius:3px;display:block;"></span>
-            <span style="background:#a371f722;color:#a371f7;padding:2px 8px;border-radius:4px;font-size:11px;width:fit-content;">Lemon Squeezy</span>
-            <span style="background:#58a6ff22;color:#58a6ff;padding:2px 6px;border-radius:4px;font-size:11px;width:fit-content;">chatgpt-transfer</span>
-            <span style="color:#c9d1d9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Open-core licensing: MCP server open (trust), CLI closed...</span>
-            <span style="color:#3fb950;font-size:12px;">fresh</span>
-            <span style="background:#f8514922;color:#f85149;padding:2px 6px;border-radius:4px;font-size:11px;">dup</span>
-          </div>
-          <div style="display:grid;grid-template-columns:30px 140px 100px 1fr 80px 60px;padding:8px 10px;font-size:13px;gap:8px;border-top:1px solid #21262d;align-items:center;">
-            <span style="width:14px;height:14px;border:2px solid #30363d;border-radius:3px;display:block;"></span>
-            <span style="color:#484f58;">&mdash;</span>
-            <span style="background:#58a6ff22;color:#58a6ff;padding:2px 6px;border-radius:4px;font-size:11px;width:fit-content;">cursor</span>
-            <span style="color:#c9d1d9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">User prefers TypeScript with strict null checks enabled...</span>
-            <span style="color:#d29922;font-size:12px;">aging</span>
-            <span></span>
-          </div>
-        </div>
-        <div style="text-align:center;padding:12px 0 4px;font-size:12px;color:#58a6ff;">Open your memory dashboard &rarr;</div>
+<pre><span class="c-c"># One command — installs and opens the dashboard</span>
+<span class="prompt">$</span> <span class="cmd">npm i -g central-intelligence-local &amp;&amp; ci dashboard</span>
+
+<span class="dim">CI Local Pro — Dashboard</span>
+<span class="ok">→ http://localhost:3141</span>
+<span class="dim">Browser opens automatically</span></pre>
       </div>
-    </a>
 
-    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 24px;">
-      <span style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--text-muted);">Claude Code</span>
-      <span style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--text-muted);">Cursor</span>
-      <span style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--text-muted);">Windsurf</span>
-      <span style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--text-muted);">ChatGPT</span>
+      <div class="cta-row">
+        <a href="https://github.com/AlekseiMarchenko/central-intelligence" class="btn primary">Get started — it's free</a>
+        <a href="/agent" class="btn">Let my agent do it →</a>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- Privacy -->
-<section id="privacy" style="padding: 80px 0 40px;">
-  <div class="container" style="max-width: 760px;">
-    <h2 style="font-size: 32px; font-weight: 700; letter-spacing: -1px; margin-bottom: 24px;">Privacy Policy</h2>
-    <p style="color: var(--text-dim); font-size: 13px; margin-bottom: 32px;">Last updated: March 23, 2026</p>
-
-    <div style="color: var(--text-muted); font-size: 15px; line-height: 1.8;">
-      <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">What we collect</h3>
-      <p>When you use Central Intelligence, we store the memories your agents create (content, tags, embeddings), your API key hash, and basic usage metadata (timestamps, operation counts). We do not collect personal information beyond what you explicitly provide during signup.</p>
-
-      <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">How we use your data</h3>
-      <p>Your memories are used solely to provide the service — storing, searching, and returning them when your agents request them. We do not sell, share, or use your memory content for training AI models. Embeddings are generated via OpenAI's API and stored alongside your memories for semantic search.</p>
-
-      <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">Data storage &amp; security</h3>
-      <p>Data is stored in PostgreSQL on Fly.io infrastructure. API keys are hashed before storage. All API communication is encrypted via TLS. We implement rate limiting, input validation, and SQL injection protection.</p>
-
-      <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">Third-party services</h3>
-      <p>We use OpenAI's embedding API to generate vector embeddings of your memories. Memory content is sent to OpenAI for embedding generation only. No memory content is shared with payment processors.</p>
-
-      <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">Data deletion</h3>
-      <p>You can delete individual memories using the <code style="font-family: var(--mono); background: var(--bg-card); padding: 2px 6px; border-radius: 4px;">forget</code> tool. To delete all data associated with your API key, contact us. Soft-deleted memories are permanently purged within 30 days.</p>
-
-      <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">Contact</h3>
-      <p>For privacy questions, open an issue on <a href="https://github.com/AlekseiMarchenko/central-intelligence" style="color: var(--accent);">GitHub</a> or email the maintainers.</p>
+<!-- =================== PRIVACY / TERMS =================== -->
+<section id="privacy" style="border-bottom: none;">
+  <div class="wrap">
+    <p class="sec-eyebrow"><span class="num">09</span> Fine print</p>
+    <div class="legal">
+      <div class="legal-col">
+        <h3>Privacy Policy</h3>
+        <div class="updated">Last updated: March 23, 2026</div>
+        <h4>What we collect</h4>
+        <p>Memories your agents create (content, tags, embeddings), your API key hash, and basic usage metadata. Nothing personal beyond what you provide at signup.</p>
+        <h4>How we use it</h4>
+        <p>Solely to provide the service — storing, searching, and returning memories your agents request. We do not sell, share, or train models on your content. Embeddings are generated via OpenAI's API.</p>
+        <h4>Storage &amp; security</h4>
+        <p>PostgreSQL on Fly.io. API keys hashed. TLS for all communication. Rate limiting, input validation, SQL injection protection.</p>
+        <h4>Deletion</h4>
+        <p>Delete memories with the <code>forget</code> tool. Full-key deletion: contact us. Soft-deleted memories are purged within 30 days.</p>
+      </div>
+      <div class="legal-col">
+        <h3>Terms of Service</h3>
+        <div class="updated">Last updated: March 23, 2026</div>
+        <h4>Acceptable use</h4>
+        <p>Any lawful purpose. You're responsible for what your agents store. No illegal content, malware, or rights violations. No circumventing rate limits or interfering with the service.</p>
+        <h4>API keys</h4>
+        <p>Keep your key secure. Don't share publicly. Revoke a compromised key via <code>DELETE /keys/revoke</code>. We may suspend abused keys.</p>
+        <h4>Availability</h4>
+        <p>We aim for high availability but do not guarantee uptime. The service is "as is." We are not liable for data loss or damages.</p>
+        <h4>Open source</h4>
+        <p>CI is open source under Apache 2.0. You may self-host the entire stack. These terms apply only to the hosted service.</p>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- Terms -->
-<section id="terms" style="padding: 40px 0 80px;">
-  <div class="container" style="max-width: 760px;">
-    <h2 style="font-size: 32px; font-weight: 700; letter-spacing: -1px; margin-bottom: 24px;">Terms of Service</h2>
-    <p style="color: var(--text-dim); font-size: 13px; margin-bottom: 32px;">Last updated: March 23, 2026</p>
-
-    <div style="color: var(--text-muted); font-size: 15px; line-height: 1.8;">
-      <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">Service</h3>
-      <p>Central Intelligence provides a persistent memory API for AI agents. By using the service, you agree to these terms.</p>
-
-      <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">Acceptable use</h3>
-      <p>You may use the service for any lawful purpose. You are responsible for the content your agents store. Do not use the service to store illegal content, malware, or content that violates others' rights. Do not attempt to circumvent rate limits, exploit vulnerabilities, or interfere with the service.</p>
-
-      <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">API keys &amp; access</h3>
-      <p>You are responsible for keeping your API key secure. Do not share your API key publicly. If your key is compromised, revoke it immediately via <code style="font-family: var(--mono); background: var(--bg-card); padding: 2px 6px; border-radius: 4px;">DELETE /keys/revoke</code>. We may suspend keys that violate these terms or are used for abuse.</p>
-
-      <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">Payments</h3>
-      <p>Free tier includes 500 operations per month. Paid plans available for higher usage. See pricing section for details.</p>
-
-      <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">Service availability</h3>
-      <p>We aim for high availability but do not guarantee uptime. The service is provided "as is" without warranties. We are not liable for data loss, downtime, or damages arising from use of the service.</p>
-
-      <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">Open source</h3>
-      <p>Central Intelligence is open source under the MIT License. You may self-host the entire stack. These terms apply only to the hosted service at central-intelligence-api.fly.dev.</p>
-
-      <h3 style="color: var(--text); font-size: 18px; margin: 24px 0 12px;">Changes</h3>
-      <p>We may update these terms. Continued use of the service constitutes acceptance of updated terms. Material changes will be communicated via the GitHub repository.</p>
-    </div>
-  </div>
-</section>
-
-<!-- Footer -->
 <footer>
-  <div class="container">
-    <span class="copy">Central Intelligence — Agents forget. CI remembers.</span>
-    <div class="footer-links">
+  <div class="wrap row">
+    <div>Central Intelligence · Agents forget. CI remembers.</div>
+    <div class="links">
       <a href="https://github.com/AlekseiMarchenko/central-intelligence">GitHub</a>
       <a href="https://central-intelligence-api.fly.dev/docs">Docs</a>
       <a href="#privacy">Privacy</a>
-      <a href="#terms">Terms</a>
+      <a href="#privacy">Terms</a>
+      <a href="/agent">/agent</a>
     </div>
   </div>
 </footer>
 
-</body>
-</html>
+<!-- Tweaks -->
+<div class="tweaks-panel" id="tweaks">
+  <div class="th">
+    <span class="t">Tweaks</span>
+    <span class="x" id="closeTweaks">×</span>
+  </div>
+  <div class="body">
+    <label>Tone of copy</label>
+    <div class="radio" id="toneRadio">
+      <button data-tone="friendly" class="active">Friendly but precise</button>
+      <button data-tone="terse">Technical · terse</button>
+      <button data-tone="playful">Playful</button>
+    </div>
+    <div class="note">Rewrites taglines and section ledes across the page.</div>
+  </div>
+</div>
+
+<script>
+// ============ Main landing JS ============
+
+// --- Integration configs ---
+const INTEGRATIONS = {
+  claude: {
+    name: 'Claude Code',
+    kind: 'MCP config',
+    intro: 'One command — gets your API key and configures everything:',
+    code1: 'npx central-intelligence-local signup',
+    intro2: 'Or add manually to ~/.claude/settings.json:',
+    code2: `{
+  "mcpServers": {
+    "central-intelligence": {
+      "command": "npx",
+      "args": ["central-intelligence-mcp"],
+      "env": { "CI_API_KEY": "YOUR_KEY" }
+    }
+  }
+}`
+  },
+  cursor: {
+    name: 'Cursor',
+    kind: 'MCP config',
+    intro: 'One command — gets your API key and configures everything:',
+    code1: 'npx central-intelligence-local signup',
+    intro2: 'Or add to ~/.cursor/mcp.json:',
+    code2: `{
+  "mcpServers": {
+    "central-intelligence": {
+      "command": "npx",
+      "args": ["central-intelligence-mcp"],
+      "env": { "CI_API_KEY": "YOUR_KEY" }
+    }
+  }
+}`
+  },
+  windsurf: {
+    name: 'Windsurf',
+    kind: 'MCP config',
+    intro: 'One command — gets your API key and configures everything:',
+    code1: 'npx central-intelligence-local signup',
+    intro2: 'Or add to ~/.codeium/windsurf/mcp_config.json:',
+    code2: `{
+  "mcpServers": {
+    "central-intelligence": {
+      "command": "npx",
+      "args": ["central-intelligence-mcp"],
+      "env": { "CI_API_KEY": "YOUR_KEY" }
+    }
+  }
+}`
+  },
+  copilot: {
+    name: 'GitHub Copilot',
+    kind: 'MCP server',
+    intro: 'In VS Code, add to .vscode/mcp.json:',
+    code1: `{
+  "servers": {
+    "central-intelligence": {
+      "command": "npx",
+      "args": ["central-intelligence-mcp"],
+      "env": { "CI_API_KEY": "YOUR_KEY" }
+    }
+  }
+}`,
+    intro2: 'Copilot Agent Mode will automatically discover CI\'s tools — remember, recall, context, forget, and share.',
+    code2: null
+  },
+  openai: {
+    name: 'OpenAI',
+    kind: 'ChatGPT + Codex',
+    intro: 'ChatGPT — Custom GPT Actions. GPT Editor → Configure → Actions → Import from URL:',
+    code1: 'https://central-intelligence-api.fly.dev/docs/openapi.json',
+    intro2: 'Codex CLI — MCP server:',
+    code2: `codex mcp add central-intelligence \\
+  --env CI_API_KEY="ci_sk_..." \\
+  -- npx central-intelligence-mcp`
+  },
+  langchain: {
+    name: 'LangChain',
+    kind: 'pip install',
+    intro: 'Install:',
+    code1: 'pip install central-intelligence[langchain]',
+    intro2: 'Use in your agent:',
+    code2: `from central_intelligence import get_ci_tools
+
+tools = get_ci_tools(api_key="ci_sk_...")
+agent = initialize_agent(tools=tools, llm=llm)`
+  },
+  crewai: {
+    name: 'CrewAI',
+    kind: 'pip install',
+    intro: 'Install:',
+    code1: 'pip install central-intelligence[crewai]',
+    intro2: 'Use in your crew:',
+    code2: `from central_intelligence import get_ci_tools
+
+tools = get_ci_tools(api_key="ci_sk_...")
+agent = Agent(role="researcher", tools=tools)`
+  },
+  lovable: {
+    name: 'Lovable',
+    kind: 'MCP connector',
+    intro: 'Settings → Connectors → Personal connectors → New MCP server. Enter the server URL:',
+    code1: 'https://central-intelligence-api.fly.dev/mcp',
+    intro2: 'Set Auth: Bearer token with your ci_sk_... API key. Your Lovable agent now remembers everything across sessions.',
+    code2: null
+  },
+  antigravity: {
+    name: 'Antigravity',
+    kind: 'MCP server',
+    intro: 'Settings → MCP Servers → Add Server. Add the server config:',
+    code1: `{
+  "central-intelligence": {
+    "command": "npx",
+    "args": ["central-intelligence-mcp"],
+    "env": { "CI_API_KEY": "YOUR_KEY" }
+  }
+}`,
+    intro2: 'Perfect for Antigravity\'s multi-agent mode — all agents share memory so Agent 1\'s decisions are instantly visible to Agents 2 and 3.',
+    code2: null
+  },
+  perplexity: {
+    name: 'Perplexity',
+    kind: 'MCP connector',
+    intro: 'Settings → MCP → Add Custom Connector. Enter the MCP server URL:',
+    code1: 'npx central-intelligence-mcp',
+    intro2: 'Set authentication to API Key and enter your ci_sk_... key. Your Perplexity sessions now have persistent memory.',
+    code2: null
+  },
+  openclaw: {
+    name: 'OpenClaw',
+    kind: 'Skill file',
+    intro: 'Set your API key:',
+    code1: 'export CI_API_KEY=ci_sk_your_key',
+    intro2: 'The skill is available in the OpenClaw skills repo. Agents can use remember, recall, context, forget, and share via REST calls.',
+    code2: null
+  },
+  rest: {
+    name: 'REST API',
+    kind: 'Any language',
+    intro: 'Works with any HTTP client — Python, Node, Go, curl:',
+    code1: `curl -X POST https://central-intelligence-api.fly.dev/memories/recall \\
+  -H "Authorization: Bearer ci_sk_..." \\
+  -H "Content-Type: application/json" \\
+  -d '{"agent_id": "my-agent", "query": "project architecture"}'`,
+    intro2: null,
+    code2: null
+  }
+};
+
+function renderIntegration(key) {
+  const cfg = INTEGRATIONS[key];
+  if (!cfg) return;
+  document.getElementById('integName').textContent = cfg.name;
+  document.getElementById('integKind').textContent = cfg.kind;
+  const body = document.getElementById('integBody');
+  let html = '';
+  if (cfg.intro) html += `<p>${cfg.intro}</p>`;
+  if (cfg.code1) html += `<pre>${escapeHtml(cfg.code1)}</pre>`;
+  if (cfg.intro2) html += `<p style="margin-top: 14px;">${cfg.intro2}</p>`;
+  if (cfg.code2) html += `<pre>${escapeHtml(cfg.code2)}</pre>`;
+  body.innerHTML = html;
+
+  document.querySelectorAll('#integGrid .integ').forEach(b => {
+    b.classList.toggle('active', b.dataset.integ === key);
+  });
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+}
+
+document.querySelectorAll('#integGrid .integ').forEach(b => {
+  b.addEventListener('click', () => renderIntegration(b.dataset.integ));
+});
+renderIntegration('claude');
+
+// --- Tone tweaks ---
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "tone": "friendly"
+}/*EDITMODE-END*/;
+
+const COPY = {
+  friendly: {
+    'title': ['<span class="strike">Agents forget.</span><br />CI <span class="hl">remembers.</span>'],
+    'lede': ['Persistent memory for AI agents. <strong>Store, recall, and share knowledge</strong> across sessions — five MCP tools, any agent, any editor. Set up in 30 seconds.'],
+    'cta-primary': ['Get your API key'],
+    'cta-agent': ['<span style="color: var(--accent)">⎘</span><span>Let my agent set it up →</span>'],
+    'cta-local': ['Run locally'],
+    'meta-1': ['30-second install'],
+    'meta-2': ['500 memories free'],
+    'meta-3': ['Apache 2.0 · self-host'],
+    'meta-4': ['52.2% LifeBench'],
+    'problem-title': ['Every agent session starts from zero.'],
+    'problem-lede': ['Your agent learns your preferences, understands your codebase, figures out your architecture. Then the session ends and it forgets everything. Next session — same questions, same mistakes, same context-building from scratch.'],
+    'stat-1': ['of agent session time is spent re-establishing context.'],
+    'stat-2': ['memories retained between sessions by default.'],
+    'agent-banner-sub': ['A dedicated page with copy-pasteable instructions — point your coding agent at it and walk away.'],
+    'tools-title': ['Five tools. Infinite memory.'],
+    'tools-lede': ['Everything your agent needs to remember, delivered as MCP tools. Each also available as a REST endpoint.'],
+    'scopes-title': ['Memory that scales with your team.'],
+    'scopes-lede': ['Three scopes let you control exactly who knows what.'],
+    'integ-title': ['Works with everything.'],
+    'integ-lede': ['Click any platform for setup instructions. Every path takes about 30 seconds.'],
+    'local-title': ['Your data never leaves your machine — unless you want it to.'],
+    'local-lede': ['CI Local runs entirely on your machine. SQLite database, local embeddings, zero cloud dependencies. No signup, no API key, no trust required.'],
+    'pricing-title': ['Start free. Scale when ready.'],
+    'pricing-lede': ['Generous free tier. No credit card required.'],
+    'bench-title': ['Measured, not marketed.'],
+    'bench-lede': ['Two of the hardest memory benchmarks published. Open-source harness if you want to reproduce.'],
+    'dash-title': ['See what your AI actually remembers.'],
+    'dash-lede': ['Memory dashboard for Claude Code, Cursor, Windsurf, and ChatGPT. Search, clean up duplicates, import from ChatGPT. Free.'],
+    'cta-title': ['Give your agent a memory.'],
+    'cta-body': ['One command. Ten seconds. Permanent memory.']
+  },
+  terse: {
+    'title': ['<span class="strike">Agents forget.</span><br /><span class="hl">CI remembers.</span>'],
+    'lede': ['Persistent memory for AI agents. Five MCP tools. Any editor. 30s install.'],
+    'cta-primary': ['Get API key'],
+    'cta-agent': ['<span style="color: var(--accent)">⎘</span><span>Agent install →</span>'],
+    'cta-local': ['Local install'],
+    'meta-1': ['30s install'],
+    'meta-2': ['500 free'],
+    'meta-3': ['Apache 2.0'],
+    'meta-4': ['52.2% LifeBench'],
+    'problem-title': ['Zero state. Every session.'],
+    'problem-lede': ['Agents relearn your stack every session. 40% of session time wasted. Memory fixes it.'],
+    'stat-1': ['of session time re-establishing context.'],
+    'stat-2': ['memories retained by default.'],
+    'agent-banner-sub': ['Copy-pasteable instructions. Point your agent. Done.'],
+    'tools-title': ['Five tools.'],
+    'tools-lede': ['MCP + REST. Use what you have.'],
+    'scopes-title': ['Three scopes.'],
+    'scopes-lede': ['Agent → user → org. Exact visibility control.'],
+    'integ-title': ['Integrations.'],
+    'integ-lede': ['12 platforms. Same 30s setup.'],
+    'local-title': ['Local or cloud. You choose.'],
+    'local-lede': ['SQLite + local embeddings. Or hosted with sync. Same API.'],
+    'pricing-title': ['Free to start.'],
+    'pricing-lede': ['No credit card.'],
+    'bench-title': ['Benchmarks.'],
+    'bench-lede': ['Two standard harnesses. Reproducible.'],
+    'dash-title': ['Dashboard.'],
+    'dash-lede': ['Search. Dedupe. Import. Free.'],
+    'cta-title': ['Install CI.'],
+    'cta-body': ['One command.']
+  },
+  playful: {
+    'title': ['<span class="strike">Agents forget.</span><br />CI <span class="hl">never does.</span>'],
+    'lede': ['Your agent learns something brilliant. Then the session ends and it forgets. CI is the memory upgrade — five tools, any editor, thirty seconds, zero drama.'],
+    'cta-primary': ['Give me a key'],
+    'cta-agent': ['<span style="color: var(--accent)">⎘</span><span>My agent does it →</span>'],
+    'cta-local': ['Keep it local'],
+    'meta-1': ['30s install (honestly)'],
+    'meta-2': ['500 memories, free'],
+    'meta-3': ['Apache 2.0 forever'],
+    'meta-4': ['52.2% on LifeBench'],
+    'problem-title': ['Goldfish agents. We can do better.'],
+    'problem-lede': ['Every session: "what framework?", "what code style?", "how does auth work?". Your agent isn\'t dumb — it just has no memory. Until now.'],
+    'stat-1': ['of session time: agents re-learning what you already told them.'],
+    'stat-2': ['memories your agent keeps by default. Cool, right?'],
+    'agent-banner-sub': ['Point your agent at /agent and sip a coffee while it installs itself.'],
+    'tools-title': ['Five tools. That\'s it.'],
+    'tools-lede': ['remember, recall, context, share, forget. Ship it.'],
+    'scopes-title': ['Scope: you decide who knows what.'],
+    'scopes-lede': ['Private to one agent. Shared across yours. Or the whole org. Dealer\'s choice.'],
+    'integ-title': ['Works everywhere your agent lives.'],
+    'integ-lede': ['Twelve platforms below. Pick yours.'],
+    'local-title': ['Your data, your machine. Or ours.'],
+    'local-lede': ['Run local with SQLite and zero trust. Or use cloud for cross-device sync. Same API either way.'],
+    'pricing-title': ['Generous free tier, promise.'],
+    'pricing-lede': ['No card. No hassle. Scale when it hurts.'],
+    'bench-title': ['Numbers, not vibes.'],
+    'bench-lede': ['Two hard benchmarks. Open harness. Reproduce away.'],
+    'dash-title': ['Peek inside your agent\'s brain.'],
+    'dash-lede': ['Dashboard for all the major editors. Free. Honestly kind of fun.'],
+    'cta-title': ['Give your agent a memory.'],
+    'cta-body': ['One line. Ten seconds. Permanent.']
+  }
+};
+
+function applyTone(tone) {
+  const copy = COPY[tone];
+  if (!copy) return;
+  for (const key of Object.keys(copy)) {
+    document.querySelectorAll('[data-tone="' + key + '"]').forEach(el => {
+      el.innerHTML = copy[key][0];
+    });
+  }
+  document.querySelectorAll('#toneRadio button').forEach(b => {
+    b.classList.toggle('active', b.dataset.tone === tone);
+  });
+}
+
+applyTone(TWEAK_DEFAULTS.tone || 'friendly');
+
+document.querySelectorAll('#toneRadio button').forEach(b => {
+  b.addEventListener('click', () => {
+    applyTone(b.dataset.tone);
+    try { window.parent.postMessage({type: '__edit_mode_set_keys', edits: {tone: b.dataset.tone}}, '*'); } catch (e) {}
+  });
+});
+
+document.getElementById('closeTweaks').addEventListener('click', () => {
+  document.getElementById('tweaks').classList.remove('on');
+});
+
+window.addEventListener('message', (e) => {
+  const d = e.data || {};
+  if (d.type === '__activate_edit_mode') document.getElementById('tweaks').classList.add('on');
+  else if (d.type === '__deactivate_edit_mode') document.getElementById('tweaks').classList.remove('on');
+});
+try { window.parent.postMessage({type: '__edit_mode_available'}, '*'); } catch (e) {}
+
+// --- CRT view toggle (persists across /vt220/* umbrella via localStorage) ---
+(function () {
+  try {
+    if (localStorage.getItem('ci-vt220-mode') === 'classic') {
+      document.body.classList.add('classic');
+    }
+  } catch (e) {}
+  var vt = document.getElementById('viewToggle');
+  if (!vt) return;
+  vt.addEventListener('click', function () {
+    document.body.classList.toggle('classic');
+    var mode = document.body.classList.contains('classic') ? 'classic' : 'vt220';
+    try { localStorage.setItem('ci-vt220-mode', mode); } catch (e) {}
+  });
+})();
+
+</script>
+
+
+</body></html>
