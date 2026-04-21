@@ -421,6 +421,20 @@ body.classic * { text-shadow: none !important; }
 body.classic .brand .dot,
 body.classic .pill .blink { box-shadow: none !important; }
 
+/* Scanline hover shift — hovering any terminal card nudges the global scanlines
+   by 1px. "Refresh beam passed over this surface" mental model. Honors
+   prefers-reduced-motion + no-ops under body.classic (scanlines hidden). */
+body::before { transition: background-position 120ms ease-out; }
+body:has(.term:hover, .agent-card:hover, .verify-term:hover, .code-block:hover, .cmd-box:hover, .instruction-card:hover)::before {
+  background-position: 0 1px;
+}
+@media (prefers-reduced-motion: reduce) {
+  body::before { transition: none !important; }
+  body:has(.term:hover, .agent-card:hover, .verify-term:hover, .code-block:hover, .cmd-box:hover, .instruction-card:hover)::before {
+    background-position: 0 0 !important;
+  }
+}
+
 </style>
 </head>
 <body>
