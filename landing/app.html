@@ -10,122 +10,134 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/brand/favicon-16.png?v=brandv2">
   <link rel="apple-touch-icon" sizes="180x180" href="/brand/favicon-180.png?v=brandv2">
   <link rel="manifest" href="/site.webmanifest">
-  <meta name="theme-color" content="#09090b">
+  <meta name="theme-color" content="#050d18">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=VT323&display=swap" rel="stylesheet">
+
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #c9d1d9; padding: 24px; min-height: 100vh; }
-    h1 { color: #fafafa; margin-bottom: 8px; font-size: 24px; }
-    h1 span { color: #6d5aff; }
-    .subtitle { color: #8b949e; margin-bottom: 24px; }
+    body {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      background: radial-gradient(1400px 800px at 50% 20%, rgba(184,238,240,0.05), transparent 70%), #050d18;
+      color: #b8eef0;
+      padding: 24px;
+      min-height: 100vh;
+      -webkit-font-smoothing: subpixel-antialiased;
+      line-height: 1.55;
+    }
+    h1 { color: #dff6f7; margin-bottom: 8px; font-size: 24px; text-shadow: 0 0 10px rgba(184,238,240,0.55); font-weight: 600; }
+    h1 span { color: #b8eef0; }
+    .subtitle { color: #7bbec0; margin-bottom: 24px; }
     .toolbar { display: flex; gap: 12px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
-    .search-box { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 8px 12px; color: #c9d1d9; font-size: 14px; outline: none; }
-    .search-box:focus { border-color: #58a6ff; }
-    .btn { padding: 8px 16px; border-radius: 6px; border: 1px solid #30363d; background: #21262d; color: #c9d1d9; cursor: pointer; font-size: 13px; }
-    .btn:hover { background: #30363d; }
-    .btn-danger { border-color: #f8514933; color: #f85149; }
-    .btn-danger:hover { background: #f8514922; }
-    .btn-primary { border-color: #58a6ff33; color: #58a6ff; }
-    .btn-primary:hover { background: #58a6ff22; }
-    .score-card { display: inline-block; background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px 24px; margin-bottom: 16px; }
+    .search-box { background: #081523; border: 1px solid #144568; border-radius: 6px; padding: 8px 12px; color: #b8eef0; font-size: 14px; outline: none; }
+    .search-box:focus { border-color: #b8eef0; }
+    .btn { padding: 8px 16px; border-radius: 6px; border: 1px solid #144568; background: #0a1e2e; color: #b8eef0; cursor: pointer; font-size: 13px; }
+    .btn:hover { background: #144568; }
+    .btn-danger { border-color: rgba(255,138,138,0.2); color: #ff8a8a; }
+    .btn-danger:hover { background: rgba(255,138,138,0.13); }
+    .btn-primary { border-color: rgba(184,238,240,0.2); color: #b8eef0; }
+    .btn-primary:hover { background: rgba(184,238,240,0.13); }
+    .score-card { display: inline-block; background: #081523; border: 1px solid #144568; border-radius: 8px; padding: 16px 24px; margin-bottom: 16px; }
     .score-num { font-size: 48px; font-weight: bold; }
-    .score-label { color: #8b949e; font-size: 14px; }
-    .score-good { color: #3fb950; }
-    .score-warn { color: #d29922; }
-    .score-bad { color: #f85149; }
+    .score-label { color: #7bbec0; font-size: 14px; }
+    .score-good { color: #7edc8f; }
+    .score-warn { color: #f2b85c; }
+    .score-bad { color: #ff8a8a; }
     .stats { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
-    .stat { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 10px 14px; min-width: 100px; }
-    .stat-num { font-size: 22px; font-weight: bold; color: #58a6ff; }
-    .stat-label { font-size: 11px; color: #8b949e; }
-    .selection-bar { background: #161b22; border: 1px solid #58a6ff33; border-radius: 6px; padding: 8px 16px; margin-bottom: 12px; display: none; align-items: center; gap: 12px; font-size: 13px; }
+    .stat { background: #081523; border: 1px solid #144568; border-radius: 8px; padding: 10px 14px; min-width: 100px; }
+    .stat-num { font-size: 22px; font-weight: bold; color: #b8eef0; }
+    .stat-label { font-size: 11px; color: #7bbec0; }
+    .selection-bar { background: #081523; border: 1px solid rgba(184,238,240,0.2); border-radius: 6px; padding: 8px 16px; margin-bottom: 12px; display: none; align-items: center; gap: 12px; font-size: 13px; }
     .selection-bar.active { display: flex; }
-    table { width: 100%; border-collapse: collapse; background: #161b22; border-radius: 8px; overflow: hidden; }
-    th { text-align: left; padding: 8px 12px; background: #21262d; color: #8b949e; font-size: 12px; font-weight: 600; text-transform: uppercase; }
-    td { padding: 8px 12px; border-top: 1px solid #21262d; font-size: 14px; }
+    table { width: 100%; border-collapse: collapse; background: #081523; border-radius: 8px; overflow: hidden; }
+    th { text-align: left; padding: 8px 12px; background: #0a1e2e; color: #7bbec0; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+    td { padding: 8px 12px; border-top: 1px solid #0a1e2e; font-size: 14px; }
     td.content-cell { max-width: 500px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    tr.selected { background: #58a6ff11; }
-    tr:hover { background: #161b2288; }
-    input[type="checkbox"] { accent-color: #58a6ff; width: 16px; height: 16px; cursor: pointer; }
-    .tag-fresh { color: #3fb950; }
-    .tag-aging { color: #d29922; }
-    .tag-stale { color: #f85149; }
-    .tag-dup { background: #f8514922; color: #f85149; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
-    .tag-source { background: #58a6ff22; color: #58a6ff; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
-    .tag-tag { background: #8b949e22; color: #8b949e; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 4px; }
-    .tag-project { background: #a371f722; color: #a371f7; padding: 2px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; }
-    .tag-project:hover { background: #a371f744; }
+    tr.selected { background: rgba(184,238,240,0.07); }
+    tr:hover { background: rgba(8,21,35,0.53); }
+    input[type="checkbox"] { accent-color: #b8eef0; width: 16px; height: 16px; cursor: pointer; }
+    .tag-fresh { color: #7edc8f; }
+    .tag-aging { color: #f2b85c; }
+    .tag-stale { color: #ff8a8a; }
+    .tag-dup { background: rgba(255,138,138,0.13); color: #ff8a8a; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    .tag-source { background: rgba(184,238,240,0.13); color: #b8eef0; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    .tag-tag { background: rgba(123,190,192,0.13); color: #7bbec0; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 4px; }
+    .tag-project { background: rgba(242,184,92,0.13); color: #f2b85c; padding: 2px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+    .tag-project:hover { background: rgba(242,184,92,0.27); }
     .project-bar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
-    .project-chip { background: #161b22; border: 1px solid #30363d; border-radius: 16px; padding: 4px 12px; font-size: 12px; color: #c9d1d9; cursor: pointer; }
-    .project-chip:hover { border-color: #a371f7; color: #a371f7; }
-    .project-chip.active { border-color: #a371f7; background: #a371f722; color: #a371f7; }
-    .project-chip .count { color: #8b949e; margin-left: 4px; }
-    .search-mode { font-size: 11px; color: #8b949e; margin-left: 8px; }
-    .similarity { font-size: 11px; color: #8b949e; }
-    .toast { position: fixed; bottom: 24px; right: 24px; background: #3fb950; color: #0d1117; padding: 12px 20px; border-radius: 8px; font-weight: 600; display: none; z-index: 100; }
-    .toast.error { background: #f85149; color: white; }
-    .empty { color: #484f58; text-align: center; padding: 40px; }
+    .project-chip { background: #081523; border: 1px solid #144568; border-radius: 16px; padding: 4px 12px; font-size: 12px; color: #b8eef0; cursor: pointer; }
+    .project-chip:hover { border-color: #f2b85c; color: #f2b85c; }
+    .project-chip.active { border-color: #f2b85c; background: rgba(242,184,92,0.13); color: #f2b85c; }
+    .project-chip .count { color: #7bbec0; margin-left: 4px; }
+    .search-mode { font-size: 11px; color: #7bbec0; margin-left: 8px; }
+    .similarity { font-size: 11px; color: #7bbec0; }
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #7edc8f; color: #050d18; padding: 12px 20px; border-radius: 8px; font-weight: 600; display: none; z-index: 100; }
+    .toast.error { background: #ff8a8a; color: #050d18; }
+    .empty { color: #4a8587; text-align: center; padding: 40px; }
     .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
-    .btn-transfer { background: #7c3aed; color: white; border: none; border-radius: 8px; padding: 10px 18px; cursor: pointer; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: background 0.15s; }
-    .btn-transfer:hover { background: #6d28d9; }
+    .btn-transfer { background: #b8eef0; color: #050d18; border: none; border-radius: 8px; padding: 10px 18px; cursor: pointer; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: background 0.15s; }
+    .btn-transfer:hover { background: #dff6f7; }
     .btn-transfer svg { width: 16px; height: 16px; }
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 200; align-items: center; justify-content: center; }
     .modal-overlay.active { display: flex; }
-    .modal { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 32px; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto; position: relative; }
-    .modal-close { position: absolute; top: 12px; right: 16px; background: none; border: none; color: #8b949e; font-size: 24px; cursor: pointer; }
-    .modal-close:hover { color: #c9d1d9; }
-    .transfer-section h2 { font-size: 18px; margin-bottom: 8px; color: #c9d1d9; }
-    .transfer-section p { color: #8b949e; font-size: 14px; margin-bottom: 16px; line-height: 1.6; }
-    .prompt-box { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 16px; font-family: monospace; font-size: 13px; color: #c9d1d9; line-height: 1.6; white-space: pre-wrap; position: relative; margin-bottom: 16px; }
-    .prompt-copy { position: absolute; top: 8px; right: 8px; background: #58a6ff; color: #0d1117; border: none; border-radius: 6px; padding: 6px 14px; cursor: pointer; font-size: 12px; font-weight: 600; }
-    .prompt-copy:hover { background: #79b8ff; }
+    .modal { background: #081523; border: 1px solid #144568; border-radius: 12px; padding: 32px; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto; position: relative; }
+    .modal-close { position: absolute; top: 12px; right: 16px; background: none; border: none; color: #7bbec0; font-size: 24px; cursor: pointer; }
+    .modal-close:hover { color: #b8eef0; }
+    .transfer-section h2 { font-size: 18px; margin-bottom: 8px; color: #b8eef0; }
+    .transfer-section p { color: #7bbec0; font-size: 14px; margin-bottom: 16px; line-height: 1.6; }
+    .prompt-box { background: #050d18; border: 1px solid #144568; border-radius: 8px; padding: 16px; font-family: monospace; font-size: 13px; color: #b8eef0; line-height: 1.6; white-space: pre-wrap; position: relative; margin-bottom: 16px; }
+    .prompt-copy { position: absolute; top: 8px; right: 8px; background: #b8eef0; color: #050d18; border: none; border-radius: 6px; padding: 6px 14px; cursor: pointer; font-size: 12px; font-weight: 600; }
+    .prompt-copy:hover { background: #dff6f7; }
     .transfer-steps { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
-    .transfer-step { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; flex: 1; min-width: 200px; }
-    .transfer-step-num { display: inline-block; width: 24px; height: 24px; border-radius: 50%; background: #58a6ff22; color: #58a6ff; text-align: center; line-height: 24px; font-size: 12px; font-weight: 700; margin-bottom: 8px; }
+    .transfer-step { background: #081523; border: 1px solid #144568; border-radius: 8px; padding: 16px; flex: 1; min-width: 200px; }
+    .transfer-step-num { display: inline-block; width: 24px; height: 24px; border-radius: 50%; background: rgba(184,238,240,0.13); color: #b8eef0; text-align: center; line-height: 24px; font-size: 12px; font-weight: 700; margin-bottom: 8px; }
     .transfer-step h3 { font-size: 14px; margin-bottom: 4px; }
-    .transfer-step p { font-size: 12px; color: #8b949e; margin-bottom: 0; }
+    .transfer-step p { font-size: 12px; color: #7bbec0; margin-bottom: 0; }
 
     /* --- Auth --- */
     .auth-wrap { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 48px); }
-    .auth-card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 40px; max-width: 420px; width: 100%; }
-    .auth-card h2 { font-size: 22px; margin-bottom: 6px; color: #c9d1d9; }
-    .auth-card p { color: #8b949e; font-size: 14px; margin-bottom: 24px; }
-    .auth-card label { display: block; font-size: 12px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .auth-card { background: #081523; border: 1px solid #144568; border-radius: 12px; padding: 40px; max-width: 420px; width: 100%; }
+    .auth-card h2 { font-size: 22px; margin-bottom: 6px; color: #b8eef0; }
+    .auth-card p { color: #7bbec0; font-size: 14px; margin-bottom: 24px; }
+    .auth-card label { display: block; font-size: 12px; color: #7bbec0; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
     .auth-card .form-group { margin-bottom: 20px; }
-    .auth-input { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px 14px; color: #c9d1d9; font-size: 14px; width: 100%; outline: none; }
-    .auth-input:focus { border-color: #58a6ff; }
-    .auth-btn { width: 100%; padding: 12px; background: #58a6ff; color: #0d1117; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
-    .auth-btn:hover { background: #79b8ff; }
+    .auth-input { background: #050d18; border: 1px solid #144568; border-radius: 6px; padding: 10px 14px; color: #b8eef0; font-size: 14px; width: 100%; outline: none; }
+    .auth-input:focus { border-color: #b8eef0; }
+    .auth-btn { width: 100%; padding: 12px; background: #b8eef0; color: #050d18; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .auth-btn:hover { background: #dff6f7; }
     .auth-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .auth-link { color: #58a6ff; text-decoration: none; font-size: 13px; cursor: pointer; }
+    .auth-link { color: #b8eef0; text-decoration: none; font-size: 13px; cursor: pointer; }
     .auth-link:hover { text-decoration: underline; }
-    .auth-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: #484f58; font-size: 12px; }
-    .auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: #30363d; }
-    .auth-error { background: #f8514922; color: #f85149; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; display: none; }
-    .auth-right { position: fixed; top: 16px; right: 24px; display: flex; align-items: center; gap: 12px; font-size: 13px; color: #8b949e; z-index: 50; }
+    .auth-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: #4a8587; font-size: 12px; }
+    .auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: #144568; }
+    .auth-error { background: rgba(255,138,138,0.13); color: #ff8a8a; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; display: none; }
+    .auth-right { position: fixed; top: 16px; right: 24px; display: flex; align-items: center; gap: 12px; font-size: 13px; color: #7bbec0; z-index: 50; }
 
     /* --- Onboarding --- */
     .onboard-wrap { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 48px); text-align: center; }
     .onboard { max-width: 560px; width: 100%; position: relative; }
     .onboard-glow { position: absolute; top: -80px; left: 50%; transform: translateX(-50%); width: 400px; height: 400px; background: radial-gradient(circle, rgba(88,166,255,0.08) 0%, transparent 70%); pointer-events: none; }
-    .onboard h2 { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px; color: #c9d1d9; }
-    .onboard .sub { color: #8b949e; font-size: 16px; margin-bottom: 40px; }
-    .terminal-box { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 20px 24px; text-align: left; }
+    .onboard h2 { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px; color: #b8eef0; }
+    .onboard .sub { color: #7bbec0; font-size: 16px; margin-bottom: 40px; }
+    .terminal-box { background: #081523; border: 1px solid #144568; border-radius: 12px; padding: 20px 24px; text-align: left; }
     .terminal-dots { display: flex; gap: 6px; margin-bottom: 14px; }
     .terminal-dots span { width: 10px; height: 10px; border-radius: 50%; }
-    .terminal-dots span:nth-child(1) { background: #f85149; }
-    .terminal-dots span:nth-child(2) { background: #d29922; }
-    .terminal-dots span:nth-child(3) { background: #3fb950; }
+    .terminal-dots span:nth-child(1) { background: #ff8a8a; }
+    .terminal-dots span:nth-child(2) { background: #f2b85c; }
+    .terminal-dots span:nth-child(3) { background: #7edc8f; }
     .cmd-row { display: flex; align-items: center; gap: 12px; }
-    .cmd-prompt { color: #8b949e; font-family: monospace; font-size: 14px; }
-    .cmd-text { font-family: monospace; font-size: 15px; color: #3fb950; flex: 1; }
-    .cmd-copy { background: #21262d; border: 1px solid #30363d; color: #8b949e; padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; }
-    .cmd-copy:hover { color: #c9d1d9; border-color: #58a6ff; }
-    .onboard-hint { color: #8b949e; font-size: 13px; margin-top: 20px; }
+    .cmd-prompt { color: #7bbec0; font-family: monospace; font-size: 14px; }
+    .cmd-text { font-family: monospace; font-size: 15px; color: #7edc8f; flex: 1; }
+    .cmd-copy { background: #0a1e2e; border: 1px solid #144568; color: #7bbec0; padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+    .cmd-copy:hover { color: #b8eef0; border-color: #b8eef0; }
+    .onboard-hint { color: #7bbec0; font-size: 13px; margin-top: 20px; }
     .onboard-tools { display: flex; align-items: center; justify-content: center; gap: 24px; margin-top: 28px; }
-    .onboard-tool { display: flex; align-items: center; gap: 8px; color: #8b949e; font-size: 13px; }
+    .onboard-tool { display: flex; align-items: center; gap: 8px; color: #7bbec0; font-size: 13px; }
     .onboard-tool-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; font-family: monospace; }
-    .onboard-tool-icon.t-c { background: #58a6ff22; color: #58a6ff; }
-    .onboard-tool-icon.t-cu { background: #3b82f622; color: #3b82f6; }
-    .onboard-tool-icon.t-w { background: #3fb95022; color: #3fb950; }
+    .onboard-tool-icon.t-c { background: rgba(184,238,240,0.13); color: #b8eef0; }
+    .onboard-tool-icon.t-cu { background: rgba(184,238,240,0.13); color: #b8eef0; }
+    .onboard-tool-icon.t-w { background: rgba(126,220,143,0.13); color: #7edc8f; }
 
     /* --- Mobile responsive --- */
     @media (max-width: 768px) {
@@ -292,7 +304,7 @@ async function loadDuplicates() {
 // --- Render ---
 function renderApp() {
   const app = document.getElementById('app');
-  if (currentView === 'loading') { app.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;color:#8b949e">Loading...</div>'; return; }
+  if (currentView === 'loading') { app.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;color:#7bbec0">Loading...</div>'; return; }
   if (currentView === 'auth') { app.innerHTML = renderAuth(); return; }
   if (currentView === 'check-email') { app.innerHTML = renderCheckEmail(); return; }
   if (currentView === 'link-key') { app.innerHTML = renderLinkKey(); return; }
@@ -302,7 +314,7 @@ function renderApp() {
 
 function renderAuth() {
   return '<div class="auth-wrap"><div class="auth-card">' +
-    '<h2 style="color:#fafafa">Central <span style="color:#6d5aff">Intelligence</span></h2>' +
+    '<h2 style="color:#dff6f7">Central <span style="color:#b8eef0">Intelligence</span></h2>' +
     '<p>Sign in or create an account to manage your AI agent memories.</p>' +
     (authError ? '<div class="auth-error" style="display:block">' + esc(authError) + '</div>' : '') +
     '<div class="form-group"><label>Email</label><input class="auth-input" type="email" id="authEmail" placeholder="you@example.com" value="' + esc(pendingEmail) + '" onkeydown="if(event.key===\'Enter\')doSignup()"></div>' +
@@ -314,18 +326,18 @@ function renderAuth() {
 
 function renderCheckEmail() {
   return '<div class="auth-wrap"><div class="auth-card" style="text-align:center">' +
-    '<div style="font-size:48px;margin-bottom:16px">&#9993;</div>' +
+    '<div style="font-size:48px;margin-bottom:16px">&rgba(123,190,192,0.2);</div>' +
     '<h2>Check your email</h2>' +
     '<p>We sent a sign-in link to <strong>' + esc(pendingEmail) + '</strong></p>' +
-    '<p style="color:#484f58;font-size:13px">The link expires in 15 minutes.</p>' +
+    '<p style="color:#4a8587;font-size:13px">The link expires in 15 minutes.</p>' +
     '<button class="btn" style="margin-top:16px" onclick="currentView=\'auth\';renderApp()">Back</button>' +
     '</div></div>';
 }
 
 function renderLinkKey() {
   return '<div class="auth-wrap"><div class="auth-card">' +
-    '<h2 style="color:#fafafa">Link your API key</h2>' +
-    '<p>Enter your API key from <code style="color:#58a6ff">npx central-intelligence-cli signup</code></p>' +
+    '<h2 style="color:#dff6f7">Link your API key</h2>' +
+    '<p>Enter your API key from <code style="color:#b8eef0">npx central-intelligence-cli signup</code></p>' +
     '<div class="auth-error" id="linkError"></div>' +
     '<div class="form-group"><label>Email</label><input class="auth-input" type="email" id="linkEmail" placeholder="you@example.com" value="' + esc(pendingEmail) + '"></div>' +
     '<div class="form-group"><label>API Key</label><input class="auth-input" type="text" id="linkKeyInput" placeholder="ci_sk_..." style="font-family:monospace;font-size:13px"></div>' +
@@ -380,7 +392,7 @@ function renderDashboard() {
     '<h1>Central <span>Intelligence</span></h1>' +
     '<p class="subtitle">Cross-tool memory dashboard</p></div>' +
     '<div style="display:flex;align-items:center;gap:16px">' +
-    '<span style="font-size:13px;color:#8b949e">' + esc(userEmail) + '</span>' +
+    '<span style="font-size:13px;color:#7bbec0">' + esc(userEmail) + '</span>' +
     '<button class="btn" onclick="doLogout()" style="padding:4px 12px;font-size:12px">Sign out</button>' +
     '<button class="btn-transfer" onclick="openTransfer()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Transfer from ChatGPT</button>' +
     '</div></div>';
@@ -393,7 +405,7 @@ function renderDashboard() {
 
   // Projects
   if (projects.length > 0) {
-    h += '<div class="project-bar" id="projectBar"><span style="color:#8b949e;font-size:12px">Projects:</span> ';
+    h += '<div class="project-bar" id="projectBar"><span style="color:#7bbec0;font-size:12px">Projects:</span> ';
     for (const p of projects) {
       const cls = activeProject === p.name ? 'project-chip active' : 'project-chip';
       h += '<span class="' + cls + '" onclick="filterByProject(\'' + esc(p.name).replace(/'/g, "\\'") + '\')">' + esc(p.name) + '<span class="count">' + p.count + '</span></span>';
@@ -414,15 +426,15 @@ function renderDashboard() {
     statCard(totalMemories, 'Total') +
     statCard(agents, 'Agents') +
     statCard(stale, 'Stale') +
-    '<div class="stat" style="cursor:pointer;border-color:' + (dupGroups > 0 ? '#f8514966' : '#30363d') + '" onclick="toggleDuplicates()"><div class="stat-num" style="color:' + (dupGroups > 0 ? '#f85149' : '#58a6ff') + '">' + dupGroups + '</div><div class="stat-label">Duplicates</div></div>' +
+    '<div class="stat" style="cursor:pointer;border-color:' + (dupGroups > 0 ? 'rgba(255,138,138,0.4)' : '#144568') + '" onclick="toggleDuplicates()"><div class="stat-num" style="color:' + (dupGroups > 0 ? '#ff8a8a' : '#b8eef0') + '">' + dupGroups + '</div><div class="stat-label">Duplicates</div></div>' +
     statCard(tags.length, 'Tags') +
-    '<div class="stat"><div class="stat-label" style="margin-top:6px;font-size:13px;color:' + (totalMemories >= (s.memory_limit || 500) ? '#f85149' : '#8b949e') + '">' + totalMemories + ' / ' + (s.memory_limit || 500) + ' ' + (s.tier || 'free') + '</div></div>' +
+    '<div class="stat"><div class="stat-label" style="margin-top:6px;font-size:13px;color:' + (totalMemories >= (s.memory_limit || 500) ? '#ff8a8a' : '#7bbec0') + '">' + totalMemories + ' / ' + (s.memory_limit || 500) + ' ' + (s.tier || 'free') + '</div></div>' +
     '</div></div>';
 
   // Duplicates header
   if (showDuplicates) {
     h += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">' +
-      '<span style="font-size:14px;font-weight:600;color:#f85149">' + (dupData.duplicates?.length || 0) + ' duplicate memories in ' + dupGroups + ' groups</span>' +
+      '<span style="font-size:14px;font-weight:600;color:#ff8a8a">' + (dupData.duplicates?.length || 0) + ' duplicate memories in ' + dupGroups + ' groups</span>' +
       '<button class="btn btn-danger" style="font-size:12px;padding:4px 12px" onclick="selectAllDuplicates()">Select all duplicates</button>' +
       '<button class="btn" style="font-size:12px;padding:4px 12px" onclick="showDuplicates=false;renderApp()">Back to all</button></div>';
   }
@@ -442,7 +454,7 @@ function renderDashboard() {
     const dup = m.duplicate_group ? '<span class="tag-dup">dup</span>' : '';
     const isChecked = selected.has(m.id);
     const rowCls = isChecked ? 'selected' : '';
-    const proj = project ? '<span class="tag-project" onclick="event.stopPropagation();filterByProject(\'' + esc(project).replace(/'/g, "\\'") + '\')">' + esc(project) + '</span>' : '<span style="color:#484f58">\u2014</span>';
+    const proj = project ? '<span class="tag-project" onclick="event.stopPropagation();filterByProject(\'' + esc(project).replace(/'/g, "\\'") + '\')">' + esc(project) + '</span>' : '<span style="color:#4a8587">\u2014</span>';
     const tagHtml = memTags.filter(t => !t.startsWith('chat:')).map(t => ' <span class="tag-tag">' + esc(t) + '</span>').join('');
 
     h += '<tr class="' + rowCls + '" onclick="rowClick(event,\'' + m.id + '\')">' +
@@ -461,7 +473,7 @@ function renderDashboard() {
 
   // Pagination
   if (!currentFilter && !showDuplicates && totalPages > 1) {
-    h += '<div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:20px;font-size:13px;color:#8b949e">' +
+    h += '<div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:20px;font-size:13px;color:#7bbec0">' +
       '<button class="btn" onclick="goPage(' + (currentPage - 1) + ')" ' + (currentPage <= 1 ? 'disabled' : '') + ' style="padding:4px 12px;font-size:12px">Prev</button>' +
       ' Page ' + currentPage + ' of ' + totalPages + ' ' +
       '<button class="btn" onclick="goPage(' + (currentPage + 1) + ')" ' + (currentPage >= totalPages ? 'disabled' : '') + ' style="padding:4px 12px;font-size:12px">Next</button></div>';
@@ -479,10 +491,10 @@ function renderDashboard() {
     '<h3 style="margin-bottom:8px">Step 1: Copy this into ChatGPT</h3>' +
     '<div class="prompt-box" id="extractPrompt">Review our entire conversation. Extract every preference, decision, project detail, architectural choice, and instruction I shared. Ignore questions, debugging, code blocks, and small talk.\n\nWrite each as a standalone fact useful to a different AI assistant with zero context. Start each with an action word (Use, Prefer, Always, Never, Deploy, etc).\n\nOutput ONLY this format, nothing else:\n\nTRANSFER TO CI:\nProject: [name of this conversation as shown in your sidebar]\n- [fact 1]\n- [fact 2]\n- [fact 3]\n...<button class="prompt-copy" onclick="copyPrompt()">Copy prompt</button></div>' +
     '<h3 style="margin-top:20px;margin-bottom:8px">Step 3: Paste ChatGPT\'s output</h3>' +
-    '<textarea id="transferInput" style="width:100%;height:180px;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:16px;font-family:monospace;font-size:13px;color:#c9d1d9;resize:vertical;" placeholder="Paste the TRANSFER TO CI output from ChatGPT here..."></textarea>' +
+    '<textarea id="transferInput" style="width:100%;height:180px;background:#050d18;border:1px solid #144568;border-radius:8px;padding:16px;font-family:monospace;font-size:13px;color:#b8eef0;resize:vertical;" placeholder="Paste the TRANSFER TO CI output from ChatGPT here..."></textarea>' +
     '<div style="margin-top:12px;display:flex;gap:12px;align-items:center;">' +
-    '<button onclick="processTransfer()" id="transferBtn" style="background:#7c3aed;color:white;border:none;border-radius:8px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600;">Import memories</button>' +
-    '<span id="transferStatus" style="color:#8b949e;font-size:13px;"></span></div></div></div></div>';
+    '<button onclick="processTransfer()" id="transferBtn" style="background:#b8eef0;color:white;border:none;border-radius:8px;padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600;">Import memories</button>' +
+    '<span id="transferStatus" style="color:#7bbec0;font-size:13px;"></span></div></div></div></div>';
 
   return h;
 }
@@ -656,8 +668,8 @@ function copyPrompt() {
   const text = document.getElementById('extractPrompt')?.textContent?.replace('Copy prompt', '').trim();
   navigator.clipboard.writeText(text).then(() => {
     const btn = document.querySelector('.prompt-copy');
-    btn.textContent = 'Copied!'; btn.style.background = '#3fb950';
-    setTimeout(() => { btn.textContent = 'Copy prompt'; btn.style.background = '#58a6ff'; }, 2000);
+    btn.textContent = 'Copied!'; btn.style.background = '#7edc8f';
+    setTimeout(() => { btn.textContent = 'Copy prompt'; btn.style.background = '#b8eef0'; }, 2000);
   });
 }
 
@@ -676,7 +688,7 @@ async function processTransfer() {
     const mm = line.match(/^[-*]\s+(.+)/);
     if (mm) memories.push(mm[1].trim());
   }
-  if (memories.length === 0) { status.textContent = 'No memories found. Use bullet points.'; status.style.color = '#f85149'; return; }
+  if (memories.length === 0) { status.textContent = 'No memories found. Use bullet points.'; status.style.color = '#ff8a8a'; return; }
 
   btn.disabled = true; btn.textContent = 'Importing...';
   const apiKey = localStorage.getItem('ci_api_key');
@@ -690,7 +702,7 @@ async function processTransfer() {
     if (r.ok) imported++;
   }
   status.textContent = 'Imported ' + imported + '/' + memories.length + ' memories.';
-  status.style.color = '#3fb950';
+  status.style.color = '#7edc8f';
   btn.textContent = 'Done!';
   setTimeout(async () => { closeTransfer(); await loadDashboard(); renderApp(); }, 1500);
 }
