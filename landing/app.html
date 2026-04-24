@@ -526,7 +526,7 @@ function setupDashboardEvents() {
   sb.addEventListener('input', function() {
     clearTimeout(timer);
     const val = this.value;
-    timer = setTimeout(async () => { currentFilter = val; activeProject = null; showDuplicates = false; await loadMemories(); updateTable(); }, 500);
+    timer = setTimeout(async () => { currentFilter = val; activeProject = null; showDuplicates = false; await loadMemories(); updateTable(); }, 250);
   });
   sb.addEventListener('keydown', function(e) { if (e.key === 'Enter') selectAllVisible(); });
 
