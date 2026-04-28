@@ -9,9 +9,11 @@ const TIER_LIMITS: Record<string, number> = {
   enterprise: Infinity,
 };
 
-// Per-minute rate limits (API calls)
+// Per-minute rate limits (API calls).
+// Free is intentionally below Pro so the Pro line on the pricing page means
+// something. 60/min = 1 request per second, fine for development + small bots.
 const RATE_LIMITS: Record<string, number> = {
-  free: 120,
+  free: 60,
   pro: 120,
   team: 600,
   enterprise: 3000,

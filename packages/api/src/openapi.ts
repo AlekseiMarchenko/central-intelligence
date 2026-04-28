@@ -454,7 +454,7 @@ export function buildLegacyApiSpec() {
     },
     endpoints,
     rate_limits: {
-      free: { requests_per_minute: 120, max_memories: 500 },
+      free: { requests_per_minute: 60, max_memories: 500 },
       pro: { requests_per_minute: 120, max_memories: 50_000 },
       team: { requests_per_minute: 600, max_memories: 500_000 },
       enterprise: { requests_per_minute: 3000, max_memories: "unlimited" },
