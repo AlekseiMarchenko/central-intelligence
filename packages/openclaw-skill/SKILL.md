@@ -5,7 +5,7 @@ description: >
   semantic search, and share knowledge between agents. Use when you need to
   store information for later, load context from past sessions, or forget
   outdated memories. Five commands: remember, recall, context, forget, share.
-version: 1.1.0
+version: 1.1.1
 license: Apache-2.0
 metadata:
   author: AlekseiMarchenko
@@ -19,11 +19,19 @@ metadata:
     - recall
     - semantic-search
   openclaw:
+    # Declared env vars — uses the documented array-of-objects shape so the
+    # ClawHub parser (convex/lib/skills.ts) recognizes CI_API_KEY as declared
+    # and the static scanner doesn't flag process.env.CI_API_KEY references
+    # as a credential-harvest finding.
     env:
-      required:
-        - name: CI_API_KEY
-          description: "API key for Central Intelligence memory service. Get one free at https://centralintelligence.online"
-          isSecret: true
+      - name: CI_API_KEY
+        required: true
+        description: "API key for Central Intelligence memory service. Get one free at https://centralintelligence.online"
+    # Belt-and-suspenders: also declare under the canonical requires.env path
+    # documented at docs/skill-format.md:52, so both parser branches resolve.
+    requires:
+      env:
+        - CI_API_KEY
     user-invocable: true
     always: false
 ---
