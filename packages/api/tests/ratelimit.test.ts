@@ -31,13 +31,15 @@ describe("rateLimitMiddleware", () => {
   it("allows requests within rate limit", async () => {
     const res = await app.request("/test");
     expect(res.status).toBe(200);
-    expect(res.headers.get("X-RateLimit-Limit")).toBe("120");
+    // Free tier limit dropped 120 → 60 in pricing-honesty pass (b70d187)
+    // so the Pro tier's "120 req/min" feature is actually a 2× upgrade.
+    expect(res.headers.get("X-RateLimit-Limit")).toBe("60");
     expect(parseInt(res.headers.get("X-RateLimit-Remaining") || "0")).toBeGreaterThan(0);
   });
 
   it("returns 429 when rate limit exceeded", async () => {
-    // Exhaust the rate limit (free tier = 120/min)
-    for (let i = 0; i < 120; i++) {
+    // Exhaust the rate limit (free tier = 60/min after pricing-honesty pass)
+    for (let i = 0; i < 60; i++) {
       await app.request("/test");
     }
     const res = await app.request("/test");
