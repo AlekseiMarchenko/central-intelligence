@@ -3,9 +3,13 @@ import { sql } from "../db/connection.js";
 import { COST_PER_OPERATION } from "../routes/payments.js";
 
 /**
- * Billing middleware — deducts from paid balance for pro+ users.
- * Free tier users are NOT charged (they use the free 500 ops/month).
- * Only paid users (who have deposited USDC) get charged per operation.
+ * Billing middleware — handles two payment models:
+ *   1. LemonSqueezy monthly subscriptions (Pro/Team) — flat fee, NOT charged per-op.
+ *      Their entitlements (memory cap, rate limit) are enforced by other middleware.
+ *   2. USDC pay-per-op via x402 — charged $0.001 per memory operation against
+ *      a deposited balance.
+ *
+ * Free tier is unmetered (caps enforced by memoryLimitMiddleware).
  */
 export async function billingMiddleware(c: Context, next: Next) {
   const apiKeyId = c.get("apiKeyId") as string;
@@ -13,6 +17,23 @@ export async function billingMiddleware(c: Context, next: Next) {
 
   // Free tier — no billing, handled by memory limits
   if (tier === "free") {
+    await next();
+    return;
+  }
+
+  // LemonSqueezy subscribers (Pro/Team with active subscription) — flat fee,
+  // no per-operation charge. Their tier was set by the LS webhook handler.
+  // We check for an active subscription row; if found, skip USDC billing.
+  // past_due subscribers also skip — they're in grace period and get full
+  // entitlements until ends_at, after which the webhook flips tier back to free.
+  const [activeSub] = await sql`
+    SELECT 1 FROM subscriptions
+    WHERE api_key_id = ${apiKeyId}
+      AND status IN ('active', 'past_due', 'cancelled')
+      AND (ends_at IS NULL OR ends_at > now())
+    LIMIT 1
+  `;
+  if (activeSub) {
     await next();
     return;
   }

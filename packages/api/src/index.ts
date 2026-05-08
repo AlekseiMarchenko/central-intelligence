@@ -343,6 +343,14 @@ app.route("/usage", usageRouter);
 
 // x402 routes — pay-per-call with USDC, no API key needed
 // Agents with a Base wallet can call these directly
+// LemonSqueezy webhook: signature-verified, no Bearer auth.
+app.route("/billing/lemonsqueezy", lemonsqueezyRouter);
+
+// Billing endpoints (checkout/portal/status) require an API key.
+app.use("/billing/*", authMiddleware);
+app.use("/billing/*", rateLimitMiddleware);
+app.route("/billing", billingRouter);
+
 app.use("/x402/*", x402Middleware);
 app.route("/x402", memoriesRouter);
 
@@ -424,6 +432,9 @@ import { migratePgvector } from "./db/migrate-pgvector.js";
 import { migrateDates } from "./db/migrate-dates.js";
 import { migrateEnrichment } from "./db/migrate-enrichment.js";
 import { migrateFacts } from "./db/migrate-facts.js";
+import { migrateSubscriptions } from "./db/migrate-subscriptions.js";
+import { lemonsqueezyRouter } from "./routes/lemonsqueezy.js";
+import { billingRouter } from "./routes/billing.js";
 import { ensureWritable } from "./db/connection.js";
 
 const port = parseInt(process.env.PORT || "3141", 10);
@@ -437,6 +448,7 @@ const port = parseInt(process.env.PORT || "3141", 10);
   await migrateDates();
   await migrateEnrichment();
   await migrateFacts();
+  await migrateSubscriptions();
 })().then(async () => {
   ensureWritable();
 
